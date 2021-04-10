@@ -101,8 +101,10 @@ function printFooter()
 
 function printDrawer()
 {
-	print "<div id=\"drawer\" class=\"inactive\">".
-		"<h5>".__('Markdown Syntax Helper')."<a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"/icons/close.svg\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a></h5><div>".
+	print "      <div id=\"drawer\" class=\"inactive\">\n".
+		"        <a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"/icons/close.svg\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
+		"        <h5>".__('Markdown Syntax Helper')."</h5>\n".
+		"        <div>\n".
 		"# ".__('Header')." 1<br/>".
 		"## ".__('Header')." 2<br/>".
 		"### ".__('Header')." 3<br/>".
@@ -131,9 +133,16 @@ function printDrawer()
 		"```Code```<br/>". //<pre>Code</pre>\n\n".
 		"`inline-code`<br/><br/>".
 		"*** Horizontal rule<br/>".
-		"--- Horizontal rule</h5><br/>".
-		"</div></div>".
-		"<a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\"><span class=\"icongroup\"><img src=\"/icons/format-text-bold.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/><img src=\"/icons/format-text-italic.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/><img src=\"/icons/format-text-code.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/></span></a>\n";
+		"--- Horizontal rule<br/>\n".
+		"        </div>\n".
+		"      </div>\n".
+		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".
+		"        <span class=\"icongroup\">\n".
+		"          <img src=\"/icons/format-text-bold.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"          <img src=\"/icons/format-text-italic.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"          <img src=\"/icons/format-text-code.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"        </span>\n".
+		"      </a>\n";
 }
 
 if ( REQUIRE_PASSWORD && !isset($_SESSION['password']) )
