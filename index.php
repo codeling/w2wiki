@@ -74,7 +74,7 @@ if ( count($allowedIPs) > 0 )
 	}
 }
 
-function printHeader($title, $bodyclass="")
+function printHeader($title, $action, $bodyclass="")
 {
 	print "<!doctype html>\n";
 	print "<html lang=\"" . W2_LOCALE . "\">\n";
@@ -85,7 +85,10 @@ function printHeader($title, $bodyclass="")
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
-	print "    <script src=\"wiki.js\"></script>\n";
+	if ($action === 'edit')
+	{
+		print "    <script src=\"wiki.js\"></script>\n";
+	}
 	print "  </head>\n";
 	print "  <body".($bodyclass != "" ? " class=\"$bodyclass\"":"").">\n";
 }
@@ -142,7 +145,7 @@ if ( REQUIRE_PASSWORD && !isset($_SESSION['password']) )
 		$_SESSION['password'] = W2_PASSWORD_HASH;
 	else
 	{
-		printHeader( __('Log In'), "login");
+		printHeader( __('Log In'), '', "login");
 		print "    <h1>" . __('Log In') . "</h1>\n";
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
@@ -832,7 +835,7 @@ else if ( $action === "all" )
 
 	header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-	printHeader($title);
+	printHeader($title, $action);
 	print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
 	if ($action === 'view' || $action == 'rename' || $action == 'delete' || $action === 'edit')
 	{
