@@ -175,12 +175,17 @@ function descLengthSort($val_1, $val_2)
 		-1 : ( ( $firstVal < $secondVal ) ? 1 : 0);
 }
 
-function getAllPageNames()
+function getAllPageNames($path = PAGES_PATH)
 {
 	$filenames = array();
-	$dir = opendir(PAGES_PATH);
+	$dir = opendir($path);
 	while ( $filename = readdir($dir) )
 	{
+		if ( is_dir( $path . "/$filename" ) )
+		{
+			array_push($filenames, ...getAllPageNames( $path . "/$filename" ) );
+			continue;
+		}
 		if ( $filename[0] == "." || preg_match("/".PAGES_EXT."$/", $filename) != 1)
 		{
 			continue;
@@ -204,7 +209,7 @@ function imageLinkText($imgName)
 
 function sanitizeFilename($inFileName)
 {
-	return str_replace(array('~', '/', '\\', ':', '|', '&'), '-', $inFileName);
+	return str_replace(array('~', '..', '\\', ':', '|', '&'), '-', $inFileName);
 }
 
 function pageURL($page)
@@ -401,6 +406,9 @@ if ( $action == 'save' )
 	else
 	{
 		$errLevel = error_reporting(0);
+		if ( !file_exists( dirname($filename) ) ) {
+			mkdir(dirname($filename), 0755, true);
+		}
 		$success = file_put_contents($filename, $newText);
 		error_reporting($errLevel);
 		if ( $success === FALSE)
@@ -451,7 +459,7 @@ if ( $action === 'edit' || $action === 'new' )
 			}
 			$html .= "</div>\n";
 		}
-		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '/', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"$newPage\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
+		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"$newPage\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
 
 	}
 
@@ -690,7 +698,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$newContent = preg_replace("/\[\[$oldPageName([|#].*\]\]|\]\])/",
+			$regexSaveOldPageName = str_replace("/", "\\/", $oldPageName);
+			$newContent = preg_replace("/\[\[$regexSaveOldPageName([|#].*\]\]|\]\])/",
 				(($action === 'deleted') ? "" : "[[$newPageName\\1"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
@@ -920,7 +929,8 @@ if ($action === 'view' && isset($_GET['linkshere']))
 	foreach($pagenames as $searchPage)
 	{
 		$text = file_get_contents(fileNameForPage($searchPage));
-		if ( preg_match("/\[\[$page/i", $text) )
+		$regexSavePage = str_replace("/", "\\/", $page);
+		if ( preg_match("/\[\[$regexSavePage/i", $text) )
 		{
 			$link = pageLink($searchPage, $searchPage, "");
 			print("        <li>$link</li>\n");
