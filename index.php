@@ -175,19 +175,19 @@ function descLengthSort($val_1, $val_2)
 		-1 : ( ( $firstVal < $secondVal ) ? 1 : 0);
 }
 
-function getAllPageNames($path = PAGES_PATH)
+function getAllPageNames($path = "")
 {
 	$filenames = array();
-	$dir = opendir($path);
+	$dir = opendir(PAGES_PATH . "/$path" );
 	while ( $filename = readdir($dir) )
 	{
 		if ( $filename[0] == "." )
 		{
 			continue;
 		}
-		if ( is_dir( $path . "/$filename" ) )
+		if ( is_dir( PAGES_PATH . "/$path/$filename" ) )
 		{
-			array_push($filenames, ...getAllPageNames( $path . "/$filename" ) );
+			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
 			continue;
 		}
 		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
@@ -195,7 +195,7 @@ function getAllPageNames($path = PAGES_PATH)
 			continue;
 		}
 		$filename = substr($filename, 0, -(strlen(PAGES_EXT)+1) );
-		$filenames[] = $filename;
+		$filenames[] = "$path/$filename";
 	}
 	closedir($dir);
 	return $filenames;
