@@ -13,8 +13,9 @@ COPY --chown=www-data:www-data . /var/www/html
 
 RUN set -eux; \
 	\
-	sed -i "s/BASE_PATH \\. //" /var/www/html/config.php; \
-	sed -i "s/'GIT_COMMIT_ENABLED', false/'GIT_COMMIT_ENABLED', true/" /var/www/html/config.php
+	sed -i "s/BASE_PATH \\. //" /var/www/html/config.php ;\
+	sed -i "s/'GIT_COMMIT_ENABLED', false/'GIT_COMMIT_ENABLED', true/" /var/www/html/config.php ;\
+	echo "" > /etc/apache2/mods-enabled/alias.conf
 
 VOLUME /pages
 EXPOSE 80
