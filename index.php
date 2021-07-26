@@ -195,7 +195,7 @@ function getAllPageNames($path = "")
 			continue;
 		}
 		$filename = substr($filename, 0, -(strlen(PAGES_EXT)+1) );
-		$filenames[] = "$path/$filename";
+		$filenames[] = substr("$path/$filename", 1);
 	}
 	closedir($dir);
 	return $filenames;
