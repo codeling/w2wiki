@@ -218,7 +218,7 @@ function sanitizeFilename($inFileName)
 
 function pageURL($page)
 {
-	return SELF . VIEW . "/".str_replace("%23", "#", urlencode(sanitizeFilename($page)));
+	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", urlencode(sanitizeFilename($page))));
 }
 
 function pageLink($page, $title, $attributes="")
