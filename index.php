@@ -181,12 +181,16 @@ function getAllPageNames($path = PAGES_PATH)
 	$dir = opendir($path);
 	while ( $filename = readdir($dir) )
 	{
+		if ( $filename[0] == "." )
+		{
+			continue;
+		}
 		if ( is_dir( $path . "/$filename" ) )
 		{
 			array_push($filenames, ...getAllPageNames( $path . "/$filename" ) );
 			continue;
 		}
-		if ( $filename[0] == "." || preg_match("/".PAGES_EXT."$/", $filename) != 1)
+		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
 		{
 			continue;
 		}
