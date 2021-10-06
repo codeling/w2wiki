@@ -454,7 +454,7 @@ if ( $action == "edit" || $action == "new" )
 
 	}
 
-	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\">$text</textarea></p>\n";
+	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">$text</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
 		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"$oldgitmsg\" /></p>\n";
