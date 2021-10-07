@@ -19,7 +19,7 @@
 // The path to the raw text documents maintained by W2
 // You should not use a trailing slash.
 
-define('PAGES_PATH', BASE_PATH . '/pages');
+define('PAGES_PATH', dirname(__FILE__). '/pages');
 
 // UPLOAD_FOLDER
 //
