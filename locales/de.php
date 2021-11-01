@@ -39,6 +39,7 @@ $w2_word_set = array(
 	'Total' => 'Gesamt',
 	'images' => 'Bilder',
 	'matches' => 'Übereinstimmung(en)',
+	'pages' => 'Seite(n)',
 	'Create page' => 'Seite anlegen',
 	'to' => 'in',
 	'Shrink if larger than ' => 'Verkleinern wenn größer als ',

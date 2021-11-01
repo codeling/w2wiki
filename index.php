@@ -750,7 +750,7 @@ else if ( $action === "all" )
 		}
 		arsort($filelist, SORT_NUMERIC);
 	}
-	$html .= "<p>".__('Total').": ".count($pageNames)." pages</p>";
+	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
 	$html .= "<table><thead>";
 	$html .= "<tr>".
 		"<td>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</td>".
