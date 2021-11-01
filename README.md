@@ -28,6 +28,11 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 See [Installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md).
 
 
+## Security Notice
+
+In its current form, W2 wiki is not security-hardened; it's recommended to only run on an additionally secured server (e.g. in a small, private network for one user only; and secured behind a VPN and/or HTTPS with basic authentication).
+
+
 ## License
 
 W2 is licensed under the [MIT license](https://github.com/codeling/w2wiki/blob/master/LICENSE).
