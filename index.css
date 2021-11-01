@@ -116,7 +116,10 @@ table {
 	padding: .2em;
 	max-width: 99%;
 }
-  td {
+  th {
+	text-align: left;
+  }
+  td, th {
 	padding: .1em 1em .1em .1em;
 	word-break: break-all;
   }
