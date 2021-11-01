@@ -773,33 +773,46 @@ else if ( $action === "all" )
 	{
 		$matches = 0;
 		$q = $_REQUEST['q'];
-		$html .= "    <h1>Search: $q</h1>\n".
-			"    <ul>\n";
+		$html .= "    <h1>Search: $q</h1>\n";
 
 		if ( trim($q) != "" )
 		{
+			$html .= "    <ul>\n";
 			$pagenames = getAllPageNames();
 			$found = FALSE;
-			foreach($pagenames as $searchPage)
+			$matchingPages = array();
+			foreach ($pagenames as $searchPage)
 			{
 				if ($searchPage === $q)
 				{
 					$found = TRUE;
 				}
-				$text = file_get_contents(fileNameForPage($searchPage));
-				if ( preg_match("/{$q}/i", $text) || preg_match("/{$q}/i", $searchPage) )
+				if (preg_match("/{$q}/i", $searchPage))
 				{
+					array_unshift($matchingPages, $searchPage);
 					++$matches;
-					$link = pageLink($searchPage, $searchPage, ($searchPage === $q)? " class=\"literalMatch\"": "");
-					$html .= "        <li>$link</li>\n";
+				}
+				else
+				{
+					$text = file_get_contents(fileNameForPage($searchPage));
+					if ( preg_match("/{$q}/i", $text) )
+					{
+						$matchingPages[] = $searchPage;
+						++$matches;
+					}
 				}
 			}
+			foreach ($matchingPages as $page)
+			{
+				$link = pageLink($page, $page, ($page === $q)? " class=\"literalMatch\"": "");
+				$html .= "        <li>$link</li>\n";
+			}
+			if (!$found)
+			{
+				$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
+			}
+			$html .= "      </ul>\n";
 		}
-		if (!$found)
-		{
-			$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
-		}
-		$html .= "      </ul>\n";
 		$html .= "      <p>$matches ".__('matches')."</p>\n";
 	}
 	else
