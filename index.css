@@ -92,6 +92,7 @@ pre {
 	font-family: Courier, monospace;
 	margin-left: 0;
 	margin-bottom: .5em;
+	margin-top: .5em;
 
 	/* stroke each browser so that they wrap lines in the pre tag */
 	white-space: pre-wrap;       /* css-3 */
@@ -101,8 +102,8 @@ pre {
 	word-wrap: break-word;       /* Internet Explorer 5.5+ */
 
 	background: #ffc;
-	border: 1px dashed gray;
-	padding: .2em 0 0 .4em;
+	border: 1px dotted gray;
+	padding: .2em .2em .2em .4em;
 }
 
 code {
