@@ -8,6 +8,9 @@
  *
  * Written with Coda: <http://panic.com/coda/>
  *
+ * colors icons:
+ *          240,240,240
+ *     dark: 15, 15, 15
  */
  
 * {
@@ -144,12 +147,6 @@ table {
 	padding-left: 8px;
 	padding-right: 8px;
 }
-  tr:nth-child(even) .pageActions {
-	background-color: rgb(80, 80, 80);
-  }
-  tr:nth-child(odd) .pageActions {
-	background-color: rgb(40, 40, 40);
-  }
 
 textarea {
 	font-family: Courier, monospace;

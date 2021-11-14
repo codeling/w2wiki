@@ -322,7 +322,7 @@ function destroy_session()
 	unset($_SESSION);
 }
 
-function getPageActions($page, $action)
+function getPageActions($page, $action, $imgSuffix)
 {
 	$pageActions = array('edit', 'delete', 'rename');
 	$pageActionNames = array(__('Edit'), __('Delete'), __('Rename'));
@@ -332,10 +332,10 @@ function getPageActions($page, $action)
 		if ($action != $pageActions[$i])
 		{
 			$result .= "      <a href=\"".SELF."?action=".$pageActions[$i].
-				"&amp;page=".urlencode($page)."\"><img src=\"/icons/".$pageActions[$i].".svg\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
+				"&amp;page=".urlencode($page)."\"><img src=\"/icons/".$pageActions[$i].$imgSuffix.".svg\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
 		}
 	}
-		$result .= "      <a href=\"" . SELF . "?action=view&page=$page&linkshere=true\"><img src=\"/icons/link.svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
+	$result .= "      <a href=\"" . SELF . "?action=view&page=$page&linkshere=true\"><img src=\"/icons/link".$imgSuffix.".svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
 	return $result;
 }
 
@@ -764,7 +764,7 @@ else if ( $action === "all" )
 		$html .= "<tr>".
 			"<td>".pageLink($pageName, $pageName)."</td>".
 			"<td valign=\"top\"><nobr>".date( $date_format, $pageDate)."</nobr></td>".
-				"<td class=\"pageActions\">".getPageActions($pageName, $action)."</td>".
+				"<td class=\"pageActions\">".getPageActions($pageName, $action,"-dark")."</td>".
 				"</tr>\n";
 		}
 		$html .= "</tbody></table>\n";
@@ -861,7 +861,7 @@ else if ( $action === "all" )
 	print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
 	if ($action === 'view' || $action == 'rename' || $action == 'delete' || $action === 'edit')
 	{
-		print(getPageActions($page, $action));
+		print(getPageActions($page, $action, ""));
 	}
 	print "    </div>\n";
 	print "    <div class=\"toolbar\">\n";
