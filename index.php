@@ -345,7 +345,7 @@ $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
 $newPage = "";
 $text = "";
 $html = "";
-if ($action === "view" || $action === "edit" || $action === "save" || $action === "rename" || $action === "delete")
+if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
 {
 	// Look for page name following the script name in the URL, like this:
 	// http://stevenf.com/w2demo/index.php/Markdown%20Syntax
@@ -361,7 +361,7 @@ if ($action === "view" || $action === "edit" || $action === "save" || $action ==
 	}
 	$filename = fileNameForPage($page);
 }
-if ($action === "view" || $action === "edit")
+if ($action === 'view' || $action === 'edit')
 {
 	if ( file_exists($filename) )
 	{
@@ -370,12 +370,12 @@ if ($action === "view" || $action === "edit")
 	else
 	{
 		$newPage = $page;
-		$action = "new";
+		$action = 'new';
 	}
 }
 $oldgitmsg = "";
 $triedSave = false;
-if ( $action == "save" )
+if ( $action == 'save' )
 {
 	$msg = '';
 	$newText = $_REQUEST['newText'];
@@ -388,7 +388,7 @@ if ( $action == "save" )
 	if ($isNew && file_exists($filename))
 	{
 		$msg .= "Error creating page '$page' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!</div>\n";
-		$action = "new";
+		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
 		if (GIT_COMMIT_ENABLED)
@@ -405,7 +405,7 @@ if ( $action == "save" )
 		if ( $success === FALSE)
 		{
 			$msg .= "Error saving changes! Make sure your web server has write access to " . PAGES_PATH . "\n";
-			$action = ($isNew ? "new" : "edit");
+			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
 			$newPage = $page;
 			if (GIT_COMMIT_ENABLED)
@@ -425,12 +425,12 @@ if ( $action == "save" )
 	redirectWithMessage($page, $msg);
 }
 
-if ( $action == "edit" || $action == "new" )
+if ( $action === 'edit' || $action === 'new' )
 {
-	$formAction = SELF . (($action == 'edit') ? "/$page" : "");
+	$formAction = SELF . (($action === 'edit') ? "/$page" : "");
 	$html .= "<form id=\"edit\" method=\"post\" action=\"$formAction\">\n";
 
-	if ( $action == "edit" )
+	if ( $action === 'edit' )
 	{
 		$html .= "<input type=\"hidden\" name=\"page\" value=\"$page\" />\n";
 	}
@@ -461,18 +461,18 @@ if ( $action == "edit" || $action == "new" )
 	}
 
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
-	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==="new")?"true":"")."\" />\n";
+	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
 	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
 	$html .= '<input id="cancel" type="button" onclick="history.go(-1);" value="'. __('Cancel') .'" />'."\n";
 	$html .= "</p></form>\n";
 }
-else if ( $action == "logout" )
+else if ( $action === 'logout' )
 {
 	destroy_session();
 	header("Location: " . SELF);
 	exit;
 }
-else if ( $action == "upload" )
+else if ( $action === 'upload' )
 {
 	if ( DISABLE_UPLOADS )
 	{
@@ -515,7 +515,7 @@ else if ( $action == "upload" )
 	}
 	$html .= "</tbody></table>\n";
 }
-else if ( $action == "uploaded" )
+else if ( $action === 'uploaded' )
 {
 	if ( DISABLE_UPLOADS )
 	{
@@ -678,7 +678,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
 			$newContent = preg_replace("/\[\[$oldPageName([|#].*\]\]|\]\])/",
-				(($action === "deleted") ? "" : "[[$newPageName\\1"),
+				(($action === 'deleted') ? "" : "[[$newPageName\\1"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
@@ -697,7 +697,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	else
 	{
-		$msg .= ($action === "deleted") ? __('Error deleting file'): __('Error renaming file');
+		$msg .= ($action === 'deleted') ? __('Error deleting file'): __('Error renaming file');
 		$page = $oldPageName;
 	}
 	if ($action === 'deleted' && $success)
@@ -706,7 +706,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	redirectWithMessage($page, $msg);
 }
-else if ( $action === "imgDeleted")
+else if ( $action === 'imgDeleted')
 {
 	// TODO: prevent relative filenames from being injected
 	$oldPageName = sanitizeFilename($_REQUEST['oldPageName']);
@@ -725,7 +725,7 @@ else if ( $action === "imgDeleted")
 	}
 	redirectWithMessage(DEFAULT_PAGE, $msg);
 }
-else if ( $action === "all" )
+else if ( $action === 'all' )
 {
 	$pageNames = getAllPageNames();
 	$filelist = array();
@@ -769,7 +769,7 @@ else if ( $action === "all" )
 		}
 		$html .= "</tbody></table>\n";
 	}
-	else if ( $action == "search" )
+	else if ( $action === 'search' )
 	{
 		$matches = 0;
 		$q = $_REQUEST['q'];
@@ -822,25 +822,25 @@ else if ( $action === "all" )
 
 	$datetime = '';
 
-	if ( ($action == "all"))
+	if ( ($action === 'all'))
 	{
 		$title = __("All");
 	}
-	else if ( $action == "upload" )
+	else if ( $action === 'upload' )
 	{
 		$title = __("Upload");
 	}
-	else if ( $action == "new" )
+	else if ( $action === 'new' )
 	{
 		$title = __("New");
 	}
-	else if ( $action == "search" )
+	else if ( $action === 'search' )
 	{
 		$title = __("Search");
 	}
 	else if ($filename != '')
 	{
-		$title = $page;
+		$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
 		$date_format = __('date_format', TITLE_DATE);
 		if ( $date_format )
 		{
@@ -859,7 +859,7 @@ else if ( $action === "all" )
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
 	printHeader($title, $action);
 	print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
-	if ($action === 'view' || $action == 'rename' || $action == 'delete' || $action === 'edit')
+	if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
 	{
 		print(getPageActions($page, $action, ""));
 	}
