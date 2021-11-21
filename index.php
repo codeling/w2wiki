@@ -488,7 +488,6 @@ else if ( $action === 'upload' )
 			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'.
 			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
 			'<input id="upload" type="submit" value="' . __('Upload') . '" />'."\n".
-			'<input id="cancel" type="button" onclick="history.go(-1);" value="'. __('Cancel') .'" />'."\n";
 			"</p></form>\n";
 	}
 	// list files in UPLOAD_FOLDER
@@ -510,7 +509,7 @@ else if ( $action === 'upload' )
 			"<td>".basename($imgName)."</td>".
 			"<td><pre>".imageLinkText(basename($imgName))."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete"."&amp;imgName=".urlencode(basename($imgName))."\">".__('Delete')."</a></td>".
+			"<td><a href=\"".SELF."?action=imgDelete"."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
 			"</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
