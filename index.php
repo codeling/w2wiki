@@ -335,7 +335,7 @@ function getPageActions($page, $action, $imgSuffix)
 				"&amp;page=".urlencode($page)."\"><img src=\"/icons/".$pageActions[$i].$imgSuffix.".svg\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
 		}
 	}
-	$result .= "      <a href=\"" . SELF . "?action=view&page=$page&linkshere=true\"><img src=\"/icons/link".$imgSuffix.".svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
+	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"/icons/link".$imgSuffix.".svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
 	return $result;
 }
 
