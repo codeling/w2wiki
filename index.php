@@ -901,7 +901,7 @@ if (SIDEBAR_PAGE != '')
 	print toHTML($text);
 	print "    </div>\n";
 }
-if ($action === 'view' && $_GET['linkshere'])
+if ($action === 'view' && isset($_GET['linkshere']))
 {
 	print "<div class=\"linkshere\">".__('What links here:')."<ul>";
 	$pagenames = getAllPageNames();
