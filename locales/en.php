@@ -13,6 +13,7 @@ $w2_word_set = array(
 	'New'    => 'New',
 	'Edit'   => 'Edit',
 	'Upload' => 'Upload',
+	'imgDelete' => 'Delete image',
 	'All'    => 'All',
 	'Recent' => 'Recent',
 	'Exit'   => 'Exit',

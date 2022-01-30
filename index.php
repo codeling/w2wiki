@@ -474,21 +474,23 @@ else if ( $action === 'logout' )
 }
 else if ( $action === 'upload' )
 {
+	$prevpage = isset($_REQUEST['page']) ? urldecode(@$_REQUEST['page']) : DEFAULT_PAGE;
 	if ( DISABLE_UPLOADS )
 	{
 		$html .= '<p>' . __('Image uploading has been disabled on this installation.') . '</p>';
 	}
 	else
 	{
-		$html .= "<form id=\"upload\" method=\"post\" action=\"" . SELF . "\" enctype=\"multipart/form-data\"><p>\n".
-			"<input type=\"hidden\" name=\"action\" value=\"uploaded\" />".
-			"<input id=\"file\" type=\"file\" name=\"userfile\" />\n".
+		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
+			'<input type="hidden" name="action" value="uploaded" />'.
+			'<input type="hidden" name="prevpage" value="'.$prevpage.'" />'.
+			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
-			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'.
+			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
 			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
-			'<input id="upload" type="submit" value="' . __('Upload') . '" />'."\n".
-			"</p></form>\n";
+			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
+			"\n</p></form>\n";
 	}
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
@@ -509,7 +511,7 @@ else if ( $action === 'upload' )
 			"<td>".basename($imgName)."</td>".
 			"<td><pre>".imageLinkText(basename($imgName))."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete"."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
+			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($page)."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
 			"</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
@@ -636,7 +638,8 @@ else if ( $action === 'uploaded' )
 	{
 		$msg .= __('Upload error: invalid file type');
 	}
-	redirectWithMessage(DEFAULT_PAGE, $msg);
+	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete')
 {
@@ -652,6 +655,11 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"${action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . htmlspecialchars($page) . "\" />";
+	if ($action === 'imgDelete')
+	{
+		$prevpage = isset($_REQUEST['prevpage']) ? urldecode(@$_REQUEST['prevpage']) : DEFAULT_PAGE;
+		$html .= '<input type="hidden" name="prevpage" value="'.$prevpage.'" />';
+	}
 	$html .= "</p></form>";
 }
 else if ( $action === 'renamed' || $action === 'deleted')
@@ -726,7 +734,8 @@ else if ( $action === 'imgDeleted')
 		$msg = __('Error deleting image');
 		$msg .= " (".$imgPath.")";
 	}
-	redirectWithMessage(DEFAULT_PAGE, $msg);
+	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'all' )
 {
@@ -873,7 +882,7 @@ print "      <a href=\"" . SELF . "?action=all\"><img src=\"/icons/list.svg\" al
 print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
 if ( !DISABLE_UPLOADS )
 {
-	print "      <a href=\"" . SELF . VIEW . "?action=upload\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
+	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($page)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
 {
