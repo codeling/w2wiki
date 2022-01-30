@@ -610,7 +610,11 @@ else if ( $action === 'uploaded' )
 				imagedestroy( $dst );
 			}
 			gitChangeHandler($msg, $msg);
-			$msg .= " ($size[0]x$size[1]".(($doResize)?", resized to $newSize[0]x$newSize[1]":"").") successfully! Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
+			if ($doResize)
+			{
+				$msg .= " Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
+			}
+			$msg .= " Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
 		}
 		else
 		{
