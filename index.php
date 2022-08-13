@@ -583,12 +583,13 @@ else if ( $action === 'uploaded' )
 						$rot = imagerotate($dst,-90,0);
 						break;
 					default:
-						$msg .= "Unknown EXIF orientation specification: ".$exif['Orientation']."!";
+						$msg .= "Unknown EXIF orientation specification: ".$exif['Orientation'].". ";
+						$rot = false;
 						break;
 					}
 					if ($rot === false)
 					{
-						$msg .= "Rotation failed!";
+						$msg .= "Rotation failed/skipped! ";
 					}
 					else
 					{
