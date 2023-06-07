@@ -3,24 +3,37 @@
 W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 
 
-## Notable features:
+## Features:
 
 - Elegant text markup:
     - Uses [Markdown Syntax](https://github.com/codeling/w2wiki/blob/master/pages/MarkdownSyntax.md).
     - It supports double-brackets [[like this]] to link to another page in the wiki by title
     - It supports double-braces {{like this}} to link to an uploaded image
-- Minimalistic but functional interface:
-    - Fits to screen nicely when viewed on iPhone, with custom icon for adding to home screen
-    - HTML5 compliant output
 - Title & content search
 - Filesystem storage (no database required) in plain Markdown text files.
-- Rudimentary git integration to commit & push each page edit
-- Localization support (currently en/ja translations available)
 - Image uploading support
 - Optionally password-protected
 - Unlike cloud / hosted solutions, you retain control of your data
 - Written in PHP for portability and hackability
 - Extremely compact (only a few .php files and a .css file)
+- Differences to [original w2wiki by panicsteve](https://github.com/panicsteve/w2wiki):
+    - Rudimentary, optional git integration to commit (and push) each page edit
+    - Support for renaming and deleting pages
+    - Markdown formatting syntax help on edit page
+    - Localization support (en/de/ja translations included)
+    - Improved icon-based interface
+    - Optional, always visible sidebar fed by a special page
+	- Merged All/Recent list of all pages
+    - Links:
+        - Possibility to display pages that link to the current page
+        - Support for links to sub-captions (using # in links)
+	    - When navigating to a non-existing page, show links to similar pages
+	    - Mark links to non-existing pages (by default in red)
+        - Mark external links with globe icon
+	- Image uploads:
+		- Option to shrink uploaded images (based on maximum side length)
+		- Fix rotation (based on EXIF data)
+		- List of uploaded images providing usage information and option to delete
 
 
 ## Installation & Configuration
