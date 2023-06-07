@@ -20,7 +20,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Rudimentary, optional git integration to commit (and push) each page edit
     - Support for renaming and deleting pages
     - Markdown formatting syntax help on edit page
-    - Localization support (en/de/ja translations included)
+    - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
     - Optional, always visible sidebar fed by a special page
 	- Merged All/Recent list of all pages
@@ -59,6 +59,7 @@ Originally written by [Steven Frank](https://github.com/panicsteve/w2wiki) and o
 - [namvan](https://github.com/namvan/w2wiki)
 - [nickodell](https://github.com/nickodell/w2wiki)
 - [pilem](https://github.com/pilem/w2)
+- [Mejans](https://github.com/Mejans) - Occitan translations
 
 W2 wiki uses [PHP Markdown](https://github.com/michelf/php-markdown) by Michel Fortin for rendering Markdown to HTML.
 
