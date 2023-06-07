@@ -511,7 +511,7 @@ else if ( $action === 'upload' )
 			"<td>".basename($imgName)."</td>".
 			"<td><pre>".imageLinkText(basename($imgName))."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($page)."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
+			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
 			"</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
@@ -883,7 +883,8 @@ print "      <a href=\"" . SELF . "?action=all\"><img src=\"/icons/list.svg\" al
 print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
 if ( !DISABLE_UPLOADS )
 {
-	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($page)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
+	$uploadPage = isset($page) ? $page : $prevpage;
+	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
 {
