@@ -283,9 +283,9 @@ function toHTML($inText)
 	{
 		$fullLinkText = $matches[1][$i];
 		$linkTitleSplit = explode('|', $fullLinkText);
-		$linkedPage = $linkTitleSplit[0];    // split away an eventual link text
+		$linkedPage = $linkTitleSplit[0];    // split away potential link text
 		$linkText = (count($linkTitleSplit) > 1) ? $linkTitleSplit[1] : $linkedPage;
-		$pagePart = explode('#', $linkedPage)[0];  // split away an eventual anchor part
+		$pagePart = explode('#', $linkedPage)[0];  // split away a potential anchor part
 		$linkedFilename = fileNameForPage(sanitizeFilename($pagePart));
 		$exists = file_exists($linkedFilename);
 		$outHTML = str_replace("[[$fullLinkText]]",
