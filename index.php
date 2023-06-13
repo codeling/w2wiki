@@ -352,9 +352,10 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 	//
 	// Otherwise, get page name from 'page' request variable.
 
-	$page = preg_match('@^/@', @$_SERVER["PATH_INFO"]) ?
-		urldecode(substr($_SERVER["PATH_INFO"], 1)) : urldecode(@$_REQUEST['page']);
-	$page = sanitizeFilename($page);
+	$path_info = isset($_SERVER["PATH_INFO"]) ? $_SERVER["PATH_INFO"]: '';
+	$request_page = isset($_REQUEST['page']) ? $_REQUEST['page'] : '';
+	$page = preg_match('@^/@', $path_info) ? substr($path_info, 1) : $request_page;
+	$page = sanitizeFilename(urldecode($page));
 	if ( $page == "" )
 	{
 		$page = DEFAULT_PAGE;
