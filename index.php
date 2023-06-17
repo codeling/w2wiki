@@ -181,7 +181,7 @@ function getAllPageNames($path = "")
 	$dir = opendir(PAGES_PATH . "/$path" );
 	while ( $filename = readdir($dir) )
 	{
-		if ( $filename[0] == "." )
+		if ( $filename === "." || $filename === ".." )
 		{
 			continue;
 		}
