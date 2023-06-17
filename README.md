@@ -60,6 +60,7 @@ Originally written by [Steven Frank](https://github.com/panicsteve/w2wiki) and o
 - [nickodell](https://github.com/nickodell/w2wiki)
 - [pilem](https://github.com/pilem/w2)
 - [Mejans](https://github.com/Mejans) - Occitan translations
+- [martin-v](https://github.com/martin-v) - folder support
 
 W2 wiki uses [PHP Markdown](https://github.com/michelf/php-markdown) by Michel Fortin for rendering Markdown to HTML.
 
