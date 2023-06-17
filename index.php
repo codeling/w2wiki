@@ -799,111 +799,111 @@ else if ( $action === 'all' )
 			"<td valign=\"top\"><nobr>".date( $date_format, $pageDate)."</nobr></td>".
 				"<td class=\"pageActions\">".getPageActions($pageName, $action,"-dark")."</td>".
 				"</tr>\n";
-		}
-		$html .= "</tbody></table>\n";
 	}
-	else if ( $action === 'search' )
-	{
-		$matches = 0;
-		$q = $_REQUEST['q'];
-		$html .= "    <h1>Search: $q</h1>\n";
+	$html .= "</tbody></table>\n";
+}
+else if ( $action === 'search' )
+{
+	$matches = 0;
+	$q = $_REQUEST['q'];
+	$html .= "    <h1>Search: $q</h1>\n";
 
-		if ( trim($q) != "" )
+	if ( trim($q) != "" )
+	{
+		$html .= "    <ul>\n";
+		$pagenames = getAllPageNames();
+		$found = FALSE;
+		$matchingPages = array();
+		foreach ($pagenames as $searchPage)
 		{
-			$html .= "    <ul>\n";
-			$pagenames = getAllPageNames();
-			$found = FALSE;
-			$matchingPages = array();
-			foreach ($pagenames as $searchPage)
+			if ($searchPage === $q)
 			{
-				if ($searchPage === $q)
+				$found = TRUE;
+			}
+			if (preg_match("/{$q}/i", $searchPage))
+			{
+				array_unshift($matchingPages, $searchPage);
+				++$matches;
+			}
+			else
+			{
+				$text = file_get_contents(fileNameForPage($searchPage));
+				if ( preg_match("/{$q}/i", $text) )
 				{
-					$found = TRUE;
-				}
-				if (preg_match("/{$q}/i", $searchPage))
-				{
-					array_unshift($matchingPages, $searchPage);
+					$matchingPages[] = $searchPage;
 					++$matches;
 				}
-				else
-				{
-					$text = file_get_contents(fileNameForPage($searchPage));
-					if ( preg_match("/{$q}/i", $text) )
-					{
-						$matchingPages[] = $searchPage;
-						++$matches;
-					}
-				}
 			}
-			foreach ($matchingPages as $page)
-			{
-				$link = pageLink($page, $page, ($page === $q)? " class=\"literalMatch\"": "");
-				$html .= "        <li>$link</li>\n";
-			}
-			if (!$found)
-			{
-				$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
-			}
-			$html .= "      </ul>\n";
 		}
-		$html .= "      <p>$matches ".__('matches')."</p>\n";
-	}
-	else
-	{
-		$html .= empty($text) ? '' : toHTML($text);
-	}
-
-	$datetime = '';
-
-	if ( ($action === 'all'))
-	{
-		$title = __("All");
-	}
-	else if ( $action === 'upload' )
-	{
-		$title = __("Upload");
-	}
-	else if ( $action === 'new' )
-	{
-		$title = __("New");
-	}
-	else if ( $action === 'search' )
-	{
-		$title = __("Search");
-	}
-	else if ($filename != '')
-	{
-		$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
-		$date_format = __('date_format', TITLE_DATE);
-		if ( $date_format )
+		foreach ($matchingPages as $page)
 		{
-			$datetime = "<span class=\"titledate\">" . date($date_format, @filemtime($filename)) . "</span>";
+			$link = pageLink($page, $page, ($page === $q)? " class=\"literalMatch\"": "");
+			$html .= "        <li>$link</li>\n";
 		}
+		if (!$found)
+		{
+			$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
+		}
+		$html .= "      </ul>\n";
 	}
-	else
-	{
-		$title = __($action);
-	}
+	$html .= "      <p>$matches ".__('matches')."</p>\n";
+}
+else
+{
+	$html .= empty($text) ? '' : toHTML($text);
+}
 
-	// Disable caching on the client (the iPhone is pretty agressive about this
-	// and it can cause problems with the editing function)
+$datetime = '';
 
-	header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-	printHeader($title, $action);
-	print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
-	if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
+if ( ($action === 'all'))
+{
+	$title = __("All");
+}
+else if ( $action === 'upload' )
+{
+	$title = __("Upload");
+}
+else if ( $action === 'new' )
+{
+	$title = __("New");
+}
+else if ( $action === 'search' )
+{
+	$title = __("Search");
+}
+else if ($filename != '')
+{
+	$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
+	$date_format = __('date_format', TITLE_DATE);
+	if ( $date_format )
 	{
-		print(getPageActions($page, $action, ""));
+		$datetime = "<span class=\"titledate\">" . date($date_format, @filemtime($filename)) . "</span>";
 	}
-	print "    </div>\n";
-	print "    <div class=\"toolbar\">\n";
-	print "      <a href=\"" . SELF . "\"><img src=\"/icons/home.svg\" alt=\"". __(DEFAULT_PAGE) . "\" title=\"". __(DEFAULT_PAGE) . "\" class=\"icon\"></a>\n";
+}
+else
+{
+	$title = __($action);
+}
+
+// Disable caching on the client (the iPhone is pretty agressive about this
+// and it can cause problems with the editing function)
+
+header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+printHeader($title, $action);
+print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
+if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
+{
+	print(getPageActions($page, $action, ""));
+}
+print "    </div>\n";
+print "    <div class=\"toolbar\">\n";
+print "      <a href=\"" . SELF . "\"><img src=\"/icons/home.svg\" alt=\"". __(DEFAULT_PAGE) . "\" title=\"". __(DEFAULT_PAGE) . "\" class=\"icon\"></a>\n";
 print "      <a href=\"" . SELF . "?action=all\"><img src=\"/icons/list.svg\" alt=\"". __('All') . "\" title=\"". __('All') . "\" class=\"icon\"></a>\n";
 print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
 if ( !DISABLE_UPLOADS )
 {
-	$uploadPage = isset($page) ? $page : $prevpage;
+	$uploadPage = isset($page) ? $page : (isset($prevpage)? $prevpage : DEFAULT_PAGE);
 	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
