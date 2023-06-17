@@ -410,7 +410,8 @@ if ( $action == 'save' )
 	else
 	{
 		$errLevel = error_reporting(0);
-		if ( !file_exists( dirname($filename) ) ) {
+		if ( !file_exists( dirname($filename) ) )
+		{
 			mkdir(dirname($filename), 0755, true);
 		}
 		$success = file_put_contents($filename, $newText);
@@ -688,6 +689,11 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	else
 	{
+		$folderName = dirname(fileNameForPage($newPageName));
+		if ( !file_exists($folderName) )
+		{
+			mkdir($folderName, 0755, true);
+		}
 		$success = rename(fileNameForPage($oldPageName), fileNameForPage($newPageName));
 	}
 	if ($success)
