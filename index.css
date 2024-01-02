@@ -353,3 +353,19 @@ a > img.icon:active, a > span.icongroup:active {
 {
 	float: right;
 }
+
+.thumbImg
+{
+	vertical-align: middle;
+	width: 24px;
+}
+.thumbPlaceHolder
+{
+	display: inline-block;
+	width: 24px;
+}
+.uploadFileName
+{
+	vertical-align: middle;
+	padding-left:5px;
+}

@@ -521,11 +521,21 @@ else if ( $action === 'upload' )
 	$date_format = __('date_format', TITLE_DATE);
 	foreach ($imgNames as $imgName)
 	{
+		$baseImgName = basename($imgName);
+		$isImg = false;
+		$imgExt = array("bmp", "jpg", "jpeg", "png", "webp");
+		foreach($imgExt as $ext)
+		{
+			if (str_ends_with($baseImgName, $ext))
+			{
+				$isImg = true;
+			}
+		}
 		$html .= "<tr>".
-			"<td>".basename($imgName)."</td>".
-			"<td><pre>".imageLinkText(basename($imgName))."</pre></td>".
+			"<td>".($isImg?"<img class=\"thumbImg\" src=\"/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
+			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode(basename($imgName))."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
+			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
 			"</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
