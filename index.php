@@ -508,7 +508,7 @@ else if ( $action === 'upload' )
 	}
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
-	$imgNames = glob($path);
+	$imgNames = array_filter(glob($path), 'is_file');
 	natcasesort($imgNames);
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$html .= "<table><thead>";
