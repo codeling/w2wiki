@@ -505,6 +505,33 @@ else if ( $action === 'upload' )
 			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
 			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
 			"\n</p></form>\n";
+		$html .= '<script type="application/javascript">'."\n".
+			'function processForm(e) {'."\n".
+			'    e.preventDefault();'."\n".
+			'    var fileInput = document.getElementById("file");'."\n".
+			'    if (fileInput.files.length == 0) { alert("No file selected!"); return; }'."\n".
+			'    var filename = fileInput.files[0].name;'."\n".
+			'    fetch("/api.php?task=checkupload&filename="+filename)'."\n".
+			'        .then((response) => {'."\n".
+			'            response.json().then((data) => {'."\n".
+			'                upload = true;'."\n".
+			'                if (data) {'."\n".
+			'                     upload = window.confirm("File "+filename+" already exists. Overwrite?");'."\n".
+			'                }'."\n".
+			'                if (upload) {'."\n".
+			'                    var myform = document.getElementById("upload");'."\n".
+			'                    myform.submit();'."\n".
+			'                }'."\n".
+			'            });'."\n".
+			'        })'."\n".
+			'        .catch((err) => { console.log(err); });'."\n".
+			'}'."\n".
+			'window.addEventListener("load", function(event) {'."\n".
+			'    var form = document.getElementById("upload");'."\n".
+			'    form.addEventListener("submit", processForm);'."\n".
+			'});'."\n".
+			'</script>';
+
 	}
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
