@@ -100,7 +100,14 @@ define('VALID_UPLOAD_TYPES', 'image/jpeg,image/pjpeg,image/png,image/gif,applica
 // Acceptable filename extensions for file uploads
 // Value is a comma-separated string of filename extensions (case-sensitive!)
 
-define('VALID_UPLOAD_EXTS', 'jpg,jpeg,png,gif,pdf');
+define('VALID_UPLOAD_EXTS', 'bmp,jpg,jpeg,png,gif,pdf,webp');
+
+// SHOW_PAGES_WHERE_FILE_USED
+//
+// On uploads page, show on which pages a file is referenced
+// With many pages and image files, this can take some time to determine and therefore slow down loading the list of uploads!
+
+define('SHOW_PAGES_WHERE_FILE_USED', true);
 
 // ------------------
 // Interface settings

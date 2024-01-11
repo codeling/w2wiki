@@ -27,6 +27,8 @@ require_once "config.php";
 // Load configured localization:
 require_once 'locales/' . W2_LOCALE . '.php';
 
+const ImageExtensions = array("bmp", "gif", "jpg", "jpeg", "png", "webp");
+
 /**
  * Get translated word
  *
@@ -538,20 +540,48 @@ else if ( $action === 'upload' )
 	$imgNames = array_filter(glob($path), 'is_file');
 	natcasesort($imgNames);
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
+	$imgPages = array();
+	if (SHOW_PAGES_WHERE_FILE_USED)
+		$pagenames = getAllPageNames();
+		foreach($pagenames as $searchPage)
+		{
+			$text = file_get_contents(fileNameForPage($searchPage));
+			foreach ($imgNames as $imgName)
+			{
+				$baseImgName = basename($imgName);
+				if ( preg_match("@\(/images/".preg_quote($baseImgName)."@i", $text) )
+				{
+					if (array_key_exists($imgName, $imgPages))
+					{
+						array_push($imgPages[$imgName], $searchPage);
+					}
+					else
+					{
+						$imgPages[$imgName] = array( $searchPage );
+					}
+				}
+			}
+		}
+
+
 	$html .= "<table><thead>";
 	$html .= "<tr>".
 /*
 		"<td>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</td>".
 		"<td>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</td>".
- */		"<td>".__("Name")."</td><td>".__("Usage")."</td><td>".__("Modified")."</td><td>".__("Action")."</td>".
-		"</tr></thead><tbody>";
+ */		"<th>".__("Name")."</th><th>".__("Usage")."</th><th>".__("Modified")."</th><th>".__("Action")."</th>";
+	if (SHOW_PAGES_WHERE_FILE_USED)
+	{
+		$html .=  "<th>".__("Used on page")."</th>";
+	}
+	$html .= "</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
+
 	foreach ($imgNames as $imgName)
 	{
 		$baseImgName = basename($imgName);
 		$isImg = false;
-		$imgExt = array("bmp", "jpg", "jpeg", "png", "webp");
-		foreach($imgExt as $ext)
+		foreach(ImageExtensions as $ext)
 		{
 			if (str_ends_with($baseImgName, $ext))
 			{
@@ -562,8 +592,20 @@ else if ( $action === 'upload' )
 			"<td>".($isImg?"<img class=\"thumbImg\" src=\"/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
 			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>".
-			"</tr>\n";
+			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
+		if (SHOW_PAGES_WHERE_FILE_USED)
+		{
+			$html .= "<td>";
+			if (array_key_exists($imgName, $imgPages))
+			{
+				foreach($imgPages[$imgName] as $page)
+				{
+					$html .= pageLink($page, $page);
+				}
+			}
+			$html .= "</td>";
+		}
+		$html .= "</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
 }
@@ -578,14 +620,13 @@ else if ( $action === 'uploaded' )
 	$fileType = $_FILES['userfile']['type'];
 	preg_match('/\.([^.]+)$/', $dstName, $matches);
 	$fileExt = isset($matches[1]) ? $matches[1] : null;
-	$imgExts = array('jpg','jpeg','png','gif');
 	$msg = '';
 	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES)) &&
 	    in_array($fileExt, explode(',', VALID_UPLOAD_EXTS)))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$resize = isset($_POST['resize']) && $_POST['resize'] === 'true';
-		$doResize = $resize &&  in_array($fileExt, $imgExts);
+		$doResize = $resize &&  in_array($fileExt, ImageExtensions);
 		if ($doResize)
 		{
 			$exif = exif_read_data($_FILES['userfile']['tmp_name']);
