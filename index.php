@@ -966,8 +966,7 @@ else
 // Disable caching on the client (the iPhone is pretty agressive about this
 // and it can cause problems with the editing function)
 
-header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+header("Cache-Control: no-store");
 printHeader($title, $action);
 print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
 if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
