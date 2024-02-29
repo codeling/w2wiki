@@ -714,11 +714,14 @@ else if ( $action === 'uploaded' )
 		else
 		{
 			$error_code = $_FILES['userfile']['error'];
-			if ( $error_code === 0 ) {
+			if ( $error_code === 0 )
+			{
 				// Likely a permissions issue
 				$msg .= __('Upload error') .": Can't write to ".$path."<br/><br/>\n".
 					"Check that your permissions are set correctly.";
-			} else {
+			}
+			else
+			{
 				// Give generic error message
 				$msg .= __('Upload error').", error #".$error_code."<br/><br/>\n".
 					"Please see <a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">here</a> for more information.<br/><br/>\n".
@@ -823,7 +826,7 @@ else if ( $action === 'imgDeleted')
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/". $oldPageName;
 	$success = unlink($imgPath);
 	if ($success)
-	{	
+	{
 		$msg = __('Image deleted');
 		gitChangeHandler($msg, $msg);
 		$msg .= " (".$imgPath.")";
