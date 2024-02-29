@@ -894,11 +894,11 @@ else if ( $action === 'search' )
 		$matchingPages = array();
 		foreach ($pagenames as $searchPage)
 		{
-			if ($searchPage === $q)
+			if (strcasecmp($searchPage, $q) == 0)
 			{
 				$found = TRUE;
 			}
-			if (preg_match("/{$q}/i", $searchPage))
+			if (preg_match("@$q@i", $searchPage))
 			{
 				array_unshift($matchingPages, $searchPage);
 				++$matches;
@@ -906,7 +906,7 @@ else if ( $action === 'search' )
 			else
 			{
 				$text = file_get_contents(fileNameForPage($searchPage));
-				if ( preg_match("/{$q}/i", $text) )
+				if ( preg_match("@$q@i", $text) )
 				{
 					$matchingPages[] = $searchPage;
 					++$matches;
@@ -915,7 +915,7 @@ else if ( $action === 'search' )
 		}
 		foreach ($matchingPages as $page)
 		{
-			$link = pageLink($page, $page, ($page === $q)? " class=\"literalMatch\"": "");
+			$link = pageLink($page, $page, (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
 			$html .= "        <li>$link</li>\n";
 		}
 		if (!$found)
