@@ -1,7 +1,7 @@
 # Installation
 
 1. Create a directory for W2 somewhere in your web server's document
-   root path. It doesn't matter where. W2 requires PHP 5 or higher.
+   root path. It doesn't matter where. W2 requires PHP 8.1 or higher.
    
 2. Upload the files from this repository to this directory.
 
@@ -44,11 +44,11 @@ define('EDIT_ROWS', 18);
 wiki in places where malicious actors can access it. It is neither extensively
 tested, nor is it security-hardened, and might therefore compromise the
 security of your server. We therefore recommend to only make it available in
-a small local network where each user is known, or via HTTPS and behind a
-Basic Authentication configured via your webserver. The latter even allows for
-multiple different users, i.e. a more fine-grained access control than what
-W2 wiki itself currently provides. The features described below might be
-removed in the near future in this fork!
+a small local network where each user is known, or behind VPN, or at least
+secured via HTTPS and behind a Basic Authentication configured in your
+webserver. The latter even allows for multiple different users, i.e. a more
+fine-grained access control than what W2 wiki itself currently provides. The
+features described below might be removed in the near future in this fork!
 
 W2 has the ability to prompt for a password before allowing access to the
 site.  Two lines in config.php control this:
@@ -81,9 +81,14 @@ please consult its documentation or community regarding the proper username.
 To enable changes in pages to be committed to a local git repository, you need to:
 
 - Take note of the folder where the pages are stored (`PAGES_PATH` in config.php).
-- Navigate to `PAGES_PATH` folder.
+- Navigate to this `PAGES_PATH` folder.
 - Create a git repository: `$ sudo -u www-data git init`.
 - Add all files there: `$ sudo -u www-data git add -A`.
+- Make sure username/email are setup (add `--global` after `config` in below
+  commands to make these settings available for all git repositories on this
+  machine):
+    - email: `$ sudo -u www-data git config user.email "w2.wiki@example.com"`
+	- user: `$ sudo -u www-data git config user.name "W2 git user"`
 - Do an initial commit: `$ sudo -u www-data git commit -m "Initial commit`.
 - Set `GIT_COMMIT_ENABLED` to `true` in `config.php`.
 
@@ -94,5 +99,13 @@ to the steps above):
 - Add this repository as remote in the repository in your `PAGES_PATH`:
   `$ sudo -u www-data git remote add origin [YOUR_REMOTE_REPO_URL]`
   (replace `[YOUR_REMOTE_REPO_URL]` with the publicly accessible URL of the remote).
+- Make sure a remote tracking branch is set; you can achieve this in two ways;
+    Both set the branch `main` on the remote `origin` as tracking branch;
+	The first option will create the branch if it doesn't exist, and will
+	upload all local content so far to that branch:
+    - Either push to the remote tracking branch like this:
+      `$ sudo -u www-data git push -u origin main`
+    - or set a remote branch as tracking branch:
+      `$ sudo -u www-data git branch -u origin main`
 - Set `GIT_PUSH_ENABLED` to `true` in `config.php`.
 
