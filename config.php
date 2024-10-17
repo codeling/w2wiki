@@ -89,7 +89,7 @@ define('VALID_UPLOAD_TYPES', 'image/jpeg,image/pjpeg,image/png,image/gif,image/w
 //
 // Acceptable filename extensions for file uploads
 // Value is a comma-separated string of filename extensions (case-sensitive!)
-define('VALID_UPLOAD_EXTS', 'bmp,jpg,jpeg,png,gif,pdf,webp');
+define('VALID_UPLOAD_EXTS', 'bmp,jpg,jpeg,png,gif,pdf,svg,webp');
 
 // SHOW_PAGES_WHERE_FILE_USED
 //

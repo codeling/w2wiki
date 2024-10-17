@@ -27,7 +27,7 @@ require_once "config.php";
 // Load configured localization:
 require_once 'locales/' . W2_LOCALE . '.php';
 
-const ImageExtensions = array("bmp", "gif", "jpg", "jpeg", "png", "webp");
+const ImageExtensions = array("bmp", "gif", "jpg", "jpeg", "png", "svg", "webp");
 
 /**
  * Get translated word
