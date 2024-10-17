@@ -592,7 +592,9 @@ else if ( $action === 'upload' )
 			"<td>".($isImg?"<img class=\"thumbImg\" src=\"/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
 			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
-			"<td><a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
+			"<td>".
+			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/rename-dark.svg\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
+			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
 		if (SHOW_PAGES_WHERE_FILE_USED)
 		{
 			$html .= "<td>";
@@ -737,21 +739,24 @@ else if ( $action === 'uploaded' )
 	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
 	redirectWithMessage($prevpage, $msg);
 }
-else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete')
+else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete' || $action === 'imgRename')
 {
-	if ($action === 'imgDelete')
+	if ($action === 'imgDelete' || $action === 'imgRename' )
 	{
 		$page = sanitizeFilename(urldecode($_REQUEST['imgName']));
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
 	$html .= "<p>".$actionName." $page ".
-		(($action==='rename')? (__('to')." <input id=\"newPageName\" type=\"text\" name=\"newPageName\" value=\"" . htmlspecialchars($page) . "\" class=\"pagename\" />") : "?") . "</p>";
+		(($action==='rename' || $action==='imgRename')
+			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . htmlspecialchars($page) . "\" class=\"pagename\" />")
+			: "?")
+		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
 	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"${action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . htmlspecialchars($page) . "\" />";
-	if ($action === 'imgDelete')
+	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
 		$prevpage = isset($_REQUEST['prevpage']) ? urldecode(@$_REQUEST['prevpage']) : DEFAULT_PAGE;
 		$html .= '<input type="hidden" name="prevpage" value="'.$prevpage.'" />';
@@ -762,7 +767,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 {
 	// TODO: prevent relative filenames from being injected
 	$oldPageName = sanitizeFilename($_POST['oldPageName']);
-	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newPageName']);
+	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName']);
 	$msg = '';
 	if ($action === 'deleted')
 	{
@@ -779,8 +784,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	if ($success)
 	{
-		$message = ($action === 'deleted') ? "Removed $oldPageName." :
-			"Renamed $oldPageName to $newPageName.";
+		$message = ($action === 'deleted')
+			? (__('Removed')." ".$oldPageName)
+			: (__('Renamed')." ".$oldPageName." ".__('to')." ".$newPageName);
 		$msg .= $message;
 		// Change links in all pages to point to new page
 		$pagenames = getAllPageNames();
@@ -810,7 +816,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	else
 	{
-		$msg .= ($action === 'deleted') ? __('Error deleting file'): __('Error renaming file');
+		$msg .= ($action === 'deleted')
+			? (__('Error deleting file')." ".$oldPageName)
+			: (__('Error renaming file')." ".$oldPageName." ".__('to')." ".$newPageName);
 		$page = $oldPageName;
 	}
 	if ($action === 'deleted' && $success)
@@ -819,22 +827,56 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	redirectWithMessage($page, $msg);
 }
-else if ( $action === 'imgDeleted')
+else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
 	// TODO: prevent relative filenames from being injected
-	$oldPageName = sanitizeFilename($_REQUEST['oldPageName']);
-	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/". $oldPageName;
-	$success = unlink($imgPath);
-	if ($success)
+	$oldImgName = sanitizeFilename($_REQUEST['oldPageName']);
+	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
+	$oldImgPath = $imgPath . $oldImgName;
+	$newImgName = ($action === 'imgDeleted') ? "": sanitizeFilename($_POST['newName']);
+	if ($action == 'imgDeleted')
 	{
-		$msg = __('Image deleted');
-		gitChangeHandler($msg, $msg);
-		$msg .= " (".$imgPath.")";
+		$success = unlink($oldImgPath);
 	}
 	else
 	{
-		$msg = __('Error deleting image');
-		$msg .= " (".$imgPath.")";
+		$success = rename($oldImgPath, $imgPath.$newImgName);
+	}
+
+	if ($success)
+	{
+		$msg = ($action === 'imgDeleted')
+			? (__('Image deleted: ').$oldImgPath)
+			: (__('Image renamed: ').$oldImgName." ".__('to')." ".$newImgName);
+		// Change references to image in all pages:
+		$pagenames = getAllPageNames();
+		$changedPages = array();
+		foreach ($pagenames as $replacePage)
+		{
+			$content = file_get_contents(fileNameForPage($replacePage));
+			$count = 0;
+			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/$oldImgName\)/",   // escape / because it is used as delimiter
+				(($action === 'imgDeleted') ? "" : "![\\1](/images/$newImgName)"),
+				$content, -1, $count);
+			if ($count > 0) // if something changed
+			{
+				$changedPages[] = $replacePage." ($count ".__('matches').")";
+				file_put_contents(fileNameForPage($replacePage), $newContent);
+			}
+		}
+		if (count($changedPages) > 0)
+		{
+			$msg .= "<br/>\n".__('Updated images in the following pages:')."\n<ul><li>";
+			$msg .= implode("</li><li>", $changedPages);
+			$msg .= "</li></ul>";
+		}
+		gitChangeHandler($msg, $msg);
+	}
+	else
+	{
+		$msg = ($action === 'imgDeleted')
+			? (__('Error deleting image: ')." (".$oldImgName.")")
+			: (__('Error renaming image: ').$oldImgName." ".__('to')." ".$newImgName);
 	}
 	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
 	redirectWithMessage($prevpage, $msg);
@@ -952,7 +994,7 @@ else if ( $action === 'search' )
 {
 	$title = __("Search");
 }
-else if ($filename != '')
+else if (isset($filename) && $filename != '')
 {
 	$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
 	$date_format = __('date_format', TITLE_DATE);
@@ -968,7 +1010,6 @@ else
 
 // Disable caching on the client (the iPhone is pretty agressive about this
 // and it can cause problems with the editing function)
-
 header("Cache-Control: no-store");
 printHeader($title, $action);
 print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";

@@ -14,6 +14,7 @@ $w2_word_set = array(
 	'Edit'   => 'Bearbeiten',
 	'Delete' => 'Löschen',
 	'imgDelete' => 'Bild löschen',
+	'imgRename' => 'Bild umbenennen',
 	'Rename' => 'Umbenennen',
 	'Created' => 'Angelegt',
 	'Upload' => 'Hochladen',
