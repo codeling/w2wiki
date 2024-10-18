@@ -27,7 +27,7 @@ require_once "config.php";
 // Load configured localization:
 require_once 'locales/' . W2_LOCALE . '.php';
 
-const ImageExtensions = array("bmp", "gif", "jpg", "jpeg", "png", "svg", "webp");
+const ImageExtensions = array("bmp", "gif", "heic", "heif","jpg", "jpeg", "png", "svg", "webp");
 
 /**
  * Get translated word
@@ -411,13 +411,11 @@ if ( $action == 'save' )
 	}
 	else
 	{
-		$errLevel = error_reporting(0);
 		if ( !file_exists( dirname($filename) ) )
 		{
 			mkdir(dirname($filename), 0755, true);
 		}
 		$success = file_put_contents($filename, $newText);
-		error_reporting($errLevel);
 		if ( $success === FALSE)
 		{
 			$msg .= "Error saving changes! Make sure your web server has write access to " . PAGES_PATH . "\n";
@@ -617,101 +615,92 @@ else if ( $action === 'uploaded' )
 	{
 		die('Invalid access. Uploads are disabled in the configuration.');
 	}
+	$tmpName = $_FILES['userfile']['tmp_name'];
 	$dstName = sanitizeFilename($_FILES['userfile']['name']);
 	$dstName = str_replace(" ", "_", $dstName);  // image display currently doesn't like spaces!
-	$fileType = $_FILES['userfile']['type'];
+	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
+	$fileType = mime_content_type($tmpName);
 	preg_match('/\.([^.]+)$/', $dstName, $matches);
-	$fileExt = isset($matches[1]) ? $matches[1] : null;
+	$fileExt = isset($matches[1]) ? strtolower($matches[1]) : null;
 	$msg = '';
 	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES)) &&
 	    in_array($fileExt, explode(',', VALID_UPLOAD_EXTS)))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
-		$resize = isset($_POST['resize']) && $_POST['resize'] === 'true';
-		$doResize = $resize &&  in_array($fileExt, ImageExtensions);
-		if ($doResize)
+		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
+		$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
+		$doProcess = in_array($fileExt, ImageExtensions) && ($doConvert || $doResize);
+		$pathNoExt = substr($path, 0, strlen($path)-strlen($fileExt)-1);
+		if ($doProcess)
 		{
-			$exif = exif_read_data($_FILES['userfile']['tmp_name']);
-			$size = getimagesize($_FILES['userfile']['tmp_name']);
-			$maxsize = intval($_POST['maxsize']);
-			$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
-			if ($doResize)
-			{
-				$msg .= "trying to resize";
-				$finalPath = $path;
-				$path = substr($path, 0, strlen($path)-strlen($fileExt)-1) . "-tmp-resize." . $fileExt;
-			}
+			$finalPath = $doConvert ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
+			$path = $pathNoExt . "-tmp-process." . $fileExt;
 		}
-		$errLevel = error_reporting(0);
-		if ( move_uploaded_file($_FILES['userfile']['tmp_name'], $path) === true )
+		if ( move_uploaded_file($tmpName, $path) === true )
 		{
-			$msg  = "File '$dstName' uploaded! ";
-			if ($doResize)
+			$commitMsg = "File '$dstName' uploaded!";
+			$msg .= $commitMsg." ";
+			if ($doProcess)
 			{
-				$newSize = array(0, 0);
-				$idx0 = ($size[0] > $size[1]) ? 0 : 1;
-				$idx1 = ($idx0 == 0) ? 1 : 0;
-				$newSize[$idx0] = $maxsize;
-				$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
-				$src = imagecreatefromstring(file_get_contents($path));
-				$dst = imagecreatetruecolor($newSize[0], $newSize[1]);
-				if (!imagecopyresampled($dst, $src, 0, 0, 0, 0, $newSize[0], $newSize[1], $size[0], $size[1]))
+				$img = new Imagick($path);
+				if ($doResize)
 				{
-					$msg .= "Resizing file failed!";
+					$size = array($img->getImageWidth(), $img->getImageHeight());
+					$maxsize = intval($_POST['maxsize']);
+					$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
 				}
-				imagedestroy( $src );
-				if(!empty($exif['Orientation']))
+				if ($doResize)
 				{
-					switch($exif['Orientation'])
+					$newSize = array(0, 0);
+					$idx0 = ($size[0] > $size[1]) ? 0 : 1;
+					$idx1 = ($idx0 == 0) ? 1 : 0;
+					$newSize[$idx0] = $maxsize;
+					$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
+					if (!$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1))
 					{
-					case 8:
-						$msg .= "Image rotated by +90°. ";
-						$rot = imagerotate($dst,90,0);
-						break;
-					case 3:
-						$msg .= "Image rotated by 180°. ";
-						$rot = imagerotate($dst,180,0);
-						break;
-					case 6:
-						$msg .= "Image rotated by -90°. ";
-						$rot = imagerotate($dst,-90,0);
-						break;
-					default:
-						$msg .= "Unknown EXIF orientation specification: ".$exif['Orientation'].". ";
-						$rot = false;
-						break;
-					}
-					if ($rot === false)
-					{
-						$msg .= "Rotation failed/skipped! ";
+						$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
 					}
 					else
 					{
-						imagedestroy( $dst );
-						$dst = $rot;
+						$msg .= "Resizing file failed! ";
 					}
 				}
-				if ($fileExt === 'png')
+				$ori = $img->getImageOrientation();
+				error_log("orientation: $ori");
+				if($ori)
 				{
-					imagepng($dst, $finalPath);
+					switch($ori)
+					{
+					case imagick::ORIENTATION_RIGHTTOP:
+						$msg .= "Image rotated by +90°. ";
+						$img->rotateImage('#000',90);
+						break;
+					case imagick::ORIENTATION_BOTTOMRIGHT:
+						$msg .= "Image rotated by 180°. ";
+						$img->rotateImage('#000',180);
+						break;
+					case imagick:: ORIENTATION_LEFTBOTTOM:
+						$msg .= "Image rotated by -90°. ";
+						$img->rotateImage('#000',-90);
+						break;
+//					default:
+//						$msg .= "Unknown EXIF orientation specification: ".$ori.". ";
+//						break;
+					}
+					$img->setImageOrientation(imagick::ORIENTATION_TOPLEFT);
 				}
-				else if ($fileExt === 'jpg' || $fileExt === 'jpeg')
+				if ($doConvert)
 				{
-					imagejpeg($dst, $finalPath);
+					$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
+					$img->setImageFormat(CONVERT_FORMAT);
+					$msg .= "Converted to format ".CONVERT_FORMAT.". ";
 				}
-				else if ($fileExt === 'gif')
-				{
-					imagegif($dst, $finalPath);
-				}
+				$img->writeImage($finalPath);
 				unlink($path);
-				imagedestroy( $dst );
+				$img->clear();
 			}
-			gitChangeHandler($msg, $msg);
-			if ($doResize)
-			{
-				$msg .= " Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
-			}
-			$msg .= " Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
+			gitChangeHandler($commitMsg, $msg);
+			$msg .= "Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
 		}
 		else
 		{
@@ -730,11 +719,11 @@ else if ( $action === 'uploaded' )
 					"If you see this message, please <a href=\"https://github.com/codeling/w2wiki/issues\">file a bug to improve w2wiki</a>";
 			}
 		}
-		error_reporting($errLevel);
 	}
 	else
 	{
 		$msg .= __('Upload error: invalid file type');
+		error_log("Upload error: file name = $dstName, invalid file type $fileType");
 	}
 	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
 	redirectWithMessage($prevpage, $msg);

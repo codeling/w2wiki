@@ -83,19 +83,27 @@ define('DISABLE_UPLOADS', false);
 //
 // Acceptable file types for file uploads.  This is a good idea for security.
 // Value is a comma-separated string of MIME types.
-define('VALID_UPLOAD_TYPES', 'image/jpeg,image/pjpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf');
+define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/svg+xml,image/webp');
 
 // VALID_UPLOAD_EXTS
 //
 // Acceptable filename extensions for file uploads
-// Value is a comma-separated string of filename extensions (case-sensitive!)
-define('VALID_UPLOAD_EXTS', 'bmp,jpg,jpeg,png,gif,pdf,svg,webp');
+// Value is a comma-separated string of filename extensions
+define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,svg,webp');
 
 // SHOW_PAGES_WHERE_FILE_USED
 //
 // On uploads page, show on which pages a file is referenced
 // With many pages and image files, this can take some time to determine and therefore slow down loading the list of uploads!
 define('SHOW_PAGES_WHERE_FILE_USED', true);
+
+// IMAGE_EXTS_TO_CONVERT
+// uploaded images with these extensions need to be converted to another format (see also CONVERT_FORMAT)
+define('IMAGE_EXTS_TO_CONVERT', 'heic,heif');
+
+// CONVERT_FORMAT
+// format to convert uploaded images to which need to be converted (see IMAGE_EXTS_TO_CONVERT)
+define('CONVERT_FORMAT', 'jpg');
 
 // ------------------
 // Interface settings
