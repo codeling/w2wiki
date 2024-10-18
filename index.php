@@ -835,8 +835,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	if ($success)
 	{
 		$msg = ($action === 'imgDeleted')
-			? (__('Image deleted: ').$oldImgPath)
-			: (__('Image renamed: ').$oldImgName." ".__('to')." ".$newImgName);
+			? (__('Image deleted').": ".$oldImgPath)
+			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
 		$changedPages = array();
