@@ -210,7 +210,7 @@ function fileNameForPage($page)
 
 function imageLinkText($imgName)
 {
-	return "![".__("Image Description")."](/".UPLOAD_FOLDER."/$imgName)";
+	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";
 }
 
 function sanitizeFilename($inFileName)
@@ -587,7 +587,7 @@ else if ( $action === 'upload' )
 			}
 		}
 		$html .= "<tr>".
-			"<td>".($isImg?"<img class=\"thumbImg\" src=\"/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
+			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
 			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
 			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
 			"<td>".
