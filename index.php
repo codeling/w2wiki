@@ -266,7 +266,7 @@ function gitChangeHandler($commitmsg, &$msg)
 
 function toHTMLID($noid)
 {	// in HTML5, only spaces aren't allowed
-	return str_replace(" ", "-", $noid);
+	return str_replace(" ", "-", strip_tags($noid));
 }
 
 function toHTML($inText)
