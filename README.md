@@ -35,6 +35,13 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 		- Fix rotation (based on EXIF data)
 		- List of uploaded images providing usage information and option to delete
 
+## TODO
+
+- Improve upload folder location/configuration
+    - Currently half hard-coded as "images" subfolder of root
+    - current setup has strange dependency for uploads folder to be called "images" and to be a direct subfolder of where index.php is (due to serving files from there statically)
+    - but path also should be within PAGES\_PATH (both pagse and uploads should be in same folder to capture both in git repository...)
+	- so current setup requires an "images" soft link in root folder linking to actual images folder within PAGES\_PATH to be fully functional
 
 ## Installation & Configuration
 
