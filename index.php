@@ -488,6 +488,11 @@ else if ( $action === 'logout' )
 }
 else if ( $action === 'upload' )
 {
+	$sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'name';
+	if (!in_array($sortBy, array('name', 'recent')))
+	{
+		$sortBy = 'name';
+	}
 	$prevpage = isset($_REQUEST['page']) ? urldecode(@$_REQUEST['page']) : DEFAULT_PAGE;
 	if ( DISABLE_UPLOADS )
 	{
@@ -536,7 +541,24 @@ else if ( $action === 'upload' )
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
 	$imgNames = array_filter(glob($path), 'is_file');
-	natcasesort($imgNames);
+	$imgList = array();
+	if ($sortBy === 'name')
+	{
+		natcasesort($imgNames);
+		foreach($imgNames as $imgName)
+		{
+			$imgList[$imgName] = filemtime($imgName);
+		}
+	}
+	else
+	{
+		foreach($imgNames as $imgName)
+		{
+			$imgList[$imgName] = filemtime($imgName);
+		}
+		arsort($imgList, SORT_NUMERIC);
+	}
+
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$imgPages = array();
 	if (SHOW_PAGES_WHERE_FILE_USED)
@@ -564,10 +586,10 @@ else if ( $action === 'upload' )
 
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-/*
-		"<td>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</td>".
-		"<td>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</td>".
- */		"<th>".__("Name")."</th><th>".__("Usage")."</th><th>".__("Modified")."</th><th>".__("Action")."</th>";
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</th>".
+		"<th>".__("Usage")."</th>".
+		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</th>".
+		"<th>".__("Action")."</th>";
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
 		$html .=  "<th>".__("Used on page")."</th>";
@@ -575,7 +597,7 @@ else if ( $action === 'upload' )
 	$html .= "</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
 
-	foreach ($imgNames as $imgName)
+	foreach ($imgList as $imgName => $imgDate)
 	{
 		$baseImgName = basename($imgName);
 		$isImg = false;
@@ -589,7 +611,7 @@ else if ( $action === 'upload' )
 		$html .= "<tr>".
 			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
 			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
-			"<td><nobr>".date($date_format, filemtime($imgName))."</nobr></td>".
+			"<td><nobr>".date($date_format, $imgDate)."</nobr></td>".
 			"<td>".
 			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/rename-dark.svg\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
 			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
@@ -898,9 +920,9 @@ else if ( $action === 'all' )
 	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-		"<td>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</td>".
-		"<td>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</td>".
-		"<td>".__('Action')."</td>".
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
+		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
+		"<th>".__('Action')."</th>".
 		"</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
 

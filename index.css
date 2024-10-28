@@ -133,7 +133,7 @@ table {
   thead td a {
 	text-decoration:none;
   }
-  thead td span.sortBy:after {
+  thead th span.sortBy:after {
 	content: "\25BC";
   }
   tr:nth-child(even) {
