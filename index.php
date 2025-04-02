@@ -387,6 +387,14 @@ if ($action === 'view' || $action === 'edit')
 	}
 	else
 	{
+		$pages = getAllPageNames();
+		foreach ($pages as $p)
+		{
+			$basePage = basename($p);
+			if ($basePage == $page) {
+				redirectWithMessage($p, "Page {$page} does not exist, redirected instead to first page in a subfolder with matching filename ({$p})");
+			}
+		}
 		$newPage = $page;
 		$action = 'new';
 	}
