@@ -353,7 +353,7 @@ function getPageActions($page, $action, $imgSuffix)
 function humanFilesize($bytes, $decimals = 2) {
 	$sz = 'BKMGTP';
 	$factor = floor((strlen($bytes) - 1) / 3);
-	return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+	return sprintf("%.".($factor==0?0:$decimals)."f", $bytes / pow(1024, $factor)) . @$sz[$factor];
 }
 
 // Main code
