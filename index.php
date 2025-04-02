@@ -904,42 +904,43 @@ else if ( $action === 'all' )
 	$pageNames = getAllPageNames();
 	$filelist = array();
 	$sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'name';
-	if (!in_array($sortBy, array('name', 'recent')))
+	if (!in_array($sortBy, array('name', 'recent', 'size')))
 	{
 		$sortBy = 'name';
 	}
-	if ($sortBy === 'name')
+	foreach($pageNames as $page)
 	{
-		natcasesort($pageNames);
-		foreach($pageNames as $page)
-		{
-			$filelist[$page] = filemtime(fileNameForPage($page));
-		}
+		$fileItem = new StdClass();
+		$fileItem->name = $page;
+		$fileItem->recent = filemtime(fileNameForPage($page));
+		$fileItem->size = filesize(fileNameForPage($page));
+		$filelist[] = $fileItem;
 	}
-	else
+	$sortFun = function($a, $b) use ($sortBy)
 	{
-		foreach($pageNames as $page)
-		{
-			$filelist[$page] = filemtime(fileNameForPage($page));
-		}
-		arsort($filelist, SORT_NUMERIC);
-	}
+		return ($sortBy === 'name') ?
+			strnatcasecmp($a->name, $b->name) :
+			$b->$sortBy <=> $a->$sortBy;
+	};
+	usort($filelist, $sortFun);
 	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
 	$html .= "<table><thead>";
 	$html .= "<tr>".
 		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
 		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
+		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=all&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
 		"<th>".__('Action')."</th>".
 		"</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
 
-	foreach ($filelist as $pageName => $pageDate)
+	foreach ($filelist as $file)
 	{
 		$html .= "<tr>".
-			"<td>".pageLink($pageName, $pageName)."</td>".
-			"<td valign=\"top\"><nobr>".date( $date_format, $pageDate)."</nobr></td>".
-				"<td class=\"pageActions\">".getPageActions($pageName, $action,"-dark")."</td>".
-				"</tr>\n";
+			"<td>".pageLink($file->name, $file->name)."</td>".
+			"<td valign=\"top\"><nobr>".date( $date_format, $file->recent)."</nobr></td>".
+			"<td valign=\"top\"><nobr>".humanFilesize($file->size)."</nobr></td>".
+			"<td class=\"pageActions\">".getPageActions($file->name, $action,"-dark")."</td>".
+			"</tr>\n";
 	}
 	$html .= "</tbody></table>\n";
 }

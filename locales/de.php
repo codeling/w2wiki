@@ -37,6 +37,7 @@ $w2_word_set = array(
 	'Name'   => 'Name',
 	'Usage'  => 'Verwendung',
 	'Modified' => 'Verändert',
+	'Size' => 'Größe',
 	'Action' => 'Aktion',
 	'Total' => 'Gesamt',
 	'images' => 'Bilder',
