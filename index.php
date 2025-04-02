@@ -350,6 +350,12 @@ function getPageActions($page, $action, $imgSuffix)
 	return $result;
 }
 
+function humanFilesize($bytes, $decimals = 2) {
+	$sz = 'BKMGTP';
+	$factor = floor((strlen($bytes) - 1) / 3);
+	return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
+
 // Main code
 
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
@@ -489,7 +495,7 @@ else if ( $action === 'logout' )
 else if ( $action === 'upload' )
 {
 	$sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'name';
-	if (!in_array($sortBy, array('name', 'recent')))
+	if (!in_array($sortBy, array('name', 'recent', 'size')))
 	{
 		$sortBy = 'name';
 	}
@@ -542,22 +548,21 @@ else if ( $action === 'upload' )
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
 	$imgNames = array_filter(glob($path), 'is_file');
 	$imgList = array();
-	if ($sortBy === 'name')
+	foreach($imgNames as $imgName)
 	{
-		natcasesort($imgNames);
-		foreach($imgNames as $imgName)
-		{
-			$imgList[$imgName] = filemtime($imgName);
-		}
+		$fileItem = new StdClass();
+		$fileItem->name = $imgName;
+		$fileItem->recent = filemtime($imgName);
+		$fileItem->size = filesize($imgName);
+		$imgList[] = $fileItem;
 	}
-	else
+	$sortFun = function($a, $b) use ($sortBy)
 	{
-		foreach($imgNames as $imgName)
-		{
-			$imgList[$imgName] = filemtime($imgName);
-		}
-		arsort($imgList, SORT_NUMERIC);
-	}
+		return ($sortBy === 'name') ?
+			strnatcasecmp($a->name, $b->name) :
+			$b->$sortBy <=> $a->$sortBy;
+	};
+	usort($imgList, $sortFun);
 
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$imgPages = array();
@@ -589,6 +594,7 @@ else if ( $action === 'upload' )
 		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</th>".
 		"<th>".__("Usage")."</th>".
 		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</th>".
+		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">Size</a>"):"<span class=\"sortBy\">Size</span>")."</th>".
 		"<th>".__("Action")."</th>";
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
@@ -597,9 +603,9 @@ else if ( $action === 'upload' )
 	$html .= "</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
 
-	foreach ($imgList as $imgName => $imgDate)
+	foreach ($imgList as $img)
 	{
-		$baseImgName = basename($imgName);
+		$baseImgName = basename($img->name);
 		$isImg = false;
 		foreach(ImageExtensions as $ext)
 		{
@@ -611,16 +617,17 @@ else if ( $action === 'upload' )
 		$html .= "<tr>".
 			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
 			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
-			"<td><nobr>".date($date_format, $imgDate)."</nobr></td>".
+			"<td><nobr>".date($date_format, $img->recent)."</nobr></td>".
+			"<td><nobr>".humanFilesize($img->size)."</nobr></td>".
 			"<td>".
 			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/rename-dark.svg\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
 			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
 		if (SHOW_PAGES_WHERE_FILE_USED)
 		{
 			$html .= "<td>";
-			if (array_key_exists($imgName, $imgPages))
+			if (array_key_exists($img->name, $imgPages))
 			{
-				foreach($imgPages[$imgName] as $page)
+				foreach($imgPages[$img->name] as $page)
 				{
 					$html .= pageLink($page, $page);
 				}
