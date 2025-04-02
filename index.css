@@ -95,14 +95,7 @@ pre {
 	margin-left: 0;
 	margin-bottom: .5em;
 	margin-top: .5em;
-
-	/* stroke each browser so that they wrap lines in the pre tag */
-	white-space: pre-wrap;       /* css-3 */
-	white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-	white-space: -pre-wrap;      /* Opera 4-6 */
-	white-space: -o-pre-wrap;    /* Opera 7 */
-	word-wrap: break-word;       /* Internet Explorer 5.5+ */
-
+	text-wrap: wrap;
 	background: #ffc;
 	border: 1px dotted gray;
 	padding: .2em .2em .2em .4em;
@@ -112,6 +105,7 @@ code {
 	font-family: Courier, monospace;
 	background: #ffc;
 	padding: .1em .1em 0 .2em;
+	display: inline-block;
 }
 
 table {
