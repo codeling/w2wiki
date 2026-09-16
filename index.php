@@ -208,6 +208,26 @@ function fileNameForPage($page)
 	return PAGES_PATH . "/$page." . PAGES_EXT;
 }
 
+function isValidPageName($page)
+{
+	return $page !== "" && file_exists(fileNameForPage($page));
+}
+
+// Reads a "page to go back to" value from $_REQUEST[$paramName], restricted
+// to the name of a page that actually exists. Denies the request entirely
+// if the given value isn't a valid, existing page name.
+function requireValidPreviousPage($paramName)
+{
+	$rawValue = isset($_REQUEST[$paramName]) ? $_REQUEST[$paramName] : DEFAULT_PAGE;
+	$page = sanitizeFilename(urldecode($rawValue));
+	if ( !isValidPageName($page) )
+	{
+		header("HTTP/1.1 400 Bad Request");
+		die(__('Invalid page name'));
+	}
+	return $page;
+}
+
 function imageLinkText($imgName)
 {
 	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";
@@ -507,7 +527,7 @@ else if ( $action === 'upload' )
 	{
 		$sortBy = 'name';
 	}
-	$prevpage = isset($_REQUEST['page']) ? urldecode(@$_REQUEST['page']) : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('page');
 	if ( DISABLE_UPLOADS )
 	{
 		$html .= '<p>' . __('Image uploading has been disabled on this installation.') . '</p>';
@@ -516,7 +536,7 @@ else if ( $action === 'upload' )
 	{
 		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
 			'<input type="hidden" name="action" value="uploaded" />'.
-			'<input type="hidden" name="prevpage" value="'.$prevpage.'" />'.
+			'<input type="hidden" name="prevpage" value="'.htmlspecialchars($prevpage, ENT_QUOTES).'" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
@@ -762,7 +782,7 @@ else if ( $action === 'uploaded' )
 		$msg .= __('Upload error: invalid file type');
 		error_log("Upload error: file name = $dstName, invalid file type $fileType");
 	}
-	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete' || $action === 'imgRename')
@@ -784,8 +804,8 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . htmlspecialchars($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
-		$prevpage = isset($_REQUEST['prevpage']) ? urldecode(@$_REQUEST['prevpage']) : DEFAULT_PAGE;
-		$html .= '<input type="hidden" name="prevpage" value="'.$prevpage.'" />';
+		$prevpage = requireValidPreviousPage('prevpage');
+		$html .= '<input type="hidden" name="prevpage" value="'.htmlspecialchars($prevpage, ENT_QUOTES).'" />';
 	}
 	$html .= "</p></form>";
 }
@@ -904,7 +924,7 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			? (__('Error deleting image: ')." (".$oldImgName.")")
 			: (__('Error renaming image: ').$oldImgName." ".__('to')." ".$newImgName);
 	}
-	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'all' )
