@@ -168,8 +168,11 @@ define('W2_PASSWORD_HASH', '');
 
 // allowedIPs
 //
-// A whitelist of IP addresses that are allowed access to the wiki. 
+// A whitelist of IP addresses that are allowed access to the wiki.
 // If empty, all IPs are allowed.
+// Entries can be single addresses (e.g. '192.168.1.10'), CIDR ranges
+// (e.g. '192.168.1.0/24' or 'fd00::/8'), or address prefixes ending in
+// '.' or ':' (e.g. '192.168.1.').
 $allowedIPs = array();
 
 // W2_SESSION_LIFETIME
