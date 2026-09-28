@@ -54,62 +54,12 @@ function __( $label, $alt_word = null )
 	return h($w2_word_set[$label]);
 }
 
-if ( REQUIRE_PASSWORD )
-{
-	ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
-}
-ini_set('session.use_strict_mode', 1);
-session_set_cookie_params(array(
-	'lifetime' => REQUIRE_PASSWORD ? W2_SESSION_LIFETIME : 0,
-	'path' => '/',
-	'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-	'httponly' => true,
-	'samesite' => 'Lax'
-));
-session_name(W2_SESSION_NAME);
-session_start();
-
-// token protecting state-changing requests against cross-site request forgery
-if ( empty($_SESSION['csrf_token']) )
-{
-	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-function csrfToken()
-{
-	return $_SESSION['csrf_token'];
-}
+// Session handling, IP and password checks:
+require_once "auth.php";
 
 function csrfField()
 {
 	return "<input type=\"hidden\" name=\"csrf_token\" value=\"" . h(csrfToken()) . "\" />";
-}
-
-function isValidCSRFToken($token)
-{
-	return is_string($token) && hash_equals(csrfToken(), $token);
-}
-
-
-if ( count($allowedIPs) > 0 )
-{
-	$ip = $_SERVER['REMOTE_ADDR'];
-	$accepted = false;
-
-	foreach ( $allowedIPs as $allowed )
-	{
-		if ( strncmp($allowed, $ip, strlen($allowed)) == 0 )
-		{
-			$accepted = true;
-			break;
-		}
-	}
-
-	if ( !$accepted )
-	{
-		print "<html><body>Access from IP address ".h($ip)." is not allowed</body></html>";
-		exit;
-	}
 }
 
 function printHeader($title, $action, $bodyclass="")
@@ -183,30 +133,7 @@ function printDrawer()
 		"      </a>\n";
 }
 
-/**
- * Check the given password against W2_PASSWORD_HASH (created with PHP's
- * password_hash, or a legacy unsalted SHA-1 hash), or W2_PASSWORD
- */
-function isCorrectPassword($password)
-{
-	if ( !is_string($password) || $password === '' )
-	{
-		return false;
-	}
-	if ( defined('W2_PASSWORD_HASH') && W2_PASSWORD_HASH !== '' )
-	{
-		if ( password_get_info(W2_PASSWORD_HASH)['algoName'] !== 'unknown' )
-		{
-			return password_verify($password, W2_PASSWORD_HASH);
-		}
-		return hash_equals(strtolower(W2_PASSWORD_HASH), sha1($password));
-	}
-	// refuse to work with the well-known default password
-	return defined('W2_PASSWORD') && W2_PASSWORD !== '' && W2_PASSWORD !== 'secret' &&
-		hash_equals(W2_PASSWORD, $password);
-}
-
-if ( REQUIRE_PASSWORD && empty($_SESSION['password']) )
+if ( !isLoggedIn() )
 {
 	$loginFailed = false;
 	if ( isset($_POST['p']) )
@@ -663,7 +590,7 @@ else if ( $action === 'upload' )
 			'    var fileInput = document.getElementById("file");'."\n".
 			'    if (fileInput.files.length == 0) { alert("No file selected!"); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
-			'    fetch("/api.php?task=checkupload&filename="+filename)'."\n".
+			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
