@@ -30,6 +30,14 @@ require_once 'locales/' . W2_LOCALE . '.php';
 const ImageExtensions = array("bmp", "gif", "heic", "heif","jpg", "jpeg", "png", "svg", "webp");
 
 /**
+ * Escape a string for safe output in HTML text and attribute values
+ */
+function h($str)
+{
+	return htmlspecialchars($str ?? '', ENT_QUOTES | ENT_SUBSTITUTE, W2_CHARSET);
+}
+
+/**
  * Get translated word
  *
  * String	$label		Key for locale word
@@ -41,9 +49,9 @@ function __( $label, $alt_word = null )
 	global $w2_word_set;
 	if( empty($w2_word_set[$label]) )
 	{
-		return is_null($alt_word) ? $label : $alt_word;
+		return h(is_null($alt_word) ? $label : $alt_word);
 	}
-	return htmlspecialchars($w2_word_set[$label], ENT_QUOTES);
+	return h($w2_word_set[$label]);
 }
 
 if ( REQUIRE_PASSWORD )
@@ -71,7 +79,7 @@ if ( count($allowedIPs) > 0 )
 
 	if ( !$accepted )
 	{
-		print "<html><body>Access from IP address $ip is not allowed</body></html>";
+		print "<html><body>Access from IP address ".h($ip)." is not allowed</body></html>";
 		exit;
 	}
 }
@@ -258,7 +266,7 @@ function checkedExecute(&$msg, $cmd)
 	exec($cmd, $output, $returnValue);
 	if ($returnValue != 0)
 	{
-		$msg .= "<br/>Error executing command ".$cmd." (return value: ".$returnValue."): ".implode(" ", $output);
+		$msg .= "<br/>Error executing command ".h($cmd)." (return value: ".$returnValue."): ".h(implode(" ", $output));
 	}
 	return ($returnValue == 0);
 }
@@ -407,7 +415,7 @@ if ($action === 'view' || $action === 'edit')
 		{
 			$basePage = basename($p);
 			if ($basePage == $page) {
-				redirectWithMessage($p, "Page {$page} does not exist, redirected instead to first page in a subfolder with matching filename ({$p})");
+				redirectWithMessage($p, "Page ".h($page)." does not exist, redirected instead to first page in a subfolder with matching filename (".h($p).")");
 			}
 		}
 		$newPage = $page;
@@ -428,7 +436,7 @@ if ( $action == 'save' )
 	}
 	if ($isNew && file_exists($filename))
 	{
-		$msg .= "Error creating page '$page' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!</div>\n";
+		$msg .= "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n";
 		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
@@ -470,12 +478,11 @@ if ( $action == 'save' )
 
 if ( $action === 'edit' || $action === 'new' )
 {
-	$formAction = SELF . (($action === 'edit') ? "/$page" : "");
-	$html .= "<form id=\"edit\" method=\"post\" action=\"$formAction\">\n";
+	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\">\n";
 
 	if ( $action === 'edit' )
 	{
-		$html .= "<input type=\"hidden\" name=\"page\" value=\"$page\" />\n";
+		$html .= "<input type=\"hidden\" name=\"page\" value=\"".h($page)."\" />\n";
 	}
 	else
 	{
@@ -488,19 +495,19 @@ if ( $action === 'edit' || $action === 'new' )
 			{
 				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
 				{
-					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, $pageName).". Maybe you meant to edit this instead?";
+					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, h($pageName)).". Maybe you meant to edit this instead?";
 				}
 			}
 			$html .= "</div>\n";
 		}
-		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"$newPage\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
+		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"".h($newPage)."\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
 
 	}
 
-	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">$text</textarea></p>\n";
+	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
-		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"$oldgitmsg\" /></p>\n";
+		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
 	}
 
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
@@ -531,7 +538,7 @@ else if ( $action === 'upload' )
 	{
 		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
 			'<input type="hidden" name="action" value="uploaded" />'.
-			'<input type="hidden" name="prevpage" value="'.$prevpage.'" />'.
+			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
@@ -638,8 +645,8 @@ else if ( $action === 'upload' )
 			}
 		}
 		$html .= "<tr>".
-			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
-			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
+			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".h(rawurlencode($baseImgName))."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".h($baseImgName)."</span></td>".
+			"<td><pre>".h(imageLinkText($baseImgName))."</pre></td>".
 			"<td><nobr>".date($date_format, $img->recent)."</nobr></td>".
 			"<td><nobr>".humanFilesize($img->size)."</nobr></td>".
 			"<td>".
@@ -652,7 +659,7 @@ else if ( $action === 'upload' )
 			{
 				foreach($imgPages[$img->name] as $page)
 				{
-					$html .= pageLink($page, $page);
+					$html .= pageLink($page, h($page));
 				}
 			}
 			$html .= "</td>";
@@ -692,7 +699,7 @@ else if ( $action === 'uploaded' )
 		if ( move_uploaded_file($tmpName, $path) === true )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
-			$msg .= $commitMsg." ";
+			$msg .= h($commitMsg)." ";
 			if ($doProcess)
 			{
 				$img = new Imagick($path);
@@ -753,7 +760,7 @@ else if ( $action === 'uploaded' )
 				$img->clear();
 			}
 			gitChangeHandler($commitMsg, $msg);
-			$msg .= "Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
+			$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
 		}
 		else
 		{
@@ -761,7 +768,7 @@ else if ( $action === 'uploaded' )
 			if ( $error_code === 0 )
 			{
 				// Likely a permissions issue
-				$msg .= __('Upload error') .": Can't write to ".$path."<br/><br/>\n".
+				$msg .= __('Upload error') .": Can't write to ".h($path)."<br/><br/>\n".
 					"Check that your permissions are set correctly.";
 			}
 			else
@@ -789,19 +796,19 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
-	$html .= "<p>".$actionName." $page ".
+	$html .= "<p>".$actionName." ".h($page)." ".
 		(($action==='rename' || $action==='imgRename')
-			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . htmlspecialchars($page) . "\" class=\"pagename\" />")
+			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . h($page) . "\" class=\"pagename\" />")
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
 	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"${action}d\" />";
-	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . htmlspecialchars($page) . "\" />";
+	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
 		$prevpage = isset($_REQUEST['prevpage']) ? urldecode(@$_REQUEST['prevpage']) : DEFAULT_PAGE;
-		$html .= '<input type="hidden" name="prevpage" value="'.$prevpage.'" />';
+		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
 	}
 	$html .= "</p></form>";
 }
@@ -827,8 +834,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	if ($success)
 	{
 		$message = ($action === 'deleted')
-			? (__('Removed')." ".$oldPageName)
-			: (__('Renamed')." ".$oldPageName." ".__('to')." ".$newPageName);
+			? (__('Removed')." ".h($oldPageName))
+			: (__('Renamed')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
 		$msg .= $message;
 		// Change links in all pages to point to new page
 		$pagenames = getAllPageNames();
@@ -843,7 +850,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = $replacePage." ($count ".__('matches').")";
+				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
@@ -859,8 +866,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	else
 	{
 		$msg .= ($action === 'deleted')
-			? (__('Error deleting file')." ".$oldPageName)
-			: (__('Error renaming file')." ".$oldPageName." ".__('to')." ".$newPageName);
+			? (__('Error deleting file')." ".h($oldPageName))
+			: (__('Error renaming file')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
 		$page = $oldPageName;
 	}
 	if ($action === 'deleted' && $success)
@@ -896,8 +903,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	if ($success)
 	{
 		$msg = ($action === 'imgDeleted')
-			? (__('Image deleted').": ".$oldImgPath)
-			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
+			? (__('Image deleted').": ".h($oldImgName))
+			: (__('Image renamed').": ".h($oldImgName)." ".__('to')." ".h($newImgName));
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
 		$changedPages = array();
@@ -910,7 +917,7 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = $replacePage." ($count ".__('matches').")";
+				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
@@ -925,8 +932,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	else
 	{
 		$msg = ($action === 'imgDeleted')
-			? (__('Error deleting image: ')." (".$oldImgName.")")
-			: (__('Error renaming image: ').$oldImgName." ".__('to')." ".$newImgName);
+			? (__('Error deleting image: ')." (".h($oldImgName).")")
+			: (__('Error renaming image: ').h($oldImgName)." ".__('to')." ".h($newImgName));
 	}
 	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
 	redirectWithMessage($prevpage, $msg);
@@ -968,7 +975,7 @@ else if ( $action === 'all' )
 	foreach ($filelist as $file)
 	{
 		$html .= "<tr>".
-			"<td>".pageLink($file->name, $file->name)."</td>".
+			"<td>".pageLink($file->name, h($file->name))."</td>".
 			"<td valign=\"top\"><nobr>".date( $date_format, $file->recent)."</nobr></td>".
 			"<td valign=\"top\"><nobr>".humanFilesize($file->size)."</nobr></td>".
 			"<td class=\"pageActions\">".getPageActions($file->name, $action,"-dark")."</td>".
@@ -980,7 +987,7 @@ else if ( $action === 'search' )
 {
 	$matches = 0;
 	$q = $_REQUEST['q'];
-	$html .= "    <h1>Search: $q</h1>\n";
+	$html .= "    <h1>Search: ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
 	{
@@ -1011,12 +1018,12 @@ else if ( $action === 'search' )
 		}
 		foreach ($matchingPages as $page)
 		{
-			$link = pageLink($page, $page, (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
+			$link = pageLink($page, h($page), (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
 			$html .= "        <li>$link</li>\n";
 		}
 		if (!$found)
 		{
-			$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
+			$html .= "        <li>".pageLink($q, __('Create page')." '".h($q)."'", " class=\"noexist\"")."</li>";
 		}
 		$html .= "      </ul>\n";
 	}
@@ -1047,7 +1054,7 @@ else if ( $action === 'search' )
 }
 else if (isset($filename) && $filename != '')
 {
-	$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
+	$title = (($action === 'edit')? (__('Edit').": "):"") . h($page);
 	$date_format = __('date_format', TITLE_DATE);
 	if ( $date_format )
 	{
@@ -1114,7 +1121,7 @@ if ($action === 'view' && isset($_GET['linkshere']))
 		$regexSavePage = str_replace("/", "\\/", $page);
 		if ( preg_match("/\[\[$regexSavePage/i", $text) )
 		{
-			$link = pageLink($searchPage, $searchPage, "");
+			$link = pageLink($searchPage, h($searchPage), "");
 			print("        <li>$link</li>\n");
 		}
 	}
