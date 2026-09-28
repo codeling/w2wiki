@@ -218,6 +218,16 @@ function sanitizeFilename($inFileName)
 	return str_replace(array('~', '..', '\\', ':', '|', '&'), '-', $inFileName);
 }
 
+function getFileExt($fileName)
+{
+	return preg_match('/\.([^.\/]+)$/', $fileName, $matches) ? strtolower($matches[1]) : null;
+}
+
+function hasValidUploadExt($fileName)
+{
+	return in_array(getFileExt($fileName), explode(',', VALID_UPLOAD_EXTS), true);
+}
+
 function pageURL($page)
 {
 	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", urlencode(sanitizeFilename($page))));
@@ -657,11 +667,11 @@ else if ( $action === 'uploaded' )
 	$dstName = str_replace(" ", "_", $dstName);  // image display currently doesn't like spaces!
 	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
 	$fileType = mime_content_type($tmpName);
-	preg_match('/\.([^.]+)$/', $dstName, $matches);
-	$fileExt = isset($matches[1]) ? strtolower($matches[1]) : null;
+	$dstName = basename($dstName);
+	$fileExt = getFileExt($dstName);
 	$msg = '';
-	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES)) &&
-	    in_array($fileExt, explode(',', VALID_UPLOAD_EXTS)))
+	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES), true) &&
+	    hasValidUploadExt($dstName))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
@@ -855,18 +865,21 @@ else if ( $action === 'renamed' || $action === 'deleted')
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
-	// TODO: prevent relative filenames from being injected
-	$oldImgName = sanitizeFilename($_REQUEST['oldPageName']);
+	$oldImgName = basename(sanitizeFilename($_REQUEST['oldPageName']));
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
-	$newImgName = ($action === 'imgDeleted') ? "": sanitizeFilename($_POST['newName']);
+	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
 	if ($action == 'imgDeleted')
 	{
-		$success = unlink($oldImgPath);
+		$success = is_file($oldImgPath) && unlink($oldImgPath);
 	}
 	else
 	{
-		$success = rename($oldImgPath, $imgPath.$newImgName);
+		// only allow renaming to a valid upload extension; otherwise, e.g.
+		// an image containing PHP code could be renamed to .php and executed
+		$success = is_file($oldImgPath) && hasValidUploadExt($newImgName) &&
+			!file_exists($imgPath.$newImgName) &&
+			rename($oldImgPath, $imgPath.$newImgName);
 	}
 
 	if ($success)
