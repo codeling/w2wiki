@@ -959,7 +959,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
 	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
-	$html .= "<input type=\"hidden\" name=\"action\" value=\"${action}d\" />";
+	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
