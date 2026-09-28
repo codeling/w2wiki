@@ -681,7 +681,8 @@ else if ( $action === 'uploaded' )
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
 		$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
-		$doProcess = in_array($fileExt, ImageExtensions) && ($doConvert || $doResize);
+		// never let ImageMagick parse SVG files (external references, delegates)
+		$doProcess = in_array($fileExt, ImageExtensions) && $fileExt !== 'svg' && ($doConvert || $doResize);
 		$pathNoExt = substr($path, 0, strlen($path)-strlen($fileExt)-1);
 		if ($doProcess)
 		{

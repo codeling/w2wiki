@@ -83,13 +83,17 @@ define('DISABLE_UPLOADS', false);
 //
 // Acceptable file types for file uploads.  This is a good idea for security.
 // Value is a comma-separated string of MIME types.
-define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/svg+xml,image/webp');
+// Note: SVG files (image/svg+xml, extension svg) can contain scripts, which run
+// in the context of the wiki when an SVG file is opened directly. Only add them
+// here if all users are trusted, and your web server is configured to serve
+// them with a restrictive Content-Security-Policy (see INSTALL.md).
+define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/webp');
 
 // VALID_UPLOAD_EXTS
 //
 // Acceptable filename extensions for file uploads
 // Value is a comma-separated string of filename extensions
-define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,svg,webp');
+define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,webp');
 
 // SHOW_PAGES_WHERE_FILE_USED
 //
