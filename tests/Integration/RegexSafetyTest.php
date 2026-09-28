@@ -54,8 +54,7 @@ final class RegexSafetyTest extends AppTestCase
 
 	public function testImageReferencesAreUpdatedLiterallyOnRename(): void
 	{
-		$gif = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
-		$this->upload('a(1).gif', $gif);
+		$this->upload('a(1).gif', self::gif());
 		$this->savePage('Gallery', '![x](/images/a(1).gif) ![y](/images/aa.gif)');
 		$this->renameImage('a(1).gif', 'c$1.gif');
 		$this->assertSame('![x](/images/c$1.gif) ![y](/images/aa.gif)', $this->pageText('Gallery'));
@@ -64,8 +63,7 @@ final class RegexSafetyTest extends AppTestCase
 
 	public function testImageReferencesAreRemovedLiterallyOnDelete(): void
 	{
-		$gif = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
-		$this->upload('a.b.gif', $gif);
+		$this->upload('a.b.gif', self::gif());
 		$this->savePage('Gallery', '![x](/images/a.b.gif) ![y](/images/aXb.gif)');
 		$this->deleteImage('a.b.gif');
 		$this->assertSame(' ![y](/images/aXb.gif)', $this->pageText('Gallery'));

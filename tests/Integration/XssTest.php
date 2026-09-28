@@ -142,9 +142,4 @@ final class XssTest extends AppTestCase
 			$this->assertNoActiveContent($body);
 		}
 	}
-
-	private static function gif(): string
-	{
-		return base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
-	}
 }

@@ -71,6 +71,22 @@ abstract class AppTestCase extends TestCase
 		return $client->post('/index.php', ['action' => $action, 'csrf_token' => $this->csrfToken($client)] + $fields);
 	}
 
+	/** Submit the login form */
+	protected function login(string $password, ?HttpClient $client = null): HttpResponse
+	{
+		return ($client ?? $this->http)->post('/index.php', ['p' => $password]);
+	}
+
+	protected static function gif(): string
+	{
+		return base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+	}
+
+	protected static function png(): string
+	{
+		return base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+	}
+
 	protected function savePage(string $name, string $text, bool $isNew = true): HttpResponse
 	{
 		return $this->postAction('save', [
