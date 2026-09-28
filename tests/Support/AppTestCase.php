@@ -12,7 +12,11 @@ abstract class AppTestCase extends TestCase
 {
 	protected AppServer $server;
 	protected HttpClient $http;
-	/** set to true in tests which are expected to make PHP log warnings */
+	/**
+	 * Set to true in tests which are expected to make PHP log warnings. (The
+	 * environment variable W2_IGNORE_PHP_LOG disables the check for all tests,
+	 * e.g. to run the suite against old versions, see W2_APP_ROOT.)
+	 */
 	protected bool $allowPhpErrors = false;
 	private int $logOffset = 0;
 
@@ -32,7 +36,7 @@ abstract class AppTestCase extends TestCase
 
 	protected function tearDown(): void
 	{
-		if (!$this->allowPhpErrors) {
+		if (!$this->allowPhpErrors && !getenv('W2_IGNORE_PHP_LOG')) {
 			$this->assertDoesNotMatchRegularExpression(
 				'/PHP (Warning|Notice|Deprecated|Fatal error|Parse error)/',
 				$this->server->logSince($this->logOffset),
