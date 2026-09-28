@@ -87,7 +87,7 @@ function printHeader($title, $action, $bodyclass="")
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
-	if ($action === 'edit')
+	if ($action === 'edit' || $action === 'new')
 	{
 		print "    <script src=\"wiki.js\"></script>\n";
 	}
@@ -456,7 +456,12 @@ if ( $action == 'save' )
 if ( $action === 'edit' || $action === 'new' )
 {
 	$formAction = SELF . (($action === 'edit') ? "/$page" : "");
-	$html .= "<form id=\"edit\" method=\"post\" action=\"$formAction\">\n";
+	$draftKey = "w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
+	$html .= "<form id=\"edit\" method=\"post\" action=\"$formAction\"".
+		" data-draft-key=\"".htmlspecialchars($draftKey, ENT_QUOTES)."\"".
+		" data-msg-restored=\"".__('Restored unsaved draft from %s.')."\"".
+		" data-msg-conflict=\"".__('Warning: the page was changed since this draft was started.')."\"".
+		" data-msg-discard=\"".__('Discard draft')."\">\n";
 
 	if ( $action === 'edit' )
 	{
@@ -1060,7 +1065,7 @@ if ( REQUIRE_PASSWORD )
 }
 print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
-if ($action === 'edit')
+if ($action === 'edit' || $action === 'new')
 {
 	printDrawer();
 }

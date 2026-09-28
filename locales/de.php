@@ -63,6 +63,9 @@ $w2_word_set = array(
 	'Image deleted' => 'Bild gelöscht',
 	'Image renamed' => 'Bild umbenannt',
 	'Error deleting image' => 'Fehler beim Löschen des Bildes',
+	'Restored unsaved draft from %s.' => 'Ungespeicherter Entwurf vom %s wiederhergestellt.',
+	'Warning: the page was changed since this draft was started.' => 'Achtung: Die Seite wurde geändert, seit dieser Entwurf begonnen wurde.',
+	'Discard draft' => 'Entwurf verwerfen',
 	// Override TITLE_DATE and TITLE_DATE_NO_TIME if set.
 	'date_format'         => 'd.m.Y H:i',
 	'date_format_no_time' => 'd.m.Y',
