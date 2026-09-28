@@ -289,13 +289,30 @@ function gitChangeHandler($commitmsg, &$msg)
 
 function toHTMLID($noid)
 {	// in HTML5, only spaces aren't allowed
-	return str_replace(" ", "-", strip_tags($noid));
+	return h(str_replace(" ", "-", html_entity_decode(strip_tags($noid), ENT_QUOTES | ENT_HTML5, W2_CHARSET)));
+}
+
+/**
+ * Neutralize URLs with potentially dangerous schemes (like javascript: or
+ * data:) in Markdown links and images; relative URLs are left untouched.
+ */
+function filterURL($url)
+{
+	// browsers ignore whitespace and control characters within the scheme
+	$normalized = preg_replace('/[\x00-\x20\x7F]+/', '', html_entity_decode($url, ENT_QUOTES | ENT_HTML5, W2_CHARSET));
+	if (preg_match('/^([a-z][a-z0-9+.\-]*):/i', $normalized, $matches) &&
+		!in_array(strtolower($matches[1]), array('http', 'https', 'mailto', 'ftp', 'ftps', 'tel'), true))
+	{
+		return '#';
+	}
+	return $url;
 }
 
 function toHTML($inText)
 {
 	$parser = new MarkdownExtra;
 	$parser->no_markup = true;
+	$parser->url_filter_func = 'filterURL';
 	$outHTML  = $parser->transform($inText);
 	if ( AUTOLINK_PAGE_TITLES )
 	{
@@ -325,7 +342,12 @@ function toHTML($inText)
 		$outHTML = str_replace("[[$fullLinkText]]",
 			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
 	}
-	$outHTML = preg_replace("/\{\{(.*?)\}\}/", "<img src=\"" . BASE_URI . "/images/\\1\" alt=\"\\1\" />", $outHTML);
+	$outHTML = preg_replace_callback("/\{\{(.*?)\}\}/", function ($matches)
+		{
+			// the Markdown parser has already encoded '&' and '<', but not quotes
+			$imgName = h(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, W2_CHARSET));
+			return "<img src=\"" . BASE_URI . "/images/$imgName\" alt=\"$imgName\" />";
+		}, $outHTML);
 
 	// add an anchor in all title tags (h1/2/3/4):
 	preg_match_all(
