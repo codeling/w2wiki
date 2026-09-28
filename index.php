@@ -247,6 +247,12 @@ function sanitizeFilename($inFileName)
 	return str_replace(array('~', '..', '\\', ':', '|', '&'), '-', $inFileName);
 }
 
+// escape a string for use as literal text in a preg_replace replacement
+function pregReplacementQuote($str)
+{
+	return str_replace(array('\\', '$'), array('\\\\', '\\$'), $str);
+}
+
 function getFileExt($fileName)
 {
 	return preg_match('/\.([^.\/]+)$/', $fileName, $matches) ? strtolower($matches[1]) : null;
@@ -342,7 +348,7 @@ function toHTML($inText)
 		foreach ( $pagenames as $pageName )
 		{
 			// match pageName, but only if it isn't inside another word or inside braces (as in "[$pageName]").
-			$outHTML = preg_replace("/(?<![\[a-zA-Z])$pageName(?![\]a-zA-Z])/i", "[[$pageName]]", $outHTML);
+			$outHTML = preg_replace("/(?<![\[a-zA-Z])".preg_quote($pageName, '/')."(?![\]a-zA-Z])/i", "[[".pregReplacementQuote($pageName)."]]", $outHTML);
 		}
 	}
 	preg_match_all(
@@ -658,7 +664,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(/images/".preg_quote($baseImgName)."@i", $text) )
+				if ( preg_match("@\(/images/".preg_quote($baseImgName, '@')."@i", $text) )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -899,9 +905,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$regexSaveOldPageName = str_replace("/", "\\/", $oldPageName);
-			$newContent = preg_replace("/\[\[$regexSaveOldPageName([|#].*\]\]|\]\])/",
-				(($action === 'deleted') ? "" : "[[$newPageName\\1"),
+			$newContent = preg_replace("/\[\[".preg_quote($oldPageName, '/')."([|#].*?\]\]|\]\])/",
+				(($action === 'deleted') ? "" : "[[".pregReplacementQuote($newPageName)."\\1"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
@@ -967,8 +972,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/$oldImgName\)/",   // escape / because it is used as delimiter
-				(($action === 'imgDeleted') ? "" : "![\\1](/images/$newImgName)"),
+			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/".preg_quote($oldImgName, '/')."\)/",
+				(($action === 'imgDeleted') ? "" : "![\\1](/images/".pregReplacementQuote($newImgName).")"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
@@ -1056,7 +1061,7 @@ else if ( $action === 'search' )
 			{
 				$found = TRUE;
 			}
-			if (preg_match("@$q@i", $searchPage))
+			if (stripos($searchPage, $q) !== false)
 			{
 				array_unshift($matchingPages, $searchPage);
 				++$matches;
@@ -1064,7 +1069,7 @@ else if ( $action === 'search' )
 			else
 			{
 				$text = file_get_contents(fileNameForPage($searchPage));
-				if ( preg_match("@$q@i", $text) )
+				if ( stripos($text, $q) !== false )
 				{
 					$matchingPages[] = $searchPage;
 					++$matches;
@@ -1173,8 +1178,7 @@ if ($action === 'view' && isset($_GET['linkshere']))
 	foreach($pagenames as $searchPage)
 	{
 		$text = file_get_contents(fileNameForPage($searchPage));
-		$regexSavePage = str_replace("/", "\\/", $page);
-		if ( preg_match("/\[\[$regexSavePage/i", $text) )
+		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", $text) )
 		{
 			$link = pageLink($searchPage, h($searchPage), "");
 			print("        <li>$link</li>\n");
