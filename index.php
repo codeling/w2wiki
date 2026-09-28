@@ -265,7 +265,7 @@ function hasValidUploadExt($fileName)
 
 function pageURL($page)
 {
-	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", urlencode(sanitizeFilename($page))));
+	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", rawurlencode(sanitizeFilename($page))));
 }
 
 function pageLink($page, $title, $attributes="")
@@ -452,7 +452,8 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 	$path_info = isset($_SERVER["PATH_INFO"]) ? $_SERVER["PATH_INFO"]: '';
 	$request_page = isset($_REQUEST['page']) ? $_REQUEST['page'] : '';
 	$page = preg_match('@^/@', $path_info) ? substr($path_info, 1) : $request_page;
-	$page = sanitizeFilename(urldecode($page));
+	// both PATH_INFO and request variables are already URL-decoded
+	$page = sanitizeFilename($page);
 	if ( $page == "" )
 	{
 		$page = DEFAULT_PAGE;
@@ -467,6 +468,14 @@ if ($action === 'view' || $action === 'edit')
 	}
 	else
 	{
+		// links used to encode spaces in page names as '+'; keep them working
+		$plusPage = str_replace('+', ' ', $page);
+		if ( $action === 'view' && $plusPage !== $page && file_exists(fileNameForPage($plusPage)) )
+		{
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: " . pageURL($plusPage));
+			exit;
+		}
 		$pages = getAllPageNames();
 		foreach ($pages as $p)
 		{
@@ -590,7 +599,7 @@ else if ( $action === 'upload' )
 	{
 		$sortBy = 'name';
 	}
-	$prevpage = isset($_REQUEST['page']) ? urldecode(@$_REQUEST['page']) : DEFAULT_PAGE;
+	$prevpage = isset($_REQUEST['page']) ? $_REQUEST['page'] : DEFAULT_PAGE;
 	if ( DISABLE_UPLOADS )
 	{
 		$html .= '<p>' . __('Image uploading has been disabled on this installation.') . '</p>';
@@ -861,7 +870,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 {
 	if ($action === 'imgDelete' || $action === 'imgRename' )
 	{
-		$page = sanitizeFilename(urldecode($_REQUEST['imgName']));
+		$page = sanitizeFilename($_REQUEST['imgName']);
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
@@ -877,7 +886,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
-		$prevpage = isset($_REQUEST['prevpage']) ? urldecode(@$_REQUEST['prevpage']) : DEFAULT_PAGE;
+		$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
 		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
 	}
 	$html .= "</p></form>";
