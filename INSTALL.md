@@ -62,6 +62,7 @@ W2 location prefix if W2 is not installed in the web root):
 
 ```
 location ~ /\.(?!well-known/) { deny all; }
+location ^~ /vendor/ { deny all; }
 location ^~ /pages/ { deny all; }
 location ^~ /images/ {
     location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
@@ -72,6 +73,25 @@ location ^~ /images/ {
     }
 }
 ```
+
+### SVG uploads
+
+SVG files can contain scripts, which would run in the context of the wiki when
+such a file is opened directly, so they can't be uploaded by default. To allow
+them, install the [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer)
+library, which removes scripts, event handlers, `javascript:` links and remote
+references from uploaded SVG files, and enable the feature:
+
+- Run `composer require enshrined/svg-sanitize` in the W2 folder (requires the
+  PHP extensions `dom` and `libxml`).
+- Set `SVG_UPLOADS_ENABLED` to `true` in `config.php`.
+
+Files that are not valid SVG files, or larger than 1 MB, are rejected. As long
+as the library is not installed, SVG uploads stay disabled even if
+`SVG_UPLOADS_ENABLED` is set. Note that the library is licensed under the
+GPL-2.0-or-later and therefore not bundled with W2. SVG files uploaded
+earlier (or placed in the uploads folder otherwise) are not modified; the
+web server rules above still protect against scripts in them.
 
 ### Password protection
 

@@ -280,12 +280,7 @@ function svgUploadsAvailable()
 
 function validUploadTypes()
 {
-	$types = explode(',', VALID_UPLOAD_TYPES);
-	if ( svgUploadsAvailable() )
-	{
-		$types[] = 'image/svg+xml';
-	}
-	return $types;
+	return explode(',', VALID_UPLOAD_TYPES);
 }
 
 function validUploadExts()
@@ -296,6 +291,36 @@ function validUploadExts()
 		$exts[] = 'svg';
 	}
 	return $exts;
+}
+
+const MAX_SVG_UPLOAD_SIZE = 1048576;
+
+/**
+ * Remove everything from an uploaded SVG file that could be used to run
+ * scripts or load remote content (scripts, event handlers, javascript: URLs,
+ * external references, ...) with the enshrined/svg-sanitize library.
+ *
+ * return String|false		cleaned up SVG, or false if the file isn't a valid SVG
+ */
+function sanitizeUploadedSvg($tmpName)
+{
+	if ( !svgUploadsAvailable() || !is_uploaded_file($tmpName) || filesize($tmpName) > MAX_SVG_UPLOAD_SIZE )
+	{
+		return false;
+	}
+	$sanitizer = new enshrined\svgSanitize\Sanitizer();
+	$sanitizer->removeRemoteReferences(true);
+	$sanitizer->minify(true);
+	$previousLibxmlSetting = libxml_use_internal_errors(true);
+	$clean = $sanitizer->sanitize(file_get_contents($tmpName));
+	libxml_clear_errors();
+	libxml_use_internal_errors($previousLibxmlSetting);
+	if ( !is_string($clean) || trim($clean) === '' )
+	{
+		error_log("W2: SVG upload rejected: not a valid SVG file");
+		return false;
+	}
+	return $clean;
 }
 
 function hasValidUploadExt($fileName)
@@ -795,8 +820,20 @@ else if ( $action === 'uploaded' )
 	$dstName = basename($dstName);
 	$fileExt = getFileExt($dstName);
 	$msg = '';
-	if (in_array($fileType, validUploadTypes(), true) &&
-	    hasValidUploadExt($dstName))
+	$typeAllowed = in_array($fileType, validUploadTypes(), true);
+	$svgData = null;
+	if ( $fileExt === 'svg' )
+	{
+		// the detected type of SVG files varies (depending on the system's magic database);
+		// what counts is that the sanitizer accepts the file as SVG
+		$typeAllowed = in_array($fileType, array('image/svg+xml', 'text/xml', 'application/xml', 'text/plain'), true);
+		if ( $typeAllowed )
+		{
+			$svgData = sanitizeUploadedSvg($tmpName);
+			$typeAllowed = ($svgData !== false);
+		}
+	}
+	if ($typeAllowed && hasValidUploadExt($dstName))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
@@ -813,7 +850,7 @@ else if ( $action === 'uploaded' )
 		{
 			$msg .= __('Upload error').": ".h(basename($finalPath))." already exists!";
 		}
-		else if ( move_uploaded_file($tmpName, $path) === true )
+		else if ( ($svgData !== null) ? (file_put_contents($path, $svgData) !== false) : (move_uploaded_file($tmpName, $path) === true) )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
 			$msg .= h($commitMsg)." ";

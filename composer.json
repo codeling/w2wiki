@@ -1,0 +1,12 @@
+{
+    "name": "codeling/w2wiki",
+    "description": "W2 wiki: a small wiki using Markdown text files",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "suggest": {
+        "enshrined/svg-sanitize": "Needed to allow SVG uploads (SVG_UPLOADS_ENABLED in config.php); GPL-2.0-or-later licensed, therefore not bundled"
+    }
+}
