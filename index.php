@@ -223,9 +223,14 @@ function getFileExt($fileName)
 	return preg_match('/\.([^.\/]+)$/', $fileName, $matches) ? strtolower($matches[1]) : null;
 }
 
+function isHiddenFile($fileName)
+{
+	return str_starts_with(basename($fileName), '.');
+}
+
 function hasValidUploadExt($fileName)
 {
-	return in_array(getFileExt($fileName), explode(',', VALID_UPLOAD_EXTS), true);
+	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), explode(',', VALID_UPLOAD_EXTS), true);
 }
 
 function pageURL($page)
@@ -869,7 +874,12 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
 	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
-	if ($action == 'imgDeleted')
+	if (isHiddenFile($oldImgName))
+	{
+		// never touch e.g. the .htaccess file protecting the uploads folder
+		$success = false;
+	}
+	else if ($action == 'imgDeleted')
 	{
 		$success = is_file($oldImgPath) && unlink($oldImgPath);
 	}

@@ -1,0 +1,2 @@
+# Deny access to hidden files and folders such as .git (except .well-known)
+RedirectMatch 404 /\.(?!well-known/)

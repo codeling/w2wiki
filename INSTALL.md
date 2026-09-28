@@ -50,6 +50,31 @@ webserver. The latter even allows for multiple different users, i.e. a more
 fine-grained access control than what W2 wiki itself currently provides. The
 features described below might be removed in the near future in this fork!
 
+### Web server configuration
+
+The `pages` folder must not be served directly by the web server (otherwise the
+password and IP restrictions could be bypassed), and nothing in the uploads
+folder (`pages/images`, served statically via an `images` link in the W2 root
+folder) may ever be executed. For Apache, the included `.htaccess` files take
+care of this; they require `AllowOverride All` (or at least `AuthConfig`,
+`FileInfo` and `Options`). For nginx, add rules like the following (adapt the
+W2 location prefix if W2 is not installed in the web root):
+
+```
+location ~ /\.(?!well-known/) { deny all; }
+location ^~ /pages/ { deny all; }
+location ^~ /images/ {
+    location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
+    add_header X-Content-Type-Options nosniff;
+    location ~* \.svg$ {
+        add_header X-Content-Type-Options nosniff;
+        add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
+    }
+}
+```
+
+### Password protection
+
 W2 has the ability to prompt for a password before allowing access to the
 site.  Two lines in config.php control this:
 ```
