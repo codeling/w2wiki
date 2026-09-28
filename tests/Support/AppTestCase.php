@@ -53,13 +53,15 @@ abstract class AppTestCase extends TestCase
 		return '/index.php/' . rawurlencode($page);
 	}
 
-	/** CSRF token of the (new or existing) session of the given client */
+	/**
+	 * CSRF token of the (new or existing) session of the given client; empty
+	 * if the wiki doesn't have any, which lets the other tests also run
+	 * against versions without CSRF protection (see W2_APP_ROOT)
+	 */
 	protected function csrfToken(?HttpClient $client = null): string
 	{
 		$response = ($client ?? $this->http)->get('/index.php', ['action' => 'new']);
-		$this->assertMatchesRegularExpression('/name="csrf_token" value="([^"]+)"/', $response->body);
-		preg_match('/name="csrf_token" value="([^"]+)"/', $response->body, $matches);
-		return html_entity_decode($matches[1]);
+		return preg_match('/name="csrf_token" value="([^"]+)"/', $response->body, $matches) ? html_entity_decode($matches[1]) : '';
 	}
 
 	/** POST a form to index.php including a valid CSRF token */
