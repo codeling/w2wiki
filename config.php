@@ -147,20 +147,23 @@ define('REQUIRE_PASSWORD', false);
 
 // W2_PASSWORD
 //
-// The password for the wiki, if REQUIRE_PASSWORD is true
-// Replace 'secret' with your password to set your password.
+// The password for the wiki, if REQUIRE_PASSWORD is true and W2_PASSWORD_HASH
+// is empty. Replace 'secret' with your password to set your password; logging
+// in is refused as long as the default 'secret' is configured.
 define('W2_PASSWORD', 'secret');
 
 // W2_PASSWORD_HASH
 //
-// Alternate (more secure) password storage.
-// To use a hashed password, Comment out the W2_PASSWORD definition above and uncomment
-// this one, using the result of sha1('your_password') as the value.
+// Alternate (more secure) password storage, takes precedence over W2_PASSWORD.
+// Set it to the output of PHP's password_hash function for your password,
+// which you can for example create on the command line like this:
+//     php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 //
-// In Mac OS X, you can do this from the Terminal:   
-//     echo -n 'your_password' | openssl sha1
+// Note: since the hash contains '$' characters, use single quotes, e.g.:
+// define('W2_PASSWORD_HASH', '$2y$10$...');
 //
-// define('W2_PASSWORD_HASH', 'e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4');
+// For backwards compatibility, an (unsalted, and therefore not recommended)
+// SHA-1 hash of the password is also still accepted.
 define('W2_PASSWORD_HASH', '');
 
 // allowedIPs

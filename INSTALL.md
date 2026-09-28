@@ -83,10 +83,13 @@ define('W2\_PASSWORD', 'secret');
 ```
 
 Set `REQUIRE_PASSWORD` to true and set `W2_PASSWORD` to the password you'd like
-to use.
-**Note:** This is a very rudimentary way of authorizing access. A slightly more
-secure variant is to leave `W2_PASSWORD` empty, and use the `W2_PASSWORD_HASH`
-setting instead.
+to use (logging in is refused while it is still set to the default `secret`).
+**Note:** This is a very rudimentary way of authorizing access. A more secure
+variant is to set `W2_PASSWORD_HASH` to a hash of your password created with
+PHP's `password_hash` function, e.g. via:
+```
+php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
+```
 
 ## Git Integration
 

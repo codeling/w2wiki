@@ -32,6 +32,7 @@ $w2_word_set = array(
 	'Log In' => 'Einloggen',
 	'Log Out' => 'Ausloggen',
 	'Password' => 'Passwort',
+	'Wrong password' => 'Falsches Passwort',
 	'Title'  => 'Titel',
 	'Image Description' => 'Bildbeschreibung',
 	'Name'   => 'Name',

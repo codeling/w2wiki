@@ -57,8 +57,15 @@ function __( $label, $alt_word = null )
 if ( REQUIRE_PASSWORD )
 {
 	ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
-	session_set_cookie_params(W2_SESSION_LIFETIME);
 }
+ini_set('session.use_strict_mode', 1);
+session_set_cookie_params(array(
+	'lifetime' => REQUIRE_PASSWORD ? W2_SESSION_LIFETIME : 0,
+	'path' => '/',
+	'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+	'httponly' => true,
+	'samesite' => 'Lax'
+));
 session_name(W2_SESSION_NAME);
 session_start();
 
@@ -176,17 +183,60 @@ function printDrawer()
 		"      </a>\n";
 }
 
-if ( REQUIRE_PASSWORD && !isset($_SESSION['password']) )
+/**
+ * Check the given password against W2_PASSWORD_HASH (created with PHP's
+ * password_hash, or a legacy unsalted SHA-1 hash), or W2_PASSWORD
+ */
+function isCorrectPassword($password)
 {
-	if ( !defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH == '' )
-		define('W2_PASSWORD_HASH', sha1(W2_PASSWORD));
+	if ( !is_string($password) || $password === '' )
+	{
+		return false;
+	}
+	if ( defined('W2_PASSWORD_HASH') && W2_PASSWORD_HASH !== '' )
+	{
+		if ( password_get_info(W2_PASSWORD_HASH)['algoName'] !== 'unknown' )
+		{
+			return password_verify($password, W2_PASSWORD_HASH);
+		}
+		return hash_equals(strtolower(W2_PASSWORD_HASH), sha1($password));
+	}
+	// refuse to work with the well-known default password
+	return defined('W2_PASSWORD') && W2_PASSWORD !== '' && W2_PASSWORD !== 'secret' &&
+		hash_equals(W2_PASSWORD, $password);
+}
 
-	if ( (isset($_POST['p'])) && (sha1($_POST['p']) == W2_PASSWORD_HASH) )
-		$_SESSION['password'] = W2_PASSWORD_HASH;
-	else
+if ( REQUIRE_PASSWORD && empty($_SESSION['password']) )
+{
+	$loginFailed = false;
+	if ( isset($_POST['p']) )
+	{
+		if ( isCorrectPassword($_POST['p']) )
+		{
+			// prevent session fixation
+			session_regenerate_id(true);
+			$_SESSION['password'] = true;
+			$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+		}
+		else
+		{
+			$loginFailed = true;
+			error_log("W2: failed login attempt from " . $_SERVER['REMOTE_ADDR']);
+			sleep(2);   // slow down brute-force attempts
+		}
+	}
+	if ( empty($_SESSION['password']) )
 	{
 		printHeader( __('Log In'), '', "login");
 		print "    <h1>" . __('Log In') . "</h1>\n";
+		if ( $loginFailed )
+		{
+			print "    <p class=\"note\">" . __('Wrong password') . "</p>\n";
+		}
+		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
+		{
+			print "    <p class=\"note\">Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.</p>\n";
+		}
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
 		print "      <input type=\"submit\" value=\"" . __('Log In') . "\">\n";
@@ -398,7 +448,8 @@ function destroy_session()
 {
 	if ( isset($_COOKIE[session_name()]) )
 	{
-		setcookie(session_name(), '', time() - 42000, '/');
+		setcookie(session_name(), '', array('expires' => time() - 42000, 'path' => '/',
+			'httponly' => true, 'samesite' => 'Lax'));
 	}
 	session_destroy();
 	unset($_SESSION["password"]);
