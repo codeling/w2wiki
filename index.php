@@ -62,6 +62,27 @@ if ( REQUIRE_PASSWORD )
 session_name(W2_SESSION_NAME);
 session_start();
 
+// token protecting state-changing requests against cross-site request forgery
+if ( empty($_SESSION['csrf_token']) )
+{
+	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+function csrfToken()
+{
+	return $_SESSION['csrf_token'];
+}
+
+function csrfField()
+{
+	return "<input type=\"hidden\" name=\"csrf_token\" value=\"" . h(csrfToken()) . "\" />";
+}
+
+function isValidCSRFToken($token)
+{
+	return is_string($token) && hash_equals(csrfToken(), $token);
+}
+
 
 if ( count($allowedIPs) > 0 )
 {
@@ -404,6 +425,16 @@ function humanFilesize($bytes, $decimals = 2) {
 // Main code
 
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
+	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
+{
+	http_response_code(403);
+	die('Invalid request: missing or wrong security token (or uploaded file too large). Please go back, reload the page and try again.');
+}
+if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
+{
+	$action = 'view';
+}
 $newPage = "";
 $text = "";
 $html = "";
@@ -449,8 +480,8 @@ $triedSave = false;
 if ( $action == 'save' )
 {
 	$msg = '';
-	$newText = $_REQUEST['newText'];
-	$isNew = $_REQUEST['isNew'];
+	$newText = $_POST['newText'] ?? '';
+	$isNew = $_POST['isNew'] ?? '';
 	if ($isNew)
 	{
 		$page = str_replace(array('|','#'), '', $page);
@@ -464,7 +495,7 @@ if ( $action == 'save' )
 		$newPage = $page;
 		if (GIT_COMMIT_ENABLED)
 		{
-			$oldgitmsg = $_REQUEST['gitmsg'];
+			$oldgitmsg = $_POST['gitmsg'] ?? '';
 		}
 		$triedSave = true;
 	}
@@ -483,14 +514,14 @@ if ( $action == 'save' )
 			$newPage = $page;
 			if (GIT_COMMIT_ENABLED)
 			{
-				$oldgitmsg = $_REQUEST['gitmsg'];
+				$oldgitmsg = $_POST['gitmsg'] ?? '';
 			}
 			$triedSave = true;
 		}
 		else
 		{
 			$msg .= ($isNew ? __('Created'): __('Saved'));
-			$usermsg = $_REQUEST['gitmsg'];
+			$usermsg = $_POST['gitmsg'] ?? '';
 			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
 			gitChangeHandler($commitmsg, $msg);
 		}
@@ -501,6 +532,7 @@ if ( $action == 'save' )
 if ( $action === 'edit' || $action === 'new' )
 {
 	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\">\n";
+	$html .= csrfField() . "\n";
 
 	if ( $action === 'edit' )
 	{
@@ -559,7 +591,7 @@ else if ( $action === 'upload' )
 	else
 	{
 		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
-			'<input type="hidden" name="action" value="uploaded" />'.
+			'<input type="hidden" name="action" value="uploaded" />'.csrfField().
 			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
@@ -818,6 +850,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
+	$html .= csrfField();
 	$html .= "<p>".$actionName." ".h($page)." ".
 		(($action==='rename' || $action==='imgRename')
 			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . h($page) . "\" class=\"pagename\" />")
@@ -900,7 +933,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
-	$oldImgName = basename(sanitizeFilename($_REQUEST['oldPageName']));
+	$oldImgName = basename(sanitizeFilename($_POST['oldPageName']));
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
 	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
@@ -1109,7 +1142,7 @@ if ( !DISABLE_UPLOADS )
 }
 if ( REQUIRE_PASSWORD )
 {
-	print "      <a href=\"" . SELF . "?action=logout\">". __('Log out') . "</a>";
+	print "      <a href=\"" . SELF . "?action=logout&amp;csrf_token=" . urlencode(csrfToken()) . "\">". __('Log out') . "</a>";
 }
 print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
