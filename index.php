@@ -577,6 +577,7 @@ else if ( $action === 'upload' )
 		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
 			'<input type="hidden" name="action" value="uploaded" />'.csrfField().
 			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
+			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
@@ -598,6 +599,7 @@ else if ( $action === 'upload' )
 			'                     upload = window.confirm("File "+filename+" already exists. Overwrite?");'."\n".
 			'                }'."\n".
 			'                if (upload) {'."\n".
+			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
 			'                    var myform = document.getElementById("upload");'."\n".
 			'                    myform.submit();'."\n".
 			'                }'."\n".
@@ -729,12 +731,16 @@ else if ( $action === 'uploaded' )
 		// never let ImageMagick parse SVG files (external references, delegates)
 		$doProcess = in_array($fileExt, ImageExtensions) && $fileExt !== 'svg' && ($doConvert || $doResize);
 		$pathNoExt = substr($path, 0, strlen($path)-strlen($fileExt)-1);
+		$finalPath = ($doProcess && $doConvert) ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
 		if ($doProcess)
 		{
-			$finalPath = $doConvert ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
 			$path = $pathNoExt . "-tmp-process." . $fileExt;
 		}
-		if ( move_uploaded_file($tmpName, $path) === true )
+		if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
+		{
+			$msg .= __('Upload error').": ".h(basename($finalPath))." already exists!";
+		}
+		else if ( move_uploaded_file($tmpName, $path) === true )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
 			$msg .= h($commitMsg)." ";
@@ -744,7 +750,7 @@ else if ( $action === 'uploaded' )
 				if ($doResize)
 				{
 					$size = array($img->getImageWidth(), $img->getImageHeight());
-					$maxsize = intval($_POST['maxsize']);
+					$maxsize = max(20, min(8192, intval($_POST['maxsize'] ?? 1200)));
 					$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
 				}
 				if ($doResize)
