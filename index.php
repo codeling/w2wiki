@@ -660,6 +660,7 @@ else if ( $action === 'upload' )
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$imgPages = array();
 	if (SHOW_PAGES_WHERE_FILE_USED)
+	{
 		$pagenames = getAllPageNames();
 		foreach($pagenames as $searchPage)
 		{
@@ -680,7 +681,7 @@ else if ( $action === 'upload' )
 				}
 			}
 		}
-
+	}
 
 	$html .= "<table><thead>";
 	$html .= "<tr>".
