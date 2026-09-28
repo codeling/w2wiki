@@ -83,10 +83,7 @@ define('DISABLE_UPLOADS', false);
 //
 // Acceptable file types for file uploads.  This is a good idea for security.
 // Value is a comma-separated string of MIME types.
-// Note: SVG files (image/svg+xml, extension svg) can contain scripts, which run
-// in the context of the wiki when an SVG file is opened directly. Only add them
-// here if all users are trusted, and your web server is configured to serve
-// them with a restrictive Content-Security-Policy (see INSTALL.md).
+// Note: SVG files are not part of this list; see SVG_UPLOADS_ENABLED below.
 define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/webp');
 
 // VALID_UPLOAD_EXTS
@@ -94,6 +91,15 @@ define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,im
 // Acceptable filename extensions for file uploads
 // Value is a comma-separated string of filename extensions
 define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,webp');
+
+// SVG_UPLOADS_ENABLED
+//
+// Allow uploading SVG files. SVG files can contain scripts, which would run in
+// the context of the wiki when such a file is opened directly, so uploaded SVGs
+// are cleaned by the enshrined/svg-sanitize library, which is not bundled with
+// W2 (it is GPL licensed) and needs to be installed via Composer, see
+// INSTALL.md. Without it, SVG uploads are refused even if this is set to true.
+define('SVG_UPLOADS_ENABLED', false);
 
 // SHOW_PAGES_WHERE_FILE_USED
 //

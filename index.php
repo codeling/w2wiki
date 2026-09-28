@@ -12,9 +12,20 @@ define('W2APP', true);
  *
  */
 
+// Optional libraries installed via Composer (see INSTALL.md)
+if ( is_file(__DIR__ . '/vendor/autoload.php') )
+{
+	require_once __DIR__ . '/vendor/autoload.php';
+}
+
 // Install PSR-4-compatible class autoloader
 spl_autoload_register(function($class){
-	require str_replace('\\', DIRECTORY_SEPARATOR, ltrim($class, '\\')).'.php';
+	// don't fail fatally for unknown classes, so class_exists() can be used to probe for optional ones
+	$file = str_replace('\\', DIRECTORY_SEPARATOR, ltrim($class, '\\')).'.php';
+	if ( is_file($file) )
+	{
+		require $file;
+	}
 });
 
 // Get Markdown class
@@ -258,9 +269,38 @@ function isHiddenFile($fileName)
 	return str_starts_with(basename($fileName), '.');
 }
 
+/**
+ * Whether SVG uploads are enabled in the configuration, and the library
+ * needed to sanitize them (enshrined/svg-sanitize) is installed
+ */
+function svgUploadsAvailable()
+{
+	return defined('SVG_UPLOADS_ENABLED') && SVG_UPLOADS_ENABLED && class_exists('enshrined\\svgSanitize\\Sanitizer');
+}
+
+function validUploadTypes()
+{
+	$types = explode(',', VALID_UPLOAD_TYPES);
+	if ( svgUploadsAvailable() )
+	{
+		$types[] = 'image/svg+xml';
+	}
+	return $types;
+}
+
+function validUploadExts()
+{
+	$exts = explode(',', VALID_UPLOAD_EXTS);
+	if ( svgUploadsAvailable() )
+	{
+		$exts[] = 'svg';
+	}
+	return $exts;
+}
+
 function hasValidUploadExt($fileName)
 {
-	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), explode(',', VALID_UPLOAD_EXTS), true);
+	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), validUploadExts(), true);
 }
 
 function pageURL($page)
@@ -755,7 +795,7 @@ else if ( $action === 'uploaded' )
 	$dstName = basename($dstName);
 	$fileExt = getFileExt($dstName);
 	$msg = '';
-	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES), true) &&
+	if (in_array($fileType, validUploadTypes(), true) &&
 	    hasValidUploadExt($dstName))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
