@@ -230,6 +230,24 @@ function pregReplacementQuote($str)
 	return str_replace(array('\\', '$'), array('\\\\', '\\$'), $str);
 }
 
+/**
+ * Whether a page with the given name may be created: page names may contain
+ * subfolders, but no hidden or empty path segments, and pages must not be
+ * stored within the (statically served) uploads folder
+ */
+function isValidPageName($page)
+{
+	$segments = explode('/', $page);
+	foreach ($segments as $segment)
+	{
+		if ($segment === '' || str_starts_with($segment, '.'))
+		{
+			return false;
+		}
+	}
+	return $segments[0] !== UPLOAD_FOLDER;
+}
+
 function getFileExt($fileName)
 {
 	return preg_match('/\.([^.\/]+)$/', $fileName, $matches) ? strtolower($matches[1]) : null;
@@ -473,9 +491,11 @@ if ( $action == 'save' )
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	if ($isNew && file_exists($filename))
+	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
 	{
-		$msg .= "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n";
+		$msg .= file_exists($filename)
+			? "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n"
+			: "Error creating page '".h($page)."' - invalid page name! Page names must not start with '".UPLOAD_FOLDER."/', or contain empty or hidden ('.'-prefixed) folder names.\n";
 		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
@@ -870,6 +890,10 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	if ($action === 'deleted')
 	{
 		$success = unlink(fileNameForPage($oldPageName));
+	}
+	else if (!isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	{
+		$success = false;
 	}
 	else
 	{
