@@ -270,7 +270,9 @@ function checkedExecute(&$msg, $cmd)
 	exec($cmd, $output, $returnValue);
 	if ($returnValue != 0)
 	{
-		$msg .= "<br/>Error executing command ".h($cmd)." (return value: ".$returnValue."): ".h(implode(" ", $output));
+		// details (command, output) may reveal server internals, so only log them
+		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		$msg .= "<br/>Error executing git command (return value: ".$returnValue."); see the web server's error log for details.";
 	}
 	return ($returnValue == 0);
 }
@@ -281,13 +283,13 @@ function gitChangeHandler($commitmsg, &$msg)
 	{
 		return;
 	}
-	if (checkedExecute($msg, "cd ".PAGES_PATH." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
+	if (checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
 	{
 		if (!GIT_PUSH_ENABLED)
 		{
 			return;
 		}
-		checkedExecute($msg, "cd ".PAGES_PATH." && git push");
+		checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
 	}
 }
 
@@ -492,7 +494,8 @@ if ( $action == 'save' )
 		$success = file_put_contents($filename, $newText);
 		if ( $success === FALSE)
 		{
-			$msg .= "Error saving changes! Make sure your web server has write access to " . PAGES_PATH . "\n";
+			$msg .= "Error saving changes! Make sure your web server has write access to the pages folder.\n";
+			error_log("W2: error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
 			$newPage = $page;
@@ -812,7 +815,8 @@ else if ( $action === 'uploaded' )
 			if ( $error_code === 0 )
 			{
 				// Likely a permissions issue
-				$msg .= __('Upload error') .": Can't write to ".h($path)."<br/><br/>\n".
+				error_log("W2: can't write upload to $path");
+				$msg .= __('Upload error') .": Can't write to the uploads folder<br/><br/>\n".
 					"Check that your permissions are set correctly.";
 			}
 			else
@@ -1150,7 +1154,7 @@ if (SIDEBAR_PAGE != '')
 	}
 	else
 	{
-		$text = __('Sidebar file could not be found')." ($sidebarFile)";
+		$text = __('Sidebar file could not be found')." (".SIDEBAR_PAGE.")";
 	}
 	print toHTML($text);
 	print "    </div>\n";
