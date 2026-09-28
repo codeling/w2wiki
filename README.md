@@ -48,6 +48,11 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 See [Installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md).
 
 
+## Tests
+
+Automated tests (PHPUnit, run against a private copy of the wiki) are described in [tests/README.md](tests/README.md); they run on GitHub Actions for pull requests.
+
+
 ## Security Notice
 
 In its current form, W2 wiki is not security-hardened; it's recommended to only run on an additionally secured server (e.g. in a small, private network for one user only; and secured behind a VPN and/or HTTPS with basic authentication).
