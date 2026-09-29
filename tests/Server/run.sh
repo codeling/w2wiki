@@ -4,6 +4,7 @@
 #   tests/Server/run.sh apache    # php:apache with the .htaccess files of W2
 #   tests/Server/run.sh nginx     # nginx + php-fpm with the rules from INSTALL.md
 #
+# With W2_BROWSER=1 the browser tests are run against the server as well.
 # Needs Docker (with host networking), and "composer install" done. The containers use the
 # ports given by W2_SERVER_PORT (default 8080) and, for nginx, 9000.
 set -euo pipefail
@@ -76,3 +77,9 @@ fi
 
 cd "$repo"
 W2_SERVER_URL=$url W2_SERVER_ROOT=$root vendor/bin/phpunit --testsuite server
+
+# also try to run scripts in a real browser (needs "npm ci" and the browsers in tests/Browser)
+if [[ ${W2_BROWSER:-} == 1 ]]; then
+    cd "$repo/tests/Browser"
+    W2_BASE_URL=$url W2_SERVER_ROOT=$root npx playwright test canary.spec.js xss.spec.js csp.spec.js
+fi

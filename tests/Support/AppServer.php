@@ -22,6 +22,8 @@ final class AppServer
 	private string $dir;
 	private string $logFile;
 	private int $port;
+	/** @var array<string, mixed> */
+	private array $options;
 	/** @var resource */
 	private $process;
 
@@ -30,8 +32,9 @@ final class AppServer
 	 *
 	 * @param array<string, mixed> $overrides values for constants defined in config.php (by name),
 	 *                                        or for the variable $allowedIPs
-	 * @param array<string, bool> $options    "svgSanitizer": make the enshrined/svg-sanitize library
-	 *                                        (see svgSanitizerDir()) available to the app
+	 * @param array<string, mixed> $options   "svgSanitizer": make the enshrined/svg-sanitize library
+	 *                                        (see svgSanitizerDir()) available to the app;
+	 *                                        "port": use this port instead of a free one
 	 */
 	public static function get(array $overrides = [], array $options = []): self
 	{
@@ -68,10 +71,11 @@ final class AppServer
 
 	/**
 	 * @param array<string, mixed> $overrides
-	 * @param array<string, bool> $options
+	 * @param array<string, mixed> $options
 	 */
 	private function __construct(array $overrides, array $options)
 	{
+		$this->options = $options;
 		$this->appRoot = rtrim(getenv('W2_APP_ROOT') ?: dirname(__DIR__, 2), '/');
 		$this->dir = sys_get_temp_dir() . '/w2test-' . bin2hex(random_bytes(6));
 		$this->logFile = $this->dir . '.log';
@@ -134,11 +138,10 @@ final class AppServer
 	public function reset(): void
 	{
 		$keep = [$this->pagesDir() . '/.htaccess', $this->imagesDir() . '/.htaccess'];
-		self::removeContents($this->pagesDir(), $keep);
-		self::removeContents($this->imagesDir(), $keep);
 		if (!is_dir($this->imagesDir())) {
 			mkdir($this->imagesDir(), 0777, true);
 		}
+		self::removeContents($this->pagesDir(), $keep);
 		foreach (glob($this->appRoot . '/pages/*.md') as $page) {
 			copy($page, $this->pagesDir() . '/' . basename($page));
 		}
@@ -212,9 +215,13 @@ PHP);
 
 	private function start(): void
 	{
-		$socket = stream_socket_server('tcp://127.0.0.1:0');
-		$this->port = (int)substr(strrchr((string)stream_socket_get_name($socket, false), ':'), 1);
-		fclose($socket);
+		if (isset($this->options['port'])) {
+			$this->port = (int)$this->options['port'];
+		} else {
+			$socket = stream_socket_server('tcp://127.0.0.1:0');
+			$this->port = (int)substr(strrchr((string)stream_socket_get_name($socket, false), ':'), 1);
+			fclose($socket);
+		}
 
 		$command = [
 			PHP_BINARY, '-S', "127.0.0.1:$this->port",

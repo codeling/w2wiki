@@ -10,6 +10,7 @@ composer test              # everything
 composer test:unit         # fast tests of helper functions
 composer test:integration  # HTTP tests, all but the SVG upload tests
 composer test:server       # rules for Apache and nginx, needs Docker (see below)
+composer test:browser      # scripts in a real browser, see below
 composer test:svg          # SVG uploads, needs the enshrined/svg-sanitize test dependency
 vendor/bin/phpunit --filter UploadTest
 ```
@@ -52,3 +53,25 @@ The script serves a copy of the wiki and runs the suite `server` with the enviro
 and the ports 8080 (`W2_SERVER_PORT`) and, for nginx, 9000. `W2_NGINX_IMAGE` and `W2_PHP_VERSION`
 select the images. The nginx rules tested are in `tests/Server/nginx/w2.conf.template`; a unit test
 makes sure they are the same as in INSTALL.md.
+
+## Browser tests
+
+`tests/Browser` contains [Playwright](https://playwright.dev) tests which try to run scripts in a real
+browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP tests use), uploaded
+file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
+test. `canary.spec.js` checks that the helpers really notice scripts.
+
+```
+cd tests/Browser
+npm ci
+npx playwright install chromium    # not needed if the browsers are already installed
+npx playwright test                # or: composer test:browser
+```
+
+The wiki is started by `tests/bin/serve-app.php` (on the ports 8090, and 8091 with SVG uploads).
+With `W2_BASE_URL` the tests use a wiki which is already running instead. `W2_BROWSER=1
+tests/Server/run.sh apache` (or `nginx`) runs part of them against the real web servers, including
+the check that scripts in old SVG files of the uploads folder are blocked by their headers.
+
+Like the PHP tests, the browser tests can be run against another version with
+`W2_APP_ROOT=/path/to/checkout php tests/bin/serve-app.php --port=8092` and `W2_BASE_URL=http://127.0.0.1:8092`.

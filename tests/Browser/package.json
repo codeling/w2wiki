@@ -1,0 +1,11 @@
+{
+  "name": "w2wiki-browser-tests",
+  "private": true,
+  "description": "Runs attempts to inject scripts in a real browser",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

@@ -3,3 +3,8 @@ vendor/*
 composer.lock
 .phpunit.cache/
 .phpunit.result.cache
+
+# browser tests
+tests/Browser/node_modules/
+tests/Browser/test-results/
+tests/Browser/playwright-report/

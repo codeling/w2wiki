@@ -20,6 +20,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "test:browser": "cd tests/Browser && npx playwright test",
         "test:integration": "phpunit --testsuite integration",
         "test:server": [
             "tests/Server/run.sh apache",
