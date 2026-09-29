@@ -21,7 +21,8 @@
     "scripts": {
         "test": "phpunit",
         "test:integration": "phpunit --testsuite integration",
-        "test:svg": "phpunit --testsuite svg"
+        "test:svg": "phpunit --testsuite svg",
+        "test:unit": "phpunit --testsuite unit"
     },
     "config": {
         "sort-packages": true

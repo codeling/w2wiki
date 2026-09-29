@@ -7,7 +7,8 @@ need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`.
 ```
 composer install
 composer test              # everything
-composer test:integration  # all but the SVG upload tests
+composer test:unit         # fast tests of helper functions
+composer test:integration  # HTTP tests, all but the SVG upload tests
 composer test:svg          # SVG uploads, needs the enshrined/svg-sanitize test dependency
 vendor/bin/phpunit --filter UploadTest
 ```
@@ -22,6 +23,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
 - `tests/Support`: `AppServer` (runs the app), `HttpClient` (cookie-aware, doesn't follow
   redirects), `AppTestCase` (base class with helpers such as `savePage()`, `upload()`,
   `assertNoActiveContent()`).
+- `tests/Unit`: tests of functions from `functions.php` and `auth_functions.php` (loaded by
+  `tests/bootstrap.php` with the default `config.php`, without session or output).
 - `tests/Integration`: the tests. To test with another configuration, override
   `configOverrides()` in the test class; it returns values for the constants defined in
   `config.php` (or `$allowedIPs`).
