@@ -27,6 +27,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `assertNoActiveContent()`).
 - `tests/Unit`: tests of functions from `functions.php` and `auth_functions.php` (loaded by
   `tests/bootstrap.php` with the default `config.php`, without session or output).
+  `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or
+  commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
+  names, and request data read outside the entry points.
 - `tests/Integration`: the tests. To test with another configuration, override
   `configOverrides()` in the test class; it returns values for the constants defined in
   `config.php` (or `$allowedIPs`).
