@@ -1,2 +1,5 @@
 # Deny access to hidden files and folders such as .git (except .well-known)
 RedirectMatch 404 /\.(?!well-known/)
+
+# Don't list the contents of folders (like the uploads) without index file
+Options -Indexes
