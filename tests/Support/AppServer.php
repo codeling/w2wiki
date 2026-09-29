@@ -11,7 +11,7 @@ namespace W2\Tests\Support;
  */
 final class AppServer
 {
-	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'config.php', 'index.css', 'wiki.js'];
+	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'config.php', 'index.css', 'wiki.js'];
 	private const APP_DIRS = ['Michelf', 'locales', 'icons', 'pages'];
 
 	/** @var array<string, AppServer> running servers by configuration */
