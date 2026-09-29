@@ -21,6 +21,10 @@
     "scripts": {
         "test": "phpunit",
         "test:integration": "phpunit --testsuite integration",
+        "test:server": [
+            "tests/Server/run.sh apache",
+            "tests/Server/run.sh nginx"
+        ],
         "test:svg": "phpunit --testsuite svg",
         "test:unit": "phpunit --testsuite unit"
     },

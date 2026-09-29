@@ -77,3 +77,24 @@ jobs:
         run: vendor/bin/phpunit --testsuite integration
       - name: Run SVG upload tests
         run: vendor/bin/phpunit --testsuite svg
+
+  server:
+    name: Web server rules (${{ matrix.server }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [apache, nginx]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, dom, fileinfo, libxml, mbstring
+          coverage: none
+          tools: composer:v2
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Test the rules with ${{ matrix.server }} in Docker
+        run: tests/Server/run.sh ${{ matrix.server }}
