@@ -26,9 +26,18 @@ abstract class AppTestCase extends TestCase
 		return [];
 	}
 
+	/** @return array<string, bool> options for the test server, see AppServer::get() */
+	protected function serverOptions(): array
+	{
+		return [];
+	}
+
 	protected function setUp(): void
 	{
-		$this->server = AppServer::get($this->configOverrides());
+		if (!empty($this->serverOptions()['svgSanitizer']) && AppServer::svgSanitizerDir() === null) {
+			$this->markTestSkipped('enshrined/svg-sanitize is not installed (run composer install)');
+		}
+		$this->server = AppServer::get($this->configOverrides(), $this->serverOptions());
 		$this->server->reset();
 		$this->http = $this->newClient();
 		$this->logOffset = $this->server->logSize();

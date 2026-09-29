@@ -30,13 +30,16 @@ final class AppServer
 	 *
 	 * @param array<string, mixed> $overrides values for constants defined in config.php (by name),
 	 *                                        or for the variable $allowedIPs
+	 * @param array<string, bool> $options    "svgSanitizer": make the enshrined/svg-sanitize library
+	 *                                        (see svgSanitizerDir()) available to the app
 	 */
-	public static function get(array $overrides = []): self
+	public static function get(array $overrides = [], array $options = []): self
 	{
 		ksort($overrides);
-		$key = md5(serialize($overrides));
+		ksort($options);
+		$key = md5(serialize([$overrides, $options]));
 		if (!isset(self::$instances[$key])) {
-			self::$instances[$key] = new self($overrides);
+			self::$instances[$key] = new self($overrides, $options);
 		}
 		if (!self::$shutdownRegistered) {
 			register_shutdown_function([self::class, 'stopAll']);
@@ -53,8 +56,21 @@ final class AppServer
 		self::$instances = [];
 	}
 
-	/** @param array<string, mixed> $overrides */
-	private function __construct(array $overrides)
+	/**
+	 * Folder of the enshrined/svg-sanitize library used by tests (from the
+	 * test dependencies, or given in W2_SVG_SANITIZER_DIR), if available
+	 */
+	public static function svgSanitizerDir(): ?string
+	{
+		$dir = getenv('W2_SVG_SANITIZER_DIR') ?: dirname(__DIR__, 2) . '/vendor/enshrined/svg-sanitize';
+		return is_file("$dir/src/Sanitizer.php") ? $dir : null;
+	}
+
+	/**
+	 * @param array<string, mixed> $overrides
+	 * @param array<string, bool> $options
+	 */
+	private function __construct(array $overrides, array $options)
 	{
 		$this->appRoot = rtrim(getenv('W2_APP_ROOT') ?: dirname(__DIR__, 2), '/');
 		$this->dir = sys_get_temp_dir() . '/w2test-' . bin2hex(random_bytes(6));
@@ -76,6 +92,9 @@ final class AppServer
 		// the uploads folder is served statically from the root folder, see README.md
 		symlink('pages/images', "$this->dir/images");
 		$this->writeConfig($overrides);
+		if (!empty($options['svgSanitizer'])) {
+			$this->installSvgSanitizer();
+		}
 		$this->start();
 	}
 
@@ -170,6 +189,25 @@ final class AppServer
 			}
 		}
 		file_put_contents("$this->dir/config.php", $config);
+	}
+
+	/** Provide the library like an installation with Composer would (vendor/autoload.php) */
+	private function installSvgSanitizer(): void
+	{
+		$library = self::svgSanitizerDir() ?? throw new \RuntimeException('enshrined/svg-sanitize is not available');
+		self::copyDir($library, "$this->dir/vendor/enshrined/svg-sanitize");
+		file_put_contents("$this->dir/vendor/autoload.php", <<<'PHP'
+<?php
+spl_autoload_register(function ($class) {
+	$prefix = 'enshrined\\svgSanitize\\';
+	if (str_starts_with($class, $prefix)) {
+		$file = __DIR__ . '/enshrined/svg-sanitize/src/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+		if (is_file($file)) {
+			require $file;
+		}
+	}
+});
+PHP);
 	}
 
 	private function start(): void

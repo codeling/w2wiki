@@ -7,6 +7,8 @@ need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`.
 ```
 composer install
 composer test              # everything
+composer test:integration  # all but the SVG upload tests
+composer test:svg          # SVG uploads, needs the enshrined/svg-sanitize test dependency
 vendor/bin/phpunit --filter UploadTest
 ```
 
@@ -14,6 +16,8 @@ Every test starts with the initial pages, no uploads, and a new session. A test
 also fails if the wiki logged PHP warnings, notices or deprecations while it ran.
 
 ## Layout
+
+- `tests/fixtures/svg`: SVG files with scripts, event handlers, external references, entities etc. for the SVG upload tests.
 
 - `tests/Support`: `AppServer` (runs the app), `HttpClient` (cookie-aware, doesn't follow
   redirects), `AppTestCase` (base class with helpers such as `savePage()`, `upload()`,

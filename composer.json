@@ -7,6 +7,7 @@
         "php": ">=8.1"
     },
     "require-dev": {
+        "enshrined/svg-sanitize": "^1.0",
         "phpunit/phpunit": "^10.5"
     },
     "suggest": {
@@ -19,7 +20,8 @@
     },
     "scripts": {
         "test": "phpunit",
-        "test:integration": "phpunit --testsuite integration"
+        "test:integration": "phpunit --testsuite integration",
+        "test:svg": "phpunit --testsuite svg"
     },
     "config": {
         "sort-packages": true

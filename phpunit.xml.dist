@@ -9,6 +9,10 @@
     <testsuites>
         <testsuite name="integration">
             <directory>tests/Integration</directory>
+            <exclude>tests/Integration/Svg</exclude>
+        </testsuite>
+        <testsuite name="svg">
+            <directory>tests/Integration/Svg</directory>
         </testsuite>
     </testsuites>
 </phpunit>
