@@ -51,24 +51,24 @@ document.addEventListener('DOMContentLoaded', () =>
 			event.preventDefault();
 		}
 	});
-	// (the title can be edited for new pages)
-	for (const id of ["text", "title"])
+	// (this script is only loaded where the editor is, see isEditorAction())
+	let textArea = document.getElementById("text");
+	textArea.addEventListener('input', () =>
 	{
-		let field = document.getElementById(id);
-		if (field)
-		{
-			field.addEventListener('input', () =>
-			{
-				modified = true;
-			});
-		}
-	}
-	let saveBtn = document.getElementById("save");
-	if (saveBtn)
+		modified = true;
+	});
+	// the title can only be edited for new pages:
+	let title = document.getElementById("title");
+	if (title)
 	{
-		saveBtn.addEventListener('click', () =>
+		title.addEventListener('input', () =>
 		{
-			modified = false;
+			modified = true;
 		});
 	}
+	let saveBtn = document.getElementById("save");
+	saveBtn.addEventListener('click', () =>
+	{
+		modified = false;
+	});
 });

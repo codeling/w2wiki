@@ -38,7 +38,7 @@ function printHeader($title, $action, $bodyclass="")
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
-	if ($action === 'edit' || $action === 'new')
+	if (isEditorAction($action))
 	{
 		// (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently)
 		// (not relative: pages can be shown below the script, like /index.php/Page)
@@ -327,7 +327,7 @@ if ( $action == 'save' )
 	redirectWithMessage($page, $msg);
 }
 
-if ( $action === 'edit' || $action === 'new' )
+if ( isEditorAction($action) )
 {
 	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\">\n";
 	$html .= csrfField() . "\n";
@@ -972,7 +972,7 @@ if ( REQUIRE_PASSWORD )
 }
 print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
-if ($action === 'edit' || $action === 'new')
+if (isEditorAction($action))
 {
 	printDrawer();
 }

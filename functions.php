@@ -90,6 +90,15 @@ function fileNameForPage($page)
 	return PAGES_PATH . "/$page." . PAGES_EXT;
 }
 
+/**
+ * Whether the page of this action contains the editor (text area, save button
+ * and formatting help), and needs its script wiki.js
+ */
+function isEditorAction($action)
+{
+	return $action === 'edit' || $action === 'new';
+}
+
 function isExistingPage($page)
 {
 	return $page !== "" && file_exists(fileNameForPage($page));

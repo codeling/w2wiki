@@ -103,6 +103,15 @@ final class FileNamesTest extends TestCase
 		$this->assertSame(PAGES_PATH . '/sub/page.md', fileNameForPage('sub/page'));
 	}
 
+	public function testEditorActions(): void
+	{
+		$this->assertTrue(isEditorAction('edit'));
+		$this->assertTrue(isEditorAction('new'));
+		foreach (['view', 'save', 'rename', 'delete', 'upload', 'all', 'search', '', 'EDIT'] as $action) {
+			$this->assertFalse(isEditorAction($action), $action);
+		}
+	}
+
 	public function testExistingPages(): void
 	{
 		$this->assertTrue(isExistingPage('Home'));

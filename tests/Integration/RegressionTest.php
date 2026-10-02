@@ -124,6 +124,30 @@ final class RegressionTest extends AppTestCase
 		$this->assertStringNotContainsString('id="drawer"', $this->http->get('/index.php')->body);
 	}
 
+	/**
+	 * wiki.js (which assumes the editor, its formatting help and the save button exist) must be loaded exactly
+	 * on the pages with an editor, and all of them must have the formatting help
+	 */
+	public function testEditorScriptFormattingHelpAndEditorAppearTogether(): void
+	{
+		$this->savePage('Existing', 'text');
+		$urls = [
+			'/index.php', '/index.php?action=all', '/index.php?action=upload', '/index.php?action=search&q=a',
+			'/index.php?action=rename&page=Existing', '/index.php?action=delete&page=Existing',
+			'/index.php?action=imgRename&imgName=a.gif&prevpage=Home', '/index.php/Existing', '/index.php/Missing',
+			'/index.php?action=new', '/index.php?action=edit&page=Existing',
+		];
+		foreach ($urls as $url) {
+			$body = $this->http->get($url)->body;
+			$hasEditor = str_contains($body, 'id="text"');
+			$hasSave = str_contains($body, 'id="save"');
+			$this->assertSame($hasEditor, $hasSave, $url);
+			$this->assertSame($hasEditor, str_contains($body, '/wiki.js'), "$url: script");
+			$this->assertSame($hasEditor, str_contains($body, 'id="drawer"'), "$url: formatting help");
+		}
+		$this->assertStringContainsString('id="text"', $this->http->get('/index.php?action=new')->body);
+	}
+
 	public function testResponsesAreNotCached(): void
 	{
 		$this->assertSame('no-store', $this->http->get('/index.php')->header('cache-control'));
