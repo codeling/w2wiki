@@ -40,12 +40,7 @@ function makeElementDraggable(elmnt)
 }
 document.addEventListener('DOMContentLoaded', () =>
 {
-	// (the formatting help is only shown when editing existing pages)
-	let drawer = document.getElementById("drawer");
-	if (drawer)
-	{
-		makeElementDraggable(drawer);
-	}
+	makeElementDraggable(document.getElementById("drawer"));
 
 	// prevent inadvertent navigation away from edited content:
 	modified = false;
