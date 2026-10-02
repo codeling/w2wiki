@@ -1,0 +1,30 @@
+# nginx server for W2 with the rules from INSTALL.md (keep in sync, see DocumentationTest),
+# and PHP through php-fpm on 127.0.0.1:9000. @PORT@ is replaced by tests/Server/run.sh.
+server {
+    listen @PORT@;
+    server_name localhost;
+    root /var/www/html;
+    index index.php;
+
+    # --- rules from INSTALL.md ---
+    location ~ /\.(?!well-known/) { deny all; }
+    location ^~ /vendor/ { deny all; }
+    location ^~ /pages/ { deny all; }
+    location ^~ /images/ {
+        location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
+        add_header X-Content-Type-Options nosniff;
+        location ~* \.svg$ {
+            add_header X-Content-Type-Options nosniff;
+            add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
+        }
+    }
+    # --- end of rules from INSTALL.md ---
+
+    location ~ \.php(/|$) {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        fastcgi_pass 127.0.0.1:9000;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+}

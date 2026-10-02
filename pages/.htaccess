@@ -1,0 +1,4 @@
+# Page sources (and a potential .git repository used by the git integration)
+# must only be accessed through index.php, which enforces the password and IP
+# restrictions configured in config.php.
+Require all denied

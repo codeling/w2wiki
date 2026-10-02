@@ -83,13 +83,23 @@ define('DISABLE_UPLOADS', false);
 //
 // Acceptable file types for file uploads.  This is a good idea for security.
 // Value is a comma-separated string of MIME types.
-define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/svg+xml,image/webp');
+// Note: SVG files are not part of this list; see SVG_UPLOADS_ENABLED below.
+define('VALID_UPLOAD_TYPES', 'application/pdf,image/gif,image/heic,image/heif,image/jpeg,image/pjpeg,image/png,image/webp');
 
 // VALID_UPLOAD_EXTS
 //
 // Acceptable filename extensions for file uploads
 // Value is a comma-separated string of filename extensions
-define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,svg,webp');
+define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,webp');
+
+// SVG_UPLOADS_ENABLED
+//
+// Allow uploading SVG files. SVG files can contain scripts, which would run in
+// the context of the wiki when such a file is opened directly, so uploaded SVGs
+// are cleaned by the enshrined/svg-sanitize library, which is not bundled with
+// W2 (it is GPL licensed) and needs to be installed via Composer, see
+// INSTALL.md. Without it, SVG uploads are refused even if this is set to true.
+define('SVG_UPLOADS_ENABLED', false);
 
 // SHOW_PAGES_WHERE_FILE_USED
 //
@@ -143,26 +153,32 @@ define('REQUIRE_PASSWORD', false);
 
 // W2_PASSWORD
 //
-// The password for the wiki, if REQUIRE_PASSWORD is true
-// Replace 'secret' with your password to set your password.
+// The password for the wiki, if REQUIRE_PASSWORD is true and W2_PASSWORD_HASH
+// is empty. Replace 'secret' with your password to set your password; logging
+// in is refused as long as the default 'secret' is configured.
 define('W2_PASSWORD', 'secret');
 
 // W2_PASSWORD_HASH
 //
-// Alternate (more secure) password storage.
-// To use a hashed password, Comment out the W2_PASSWORD definition above and uncomment
-// this one, using the result of sha1('your_password') as the value.
+// Alternate (more secure) password storage, takes precedence over W2_PASSWORD.
+// Set it to the output of PHP's password_hash function for your password,
+// which you can for example create on the command line like this:
+//     php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 //
-// In Mac OS X, you can do this from the Terminal:   
-//     echo -n 'your_password' | openssl sha1
+// Note: since the hash contains '$' characters, use single quotes, e.g.:
+// define('W2_PASSWORD_HASH', '$2y$10$...');
 //
-// define('W2_PASSWORD_HASH', 'e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4');
+// For backwards compatibility, an (unsalted, and therefore not recommended)
+// SHA-1 hash of the password is also still accepted.
 define('W2_PASSWORD_HASH', '');
 
 // allowedIPs
 //
-// A whitelist of IP addresses that are allowed access to the wiki. 
+// A whitelist of IP addresses that are allowed access to the wiki.
 // If empty, all IPs are allowed.
+// Entries can be single addresses (e.g. '192.168.1.10'), CIDR ranges
+// (e.g. '192.168.1.0/24' or 'fd00::/8'), or address prefixes ending in
+// '.' or ':' (e.g. '192.168.1.').
 $allowedIPs = array();
 
 // W2_SESSION_LIFETIME

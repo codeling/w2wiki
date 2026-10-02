@@ -1,0 +1,25 @@
+# Uploaded files are served statically (via the "images" link in the W2 root
+# folder); make sure nothing in here can ever be executed by the web server.
+Require all granted
+
+<FilesMatch "(?i)\.(php[0-9]?|pht|phtml|phar|phps|cgi|pl|py|sh|asp|aspx|jsp)$">
+	Require all denied
+</FilesMatch>
+
+<IfModule mod_php.c>
+	php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+	php_flag engine off
+</IfModule>
+
+RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .pht .phtml .phar
+RemoveType .php .php3 .php4 .php5 .php7 .php8 .pht .phtml .phar
+
+<IfModule mod_headers.c>
+	Header set X-Content-Type-Options "nosniff"
+	# Prevent scripts in uploaded SVG files from running in the wiki's origin
+	<FilesMatch "(?i)\.svg$">
+		Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
+	</FilesMatch>
+</IfModule>

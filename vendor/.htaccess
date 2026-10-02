@@ -1,0 +1,2 @@
+# Libraries installed via Composer must never be accessed directly.
+Require all denied

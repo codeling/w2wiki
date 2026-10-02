@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	});
 
+	// (this script is only loaded where the editor is, see isEditorAction())
 	let form = document.getElementById("edit");
 	let textArea = document.getElementById("text");
 	let titleInput = document.getElementById("title");
