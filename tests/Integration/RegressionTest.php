@@ -108,6 +108,20 @@ final class RegressionTest extends AppTestCase
 		$this->assertStringContainsString('href="/index.php/Linker"', $body);
 	}
 
+	/** wiki.js warns about leaving the editor with unsaved changes, also for pages which don't exist yet */
+	public function testEditorsLoadTheUnsavedChangesWarning(): void
+	{
+		$pages = [
+			'new page by name' => $this->http->get($this->pageUrl('Not yet existing')),
+			'new page' => $this->http->get('/index.php', ['action' => 'new']),
+			'existing page' => $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home']),
+		];
+		foreach ($pages as $description => $response) {
+			$this->assertStringContainsString('<script src="/wiki.js"></script>', $response->body, $description);
+		}
+		$this->assertStringNotContainsString('wiki.js', $this->http->get('/index.php')->body, 'not needed when viewing');
+	}
+
 	public function testResponsesAreNotCached(): void
 	{
 		$this->assertSame('no-store', $this->http->get('/index.php')->header('cache-control'));

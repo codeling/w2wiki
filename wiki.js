@@ -40,7 +40,12 @@ function makeElementDraggable(elmnt)
 }
 document.addEventListener('DOMContentLoaded', () =>
 {
-	makeElementDraggable(document.getElementById("drawer"));
+	// (the formatting help is only shown when editing existing pages)
+	let drawer = document.getElementById("drawer");
+	if (drawer)
+	{
+		makeElementDraggable(drawer);
+	}
 
 	// prevent inadvertent navigation away from edited content:
 	modified = false;
@@ -51,14 +56,24 @@ document.addEventListener('DOMContentLoaded', () =>
 			event.preventDefault();
 		}
 	});
-	let textArea = document.getElementById("text");
-	textArea.addEventListener('input', () =>
+	// (the title can be edited for new pages)
+	for (const id of ["text", "title"])
 	{
-		modified = true;
-	});
+		let field = document.getElementById(id);
+		if (field)
+		{
+			field.addEventListener('input', () =>
+			{
+				modified = true;
+			});
+		}
+	}
 	let saveBtn = document.getElementById("save");
-	saveBtn.addEventListener('click', () =>
+	if (saveBtn)
 	{
-		modified = false;
-	});
+		saveBtn.addEventListener('click', () =>
+		{
+			modified = false;
+		});
+	}
 });

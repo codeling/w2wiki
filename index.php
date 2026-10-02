@@ -38,9 +38,11 @@ function printHeader($title, $action, $bodyclass="")
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
-	if ($action === 'edit')
+	if ($action === 'edit' || $action === 'new')
 	{
-		print "    <script src=\"wiki.js\"></script>\n";
+		// (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently)
+		// (not relative: pages can be shown below the script, like /index.php/Page)
+		print "    <script src=\"" . BASE_URI . "/wiki.js\"></script>\n";
 	}
 	print "  </head>\n";
 	print "  <body".($bodyclass != "" ? " class=\"$bodyclass\"":"").">\n";
