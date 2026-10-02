@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg"><a href="#"><rect width="5" height="5"/><animate attributeName="href" values="javascript:alert(7)"/><set attributeName="href" to="javascript:alert(8)"/></a></svg>

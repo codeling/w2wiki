@@ -51,11 +51,21 @@ document.addEventListener('DOMContentLoaded', () =>
 			event.preventDefault();
 		}
 	});
+	// (this script is only loaded where the editor is, see isEditorAction())
 	let textArea = document.getElementById("text");
 	textArea.addEventListener('input', () =>
 	{
 		modified = true;
 	});
+	// the title can only be edited for new pages:
+	let title = document.getElementById("title");
+	if (title)
+	{
+		title.addEventListener('input', () =>
+		{
+			modified = true;
+		});
+	}
 	let saveBtn = document.getElementById("save");
 	saveBtn.addEventListener('click', () =>
 	{

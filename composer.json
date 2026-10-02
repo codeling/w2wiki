@@ -1,0 +1,35 @@
+{
+    "name": "codeling/w2wiki",
+    "description": "W2 wiki: a small wiki using Markdown text files",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "enshrined/svg-sanitize": "^1.0",
+        "phpunit/phpunit": "^10.5"
+    },
+    "suggest": {
+        "enshrined/svg-sanitize": "Needed to allow SVG uploads (SVG_UPLOADS_ENABLED in config.php); GPL-2.0-or-later licensed, therefore not bundled"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "W2\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:browser": "cd tests/Browser && npx playwright test",
+        "test:integration": "phpunit --testsuite integration",
+        "test:server": [
+            "tests/Server/run.sh apache",
+            "tests/Server/run.sh nginx"
+        ],
+        "test:svg": "phpunit --testsuite svg",
+        "test:unit": "phpunit --testsuite unit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

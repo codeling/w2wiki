@@ -12,14 +12,9 @@ define('W2APP', true);
  *
  */
 
-// Install PSR-4-compatible class autoloader
-spl_autoload_register(function($class){
-	require str_replace('\\', DIRECTORY_SEPARATOR, ltrim($class, '\\')).'.php';
-});
 
-// Get Markdown class
-use Michelf\MarkdownExtra;
-
+// Helper functions (and optional libraries installed via Composer):
+require_once "functions.php";
 
 // User configurable options:
 require_once "config.php";
@@ -29,52 +24,8 @@ require_once 'locales/' . W2_LOCALE . '.php';
 
 const ImageExtensions = array("bmp", "gif", "heic", "heif","jpg", "jpeg", "png", "svg", "webp");
 
-/**
- * Get translated word
- *
- * String	$label		Key for locale word
- * String	$alt_word	Alternative word
- * return	String
- */
-function __( $label, $alt_word = null )
-{
-	global $w2_word_set;
-	if( empty($w2_word_set[$label]) )
-	{
-		return is_null($alt_word) ? $label : $alt_word;
-	}
-	return htmlspecialchars($w2_word_set[$label], ENT_QUOTES);
-}
-
-if ( REQUIRE_PASSWORD )
-{
-	ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
-	session_set_cookie_params(W2_SESSION_LIFETIME);
-}
-session_name(W2_SESSION_NAME);
-session_start();
-
-
-if ( count($allowedIPs) > 0 )
-{
-	$ip = $_SERVER['REMOTE_ADDR'];
-	$accepted = false;
-
-	foreach ( $allowedIPs as $allowed )
-	{
-		if ( strncmp($allowed, $ip, strlen($allowed)) == 0 )
-		{
-			$accepted = true;
-			break;
-		}
-	}
-
-	if ( !$accepted )
-	{
-		print "<html><body>Access from IP address $ip is not allowed</body></html>";
-		exit;
-	}
-}
+// Session handling, IP and password checks:
+require_once "auth.php";
 
 function printHeader($title, $action, $bodyclass="")
 {
@@ -87,9 +38,11 @@ function printHeader($title, $action, $bodyclass="")
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
-	if ($action === 'edit')
+	if (isEditorAction($action))
 	{
-		print "    <script src=\"wiki.js\"></script>\n";
+		// (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently)
+		// (not relative: pages can be shown below the script, like /index.php/Page)
+		print "    <script src=\"" . BASE_URI . "/wiki.js\"></script>\n";
 	}
 	print "  </head>\n";
 	print "  <body".($bodyclass != "" ? " class=\"$bodyclass\"":"").">\n";
@@ -147,17 +100,37 @@ function printDrawer()
 		"      </a>\n";
 }
 
-if ( REQUIRE_PASSWORD && !isset($_SESSION['password']) )
+if ( !isLoggedIn() )
 {
-	if ( !defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH == '' )
-		define('W2_PASSWORD_HASH', sha1(W2_PASSWORD));
-
-	if ( (isset($_POST['p'])) && (sha1($_POST['p']) == W2_PASSWORD_HASH) )
-		$_SESSION['password'] = W2_PASSWORD_HASH;
-	else
+	$loginFailed = false;
+	if ( isset($_POST['p']) )
+	{
+		if ( isCorrectPassword($_POST['p']) )
+		{
+			// prevent session fixation
+			session_regenerate_id(true);
+			$_SESSION['password'] = true;
+			$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+		}
+		else
+		{
+			$loginFailed = true;
+			error_log("W2: failed login attempt from " . $_SERVER['REMOTE_ADDR']);
+			sleep(2);   // slow down brute-force attempts
+		}
+	}
+	if ( empty($_SESSION['password']) )
 	{
 		printHeader( __('Log In'), '', "login");
 		print "    <h1>" . __('Log In') . "</h1>\n";
+		if ( $loginFailed )
+		{
+			print "    <p class=\"note\">" . __('Wrong password') . "</p>\n";
+		}
+		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
+		{
+			print "    <p class=\"note\">Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.</p>\n";
+		}
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
 		print "      <input type=\"submit\" value=\"" . __('Log In') . "\">\n";
@@ -169,83 +142,20 @@ if ( REQUIRE_PASSWORD && !isset($_SESSION['password']) )
 
 // Support functions
 
-function descLengthSort($val_1, $val_2)
-{
-	$firstVal = strlen($val_1);
-	$secondVal = strlen($val_2);
-	return ( $firstVal > $secondVal ) ?
-		-1 : ( ( $firstVal < $secondVal ) ? 1 : 0);
-}
-
-function getAllPageNames($path = "")
-{
-	$filenames = array();
-	$dir = opendir(PAGES_PATH . "/$path" );
-	while ( $filename = readdir($dir) )
-	{
-		if ( $filename === "." || $filename === ".." )
-		{
-			continue;
-		}
-		if ( is_dir( PAGES_PATH . "/$path/$filename" ) )
-		{
-			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
-			continue;
-		}
-		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
-		{
-			continue;
-		}
-		$filename = substr($filename, 0, -(strlen(PAGES_EXT)+1) );
-		$filenames[] = substr("$path/$filename", 1);
-	}
-	closedir($dir);
-	return $filenames;
-}
-
-function fileNameForPage($page)
-{
-	return PAGES_PATH . "/$page." . PAGES_EXT;
-}
-
-function isValidPageName($page)
-{
-	return $page !== "" && file_exists(fileNameForPage($page));
-}
-
 // Reads a "page to go back to" value from $_REQUEST[$paramName], restricted
 // to the name of a page that actually exists. Denies the request entirely
 // if the given value isn't a valid, existing page name.
 function requireValidPreviousPage($paramName)
 {
 	$rawValue = isset($_REQUEST[$paramName]) ? $_REQUEST[$paramName] : DEFAULT_PAGE;
-	$page = sanitizeFilename(urldecode($rawValue));
-	if ( !isValidPageName($page) )
+	// (request values are already decoded)
+	$page = sanitizeFilename($rawValue);
+	if ( !isExistingPage($page) )
 	{
 		header("HTTP/1.1 400 Bad Request");
 		die(__('Invalid page name'));
 	}
 	return $page;
-}
-
-function imageLinkText($imgName)
-{
-	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";
-}
-
-function sanitizeFilename($inFileName)
-{
-	return str_replace(array('~', '..', '\\', ':', '|', '&'), '-', $inFileName);
-}
-
-function pageURL($page)
-{
-	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", urlencode(sanitizeFilename($page))));
-}
-
-function pageLink($page, $title, $attributes="")
-{
-	return "<a href=\"" . pageURL($page) ."\"$attributes>$title</a>";
 }
 
 function redirectWithMessage($page, $msg)
@@ -263,7 +173,9 @@ function checkedExecute(&$msg, $cmd)
 	exec($cmd, $output, $returnValue);
 	if ($returnValue != 0)
 	{
-		$msg .= "<br/>Error executing command ".$cmd." (return value: ".$returnValue."): ".implode(" ", $output);
+		// details (command, output) may reveal server internals, so only log them
+		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		$msg .= "<br/>Error executing git command (return value: ".$returnValue."); see the web server's error log for details.";
 	}
 	return ($returnValue == 0);
 }
@@ -274,111 +186,41 @@ function gitChangeHandler($commitmsg, &$msg)
 	{
 		return;
 	}
-	if (checkedExecute($msg, "cd ".PAGES_PATH." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
+	if (checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
 	{
 		if (!GIT_PUSH_ENABLED)
 		{
 			return;
 		}
-		checkedExecute($msg, "cd ".PAGES_PATH." && git push");
+		checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
 	}
-}
-
-function toHTMLID($noid)
-{	// in HTML5, only spaces aren't allowed
-	return str_replace(" ", "-", strip_tags($noid));
-}
-
-function toHTML($inText)
-{
-	$parser = new MarkdownExtra;
-	$parser->no_markup = true;
-	$outHTML  = $parser->transform($inText);
-	if ( AUTOLINK_PAGE_TITLES )
-	{
-		$pagenames = getAllPageNames();
-		uasort($pagenames, "descLengthSort");
-		foreach ( $pagenames as $pageName )
-		{
-			// match pageName, but only if it isn't inside another word or inside braces (as in "[$pageName]").
-			$outHTML = preg_replace("/(?<![\[a-zA-Z])$pageName(?![\]a-zA-Z])/i", "[[$pageName]]", $outHTML);
-		}
-	}
-	preg_match_all(
-		"/\[\[(.*?)\]\]/",
-		$outHTML,
-		$matches,
-		PREG_PATTERN_ORDER
-	);
-	for ($i = 0; $i < count($matches[0]); $i++)
-	{
-		$fullLinkText = $matches[1][$i];
-		$linkTitleSplit = explode('|', $fullLinkText);
-		$linkedPage = $linkTitleSplit[0];    // split away potential link text
-		$linkText = (count($linkTitleSplit) > 1) ? $linkTitleSplit[1] : $linkedPage;
-		$pagePart = explode('#', $linkedPage)[0];  // split away a potential anchor part
-		$linkedFilename = fileNameForPage(sanitizeFilename($pagePart));
-		$exists = file_exists($linkedFilename);
-		$outHTML = str_replace("[[$fullLinkText]]",
-			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
-	}
-	$outHTML = preg_replace("/\{\{(.*?)\}\}/", "<img src=\"" . BASE_URI . "/images/\\1\" alt=\"\\1\" />", $outHTML);
-
-	// add an anchor in all title tags (h1/2/3/4):
-	preg_match_all(
-		"/<h([1-4])>(.*?)<\/h\\1>/",
-		$outHTML,
-		$matches,
-		PREG_PATTERN_ORDER
-	);
-	for ($i = 0; $i < count($matches[0]); $i++)
-	{
-		$prefix = "<h".$matches[1][$i].">";
-		$caption = $matches[2][$i];
-		$suffix = substr_replace($prefix, "/", 1, 0);
-		$outHTML = str_replace("$prefix$caption$suffix",
-			"$prefix<a id=\"".toHTMLID($caption)."\">$caption</a>$suffix", $outHTML);
-	}
-	return $outHTML;
 }
 
 function destroy_session()
 {
 	if ( isset($_COOKIE[session_name()]) )
 	{
-		setcookie(session_name(), '', time() - 42000, '/');
+		setcookie(session_name(), '', array('expires' => time() - 42000, 'path' => '/',
+			'httponly' => true, 'samesite' => 'Lax'));
 	}
 	session_destroy();
 	unset($_SESSION["password"]);
 	unset($_SESSION);
 }
 
-function getPageActions($page, $action, $imgSuffix)
-{
-	$pageActions = array('edit', 'delete', 'rename');
-	$pageActionNames = array(__('Edit'), __('Delete'), __('Rename'));
-	$result = '';
-	for ($i = 0; $i < count($pageActions); $i++ )
-	{
-		if ($action != $pageActions[$i])
-		{
-			$result .= "      <a href=\"".SELF."?action=".$pageActions[$i].
-				"&amp;page=".urlencode($page)."\"><img src=\"/icons/".$pageActions[$i].$imgSuffix.".svg\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
-		}
-	}
-	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"/icons/link".$imgSuffix.".svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
-	return $result;
-}
-
-function humanFilesize($bytes, $decimals = 2) {
-	$sz = 'BKMGTP';
-	$factor = floor((strlen($bytes) - 1) / 3);
-	return sprintf("%.".($factor==0?0:$decimals)."f", $bytes / pow(1024, $factor)) . @$sz[$factor];
-}
-
 // Main code
 
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
+	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
+{
+	http_response_code(403);
+	die('Invalid request: missing or wrong security token (or uploaded file too large). Please go back, reload the page and try again.');
+}
+if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
+{
+	$action = 'view';
+}
 $newPage = "";
 $text = "";
 $html = "";
@@ -392,7 +234,8 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 	$path_info = isset($_SERVER["PATH_INFO"]) ? $_SERVER["PATH_INFO"]: '';
 	$request_page = isset($_REQUEST['page']) ? $_REQUEST['page'] : '';
 	$page = preg_match('@^/@', $path_info) ? substr($path_info, 1) : $request_page;
-	$page = sanitizeFilename(urldecode($page));
+	// both PATH_INFO and request variables are already URL-decoded
+	$page = sanitizeFilename($page);
 	if ( $page == "" )
 	{
 		$page = DEFAULT_PAGE;
@@ -407,12 +250,20 @@ if ($action === 'view' || $action === 'edit')
 	}
 	else
 	{
+		// links used to encode spaces in page names as '+'; keep them working
+		$plusPage = str_replace('+', ' ', $page);
+		if ( $action === 'view' && $plusPage !== $page && file_exists(fileNameForPage($plusPage)) )
+		{
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: " . pageURL($plusPage));
+			exit;
+		}
 		$pages = getAllPageNames();
 		foreach ($pages as $p)
 		{
 			$basePage = basename($p);
 			if ($basePage == $page) {
-				redirectWithMessage($p, "Page {$page} does not exist, redirected instead to first page in a subfolder with matching filename ({$p})");
+				redirectWithMessage($p, "Page ".h($page)." does not exist, redirected instead to first page in a subfolder with matching filename (".h($p).")");
 			}
 		}
 		$newPage = $page;
@@ -424,22 +275,24 @@ $triedSave = false;
 if ( $action == 'save' )
 {
 	$msg = '';
-	$newText = $_REQUEST['newText'];
-	$isNew = $_REQUEST['isNew'];
+	$newText = $_POST['newText'] ?? '';
+	$isNew = $_POST['isNew'] ?? '';
 	if ($isNew)
 	{
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	if ($isNew && file_exists($filename))
+	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
 	{
-		$msg .= "Error creating page '$page' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!</div>\n";
+		$msg .= file_exists($filename)
+			? "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n"
+			: "Error creating page '".h($page)."' - invalid page name! Page names must not start with '".UPLOAD_FOLDER."/', or contain empty or hidden ('.'-prefixed) folder names.\n";
 		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
 		if (GIT_COMMIT_ENABLED)
 		{
-			$oldgitmsg = $_REQUEST['gitmsg'];
+			$oldgitmsg = $_POST['gitmsg'] ?? '';
 		}
 		$triedSave = true;
 	}
@@ -452,20 +305,21 @@ if ( $action == 'save' )
 		$success = file_put_contents($filename, $newText);
 		if ( $success === FALSE)
 		{
-			$msg .= "Error saving changes! Make sure your web server has write access to " . PAGES_PATH . "\n";
+			$msg .= "Error saving changes! Make sure your web server has write access to the pages folder.\n";
+			error_log("W2: error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
 			$newPage = $page;
 			if (GIT_COMMIT_ENABLED)
 			{
-				$oldgitmsg = $_REQUEST['gitmsg'];
+				$oldgitmsg = $_POST['gitmsg'] ?? '';
 			}
 			$triedSave = true;
 		}
 		else
 		{
 			$msg .= ($isNew ? __('Created'): __('Saved'));
-			$usermsg = $_REQUEST['gitmsg'];
+			$usermsg = $_POST['gitmsg'] ?? '';
 			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
 			gitChangeHandler($commitmsg, $msg);
 		}
@@ -473,14 +327,14 @@ if ( $action == 'save' )
 	redirectWithMessage($page, $msg);
 }
 
-if ( $action === 'edit' || $action === 'new' )
+if ( isEditorAction($action) )
 {
-	$formAction = SELF . (($action === 'edit') ? "/$page" : "");
-	$html .= "<form id=\"edit\" method=\"post\" action=\"$formAction\">\n";
+	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\">\n";
+	$html .= csrfField() . "\n";
 
 	if ( $action === 'edit' )
 	{
-		$html .= "<input type=\"hidden\" name=\"page\" value=\"$page\" />\n";
+		$html .= "<input type=\"hidden\" name=\"page\" value=\"".h($page)."\" />\n";
 	}
 	else
 	{
@@ -493,19 +347,19 @@ if ( $action === 'edit' || $action === 'new' )
 			{
 				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
 				{
-					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, $pageName).". Maybe you meant to edit this instead?";
+					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, h($pageName)).". Maybe you meant to edit this instead?";
 				}
 			}
 			$html .= "</div>\n";
 		}
-		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"$newPage\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
+		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"".h($newPage)."\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
 
 	}
 
-	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">$text</textarea></p>\n";
+	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
-		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"$oldgitmsg\" /></p>\n";
+		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
 	}
 
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
@@ -535,8 +389,9 @@ else if ( $action === 'upload' )
 	else
 	{
 		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
-			'<input type="hidden" name="action" value="uploaded" />'.
-			'<input type="hidden" name="prevpage" value="'.htmlspecialchars($prevpage, ENT_QUOTES).'" />'.
+			'<input type="hidden" name="action" value="uploaded" />'.csrfField().
+			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
+			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
@@ -550,7 +405,7 @@ else if ( $action === 'upload' )
 			'    var fileInput = document.getElementById("file");'."\n".
 			'    if (fileInput.files.length == 0) { alert("No file selected!"); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
-			'    fetch("/api.php?task=checkupload&filename="+filename)'."\n".
+			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
@@ -558,6 +413,7 @@ else if ( $action === 'upload' )
 			'                     upload = window.confirm("File "+filename+" already exists. Overwrite?");'."\n".
 			'                }'."\n".
 			'                if (upload) {'."\n".
+			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
 			'                    var myform = document.getElementById("upload");'."\n".
 			'                    myform.submit();'."\n".
 			'                }'."\n".
@@ -595,6 +451,7 @@ else if ( $action === 'upload' )
 	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$imgPages = array();
 	if (SHOW_PAGES_WHERE_FILE_USED)
+	{
 		$pagenames = getAllPageNames();
 		foreach($pagenames as $searchPage)
 		{
@@ -602,7 +459,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(/images/".preg_quote($baseImgName)."@i", $text) )
+				if ( preg_match("@\(/images/".preg_quote($baseImgName, '@')."@i", $text) )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -615,7 +472,7 @@ else if ( $action === 'upload' )
 				}
 			}
 		}
-
+	}
 
 	$html .= "<table><thead>";
 	$html .= "<tr>".
@@ -643,8 +500,8 @@ else if ( $action === 'upload' )
 			}
 		}
 		$html .= "<tr>".
-			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".$baseImgName."</span></td>".
-			"<td><pre>".imageLinkText($baseImgName)."</pre></td>".
+			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".h(rawurlencode($baseImgName))."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".h($baseImgName)."</span></td>".
+			"<td><pre>".h(imageLinkText($baseImgName))."</pre></td>".
 			"<td><nobr>".date($date_format, $img->recent)."</nobr></td>".
 			"<td><nobr>".humanFilesize($img->size)."</nobr></td>".
 			"<td>".
@@ -657,7 +514,7 @@ else if ( $action === 'upload' )
 			{
 				foreach($imgPages[$img->name] as $page)
 				{
-					$html .= pageLink($page, $page);
+					$html .= pageLink($page, h($page));
 				}
 			}
 			$html .= "</td>";
@@ -677,33 +534,50 @@ else if ( $action === 'uploaded' )
 	$dstName = str_replace(" ", "_", $dstName);  // image display currently doesn't like spaces!
 	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
 	$fileType = mime_content_type($tmpName);
-	preg_match('/\.([^.]+)$/', $dstName, $matches);
-	$fileExt = isset($matches[1]) ? strtolower($matches[1]) : null;
+	$dstName = basename($dstName);
+	$fileExt = getFileExt($dstName);
 	$msg = '';
-	if (in_array($fileType, explode(',', VALID_UPLOAD_TYPES)) &&
-	    in_array($fileExt, explode(',', VALID_UPLOAD_EXTS)))
+	$typeAllowed = in_array($fileType, validUploadTypes(), true);
+	$svgData = null;
+	if ( $fileExt === 'svg' )
+	{
+		// the detected type of SVG files varies (depending on the system's magic database);
+		// what counts is that the sanitizer accepts the file as SVG
+		$typeAllowed = in_array($fileType, array('image/svg+xml', 'text/xml', 'application/xml', 'text/plain'), true);
+		if ( $typeAllowed )
+		{
+			$svgData = sanitizeUploadedSvg($tmpName);
+			$typeAllowed = ($svgData !== false);
+		}
+	}
+	if ($typeAllowed && hasValidUploadExt($dstName))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
 		$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
-		$doProcess = in_array($fileExt, ImageExtensions) && ($doConvert || $doResize);
+		// never let ImageMagick parse SVG files (external references, delegates)
+		$doProcess = in_array($fileExt, ImageExtensions) && $fileExt !== 'svg' && ($doConvert || $doResize);
 		$pathNoExt = substr($path, 0, strlen($path)-strlen($fileExt)-1);
+		$finalPath = ($doProcess && $doConvert) ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
 		if ($doProcess)
 		{
-			$finalPath = $doConvert ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
 			$path = $pathNoExt . "-tmp-process." . $fileExt;
 		}
-		if ( move_uploaded_file($tmpName, $path) === true )
+		if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
+		{
+			$msg .= __('Upload error').": ".h(basename($finalPath))." already exists!";
+		}
+		else if ( ($svgData !== null) ? (file_put_contents($path, $svgData) !== false) : (move_uploaded_file($tmpName, $path) === true) )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
-			$msg .= $commitMsg." ";
+			$msg .= h($commitMsg)." ";
 			if ($doProcess)
 			{
 				$img = new Imagick($path);
 				if ($doResize)
 				{
 					$size = array($img->getImageWidth(), $img->getImageHeight());
-					$maxsize = intval($_POST['maxsize']);
+					$maxsize = max(20, min(8192, intval($_POST['maxsize'] ?? 1200)));
 					$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
 				}
 				if ($doResize)
@@ -757,7 +631,7 @@ else if ( $action === 'uploaded' )
 				$img->clear();
 			}
 			gitChangeHandler($commitMsg, $msg);
-			$msg .= "Use <pre>".imageLinkText($dstName)."</pre> to refer to it!";
+			$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
 		}
 		else
 		{
@@ -765,7 +639,8 @@ else if ( $action === 'uploaded' )
 			if ( $error_code === 0 )
 			{
 				// Likely a permissions issue
-				$msg .= __('Upload error') .": Can't write to ".$path."<br/><br/>\n".
+				error_log("W2: can't write upload to $path");
+				$msg .= __('Upload error') .": Can't write to the uploads folder<br/><br/>\n".
 					"Check that your permissions are set correctly.";
 			}
 			else
@@ -789,23 +664,24 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 {
 	if ($action === 'imgDelete' || $action === 'imgRename' )
 	{
-		$page = sanitizeFilename(urldecode($_REQUEST['imgName']));
+		$page = sanitizeFilename($_REQUEST['imgName']);
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
-	$html .= "<p>".$actionName." $page ".
+	$html .= csrfField();
+	$html .= "<p>".$actionName." ".h($page)." ".
 		(($action==='rename' || $action==='imgRename')
-			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . htmlspecialchars($page) . "\" class=\"pagename\" />")
+			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . h($page) . "\" class=\"pagename\" />")
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
 	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
-	$html .= "<input type=\"hidden\" name=\"action\" value=\"${action}d\" />";
-	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . htmlspecialchars($page) . "\" />";
+	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
+	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
 		$prevpage = requireValidPreviousPage('prevpage');
-		$html .= '<input type="hidden" name="prevpage" value="'.htmlspecialchars($prevpage, ENT_QUOTES).'" />';
+		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
 	}
 	$html .= "</p></form>";
 }
@@ -819,6 +695,10 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	{
 		$success = unlink(fileNameForPage($oldPageName));
 	}
+	else if (!isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	{
+		$success = false;
+	}
 	else
 	{
 		$folderName = dirname(fileNameForPage($newPageName));
@@ -831,8 +711,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	if ($success)
 	{
 		$message = ($action === 'deleted')
-			? (__('Removed')." ".$oldPageName)
-			: (__('Renamed')." ".$oldPageName." ".__('to')." ".$newPageName);
+			? (__('Removed')." ".h($oldPageName))
+			: (__('Renamed')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
 		$msg .= $message;
 		// Change links in all pages to point to new page
 		$pagenames = getAllPageNames();
@@ -841,13 +721,12 @@ else if ( $action === 'renamed' || $action === 'deleted')
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$regexSaveOldPageName = str_replace("/", "\\/", $oldPageName);
-			$newContent = preg_replace("/\[\[$regexSaveOldPageName([|#].*\]\]|\]\])/",
-				(($action === 'deleted') ? "" : "[[$newPageName\\1"),
+			$newContent = preg_replace("/\[\[".preg_quote($oldPageName, '/')."([|#].*?\]\]|\]\])/",
+				(($action === 'deleted') ? "" : "[[".pregReplacementQuote($newPageName)."\\1"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = $replacePage." ($count ".__('matches').")";
+				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
@@ -863,8 +742,8 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	else
 	{
 		$msg .= ($action === 'deleted')
-			? (__('Error deleting file')." ".$oldPageName)
-			: (__('Error renaming file')." ".$oldPageName." ".__('to')." ".$newPageName);
+			? (__('Error deleting file')." ".h($oldPageName))
+			: (__('Error renaming file')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
 		$page = $oldPageName;
 	}
 	if ($action === 'deleted' && $success)
@@ -875,25 +754,33 @@ else if ( $action === 'renamed' || $action === 'deleted')
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
-	// TODO: prevent relative filenames from being injected
-	$oldImgName = sanitizeFilename($_REQUEST['oldPageName']);
+	$oldImgName = basename(sanitizeFilename($_POST['oldPageName']));
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
-	$newImgName = ($action === 'imgDeleted') ? "": sanitizeFilename($_POST['newName']);
-	if ($action == 'imgDeleted')
+	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
+	if (isHiddenFile($oldImgName))
 	{
-		$success = unlink($oldImgPath);
+		// never touch e.g. the .htaccess file protecting the uploads folder
+		$success = false;
+	}
+	else if ($action == 'imgDeleted')
+	{
+		$success = is_file($oldImgPath) && unlink($oldImgPath);
 	}
 	else
 	{
-		$success = rename($oldImgPath, $imgPath.$newImgName);
+		// only allow renaming to a valid upload extension; otherwise, e.g.
+		// an image containing PHP code could be renamed to .php and executed
+		$success = is_file($oldImgPath) && hasValidUploadExt($newImgName) &&
+			!file_exists($imgPath.$newImgName) &&
+			rename($oldImgPath, $imgPath.$newImgName);
 	}
 
 	if ($success)
 	{
 		$msg = ($action === 'imgDeleted')
-			? (__('Image deleted').": ".$oldImgPath)
-			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
+			? (__('Image deleted').": ".h($oldImgName))
+			: (__('Image renamed').": ".h($oldImgName)." ".__('to')." ".h($newImgName));
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
 		$changedPages = array();
@@ -901,12 +788,12 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/$oldImgName\)/",   // escape / because it is used as delimiter
-				(($action === 'imgDeleted') ? "" : "![\\1](/images/$newImgName)"),
+			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/".preg_quote($oldImgName, '/')."\)/",
+				(($action === 'imgDeleted') ? "" : "![\\1](/images/".pregReplacementQuote($newImgName).")"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = $replacePage." ($count ".__('matches').")";
+				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
@@ -921,8 +808,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	else
 	{
 		$msg = ($action === 'imgDeleted')
-			? (__('Error deleting image: ')." (".$oldImgName.")")
-			: (__('Error renaming image: ').$oldImgName." ".__('to')." ".$newImgName);
+			? (__('Error deleting image: ')." (".h($oldImgName).")")
+			: (__('Error renaming image: ').h($oldImgName)." ".__('to')." ".h($newImgName));
 	}
 	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);
@@ -964,7 +851,7 @@ else if ( $action === 'all' )
 	foreach ($filelist as $file)
 	{
 		$html .= "<tr>".
-			"<td>".pageLink($file->name, $file->name)."</td>".
+			"<td>".pageLink($file->name, h($file->name))."</td>".
 			"<td valign=\"top\"><nobr>".date( $date_format, $file->recent)."</nobr></td>".
 			"<td valign=\"top\"><nobr>".humanFilesize($file->size)."</nobr></td>".
 			"<td class=\"pageActions\">".getPageActions($file->name, $action,"-dark")."</td>".
@@ -976,7 +863,7 @@ else if ( $action === 'search' )
 {
 	$matches = 0;
 	$q = $_REQUEST['q'];
-	$html .= "    <h1>Search: $q</h1>\n";
+	$html .= "    <h1>Search: ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
 	{
@@ -990,7 +877,7 @@ else if ( $action === 'search' )
 			{
 				$found = TRUE;
 			}
-			if (preg_match("@$q@i", $searchPage))
+			if (stripos($searchPage, $q) !== false)
 			{
 				array_unshift($matchingPages, $searchPage);
 				++$matches;
@@ -998,7 +885,7 @@ else if ( $action === 'search' )
 			else
 			{
 				$text = file_get_contents(fileNameForPage($searchPage));
-				if ( preg_match("@$q@i", $text) )
+				if ( stripos($text, $q) !== false )
 				{
 					$matchingPages[] = $searchPage;
 					++$matches;
@@ -1007,12 +894,12 @@ else if ( $action === 'search' )
 		}
 		foreach ($matchingPages as $page)
 		{
-			$link = pageLink($page, $page, (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
+			$link = pageLink($page, h($page), (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
 			$html .= "        <li>$link</li>\n";
 		}
 		if (!$found)
 		{
-			$html .= "        <li>".pageLink($q, __('Create page')." '$q'", " class=\"noexist\"")."</li>";
+			$html .= "        <li>".pageLink($q, __('Create page')." '".h($q)."'", " class=\"noexist\"")."</li>";
 		}
 		$html .= "      </ul>\n";
 	}
@@ -1043,7 +930,7 @@ else if ( $action === 'search' )
 }
 else if (isset($filename) && $filename != '')
 {
-	$title = (($action === 'edit')? (__('Edit').": "):"") . $page;
+	$title = (($action === 'edit')? (__('Edit').": "):"") . h($page);
 	$date_format = __('date_format', TITLE_DATE);
 	if ( $date_format )
 	{
@@ -1072,15 +959,20 @@ print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt
 if ( !DISABLE_UPLOADS )
 {
 	$uploadPage = isset($page) ? $page : (isset($prevpage)? $prevpage : DEFAULT_PAGE);
+	if ( !isExistingPage($uploadPage) )
+	{
+		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
+		$uploadPage = DEFAULT_PAGE;
+	}
 	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
 {
-	print "      <a href=\"" . SELF . "?action=logout\">". __('Log out') . "</a>";
+	print "      <a href=\"" . SELF . "?action=logout&amp;csrf_token=" . urlencode(csrfToken()) . "\">". __('Log out') . "</a>";
 }
 print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
-if ($action === 'edit')
+if (isEditorAction($action))
 {
 	printDrawer();
 }
@@ -1095,7 +987,7 @@ if (SIDEBAR_PAGE != '')
 	}
 	else
 	{
-		$text = __('Sidebar file could not be found')." ($sidebarFile)";
+		$text = __('Sidebar file could not be found')." (".SIDEBAR_PAGE.")";
 	}
 	print toHTML($text);
 	print "    </div>\n";
@@ -1107,10 +999,9 @@ if ($action === 'view' && isset($_GET['linkshere']))
 	foreach($pagenames as $searchPage)
 	{
 		$text = file_get_contents(fileNameForPage($searchPage));
-		$regexSavePage = str_replace("/", "\\/", $page);
-		if ( preg_match("/\[\[$regexSavePage/i", $text) )
+		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", $text) )
 		{
-			$link = pageLink($searchPage, $searchPage, "");
+			$link = pageLink($searchPage, h($searchPage), "");
 			print("        <li>$link</li>\n");
 		}
 	}
