@@ -68,6 +68,17 @@ test('existing page: leaving with changes asks for confirmation', async ({ page,
   await expect(page.locator('#text')).toHaveValue(/and more/);
 });
 
+for (const [label, url] of [['existing page', '/index.php?action=edit&page=Home'], ['new page by name', '/index.php/' + encodeURIComponent('Formatting help page')], ['new page', '/index.php?action=new']]) {
+  test(`${label}: the formatting help can be opened`, async ({ page }) => {
+    await page.goto(url);
+    await expect(page.locator('#drawer')).toHaveClass(/inactive/);
+    await page.click('#drawer-control');
+    await expect(page.locator('#drawer')).not.toHaveClass(/inactive/);
+    await page.click('#drawer img.rightaligned');
+    await expect(page.locator('#drawer')).toHaveClass(/inactive/);
+  });
+}
+
 test('existing page: the formatting help still works', async ({ page }) => {
   await page.goto('/index.php?action=edit&page=Home');
   await expect(page.locator('#drawer')).toHaveClass(/inactive/);

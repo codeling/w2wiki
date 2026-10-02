@@ -972,7 +972,7 @@ if ( REQUIRE_PASSWORD )
 }
 print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
-if ($action === 'edit')
+if ($action === 'edit' || $action === 'new')
 {
 	printDrawer();
 }

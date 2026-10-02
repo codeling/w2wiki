@@ -118,8 +118,10 @@ final class RegressionTest extends AppTestCase
 		];
 		foreach ($pages as $description => $response) {
 			$this->assertStringContainsString('<script src="/wiki.js"></script>', $response->body, $description);
+			$this->assertStringContainsString('id="drawer"', $response->body, "$description: formatting help");
 		}
 		$this->assertStringNotContainsString('wiki.js', $this->http->get('/index.php')->body, 'not needed when viewing');
+		$this->assertStringNotContainsString('id="drawer"', $this->http->get('/index.php')->body);
 	}
 
 	public function testResponsesAreNotCached(): void
