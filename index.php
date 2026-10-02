@@ -140,6 +140,22 @@ if ( !isLoggedIn() )
 
 // Support functions
 
+// Reads a "page to go back to" value from $_REQUEST[$paramName], restricted
+// to the name of a page that actually exists. Denies the request entirely
+// if the given value isn't a valid, existing page name.
+function requireValidPreviousPage($paramName)
+{
+	$rawValue = isset($_REQUEST[$paramName]) ? $_REQUEST[$paramName] : DEFAULT_PAGE;
+	// (request values are already decoded)
+	$page = sanitizeFilename($rawValue);
+	if ( !isExistingPage($page) )
+	{
+		header("HTTP/1.1 400 Bad Request");
+		die(__('Invalid page name'));
+	}
+	return $page;
+}
+
 function redirectWithMessage($page, $msg)
 {
 	$_SESSION["msg"] = $msg;
@@ -363,7 +379,7 @@ else if ( $action === 'upload' )
 	{
 		$sortBy = 'name';
 	}
-	$prevpage = isset($_REQUEST['page']) ? $_REQUEST['page'] : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('page');
 	if ( DISABLE_UPLOADS )
 	{
 		$html .= '<p>' . __('Image uploading has been disabled on this installation.') . '</p>';
@@ -639,7 +655,7 @@ else if ( $action === 'uploaded' )
 		$msg .= __('Upload error: invalid file type');
 		error_log("Upload error: file name = $dstName, invalid file type $fileType");
 	}
-	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete' || $action === 'imgRename')
@@ -662,7 +678,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
 	{
-		$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+		$prevpage = requireValidPreviousPage('prevpage');
 		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
 	}
 	$html .= "</p></form>";
@@ -793,7 +809,7 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			? (__('Error deleting image: ')." (".h($oldImgName).")")
 			: (__('Error renaming image: ').h($oldImgName)." ".__('to')." ".h($newImgName));
 	}
-	$prevpage = isset($_REQUEST['prevpage']) ? $_REQUEST['prevpage'] : DEFAULT_PAGE;
+	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);
 }
 else if ( $action === 'all' )
@@ -941,6 +957,11 @@ print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt
 if ( !DISABLE_UPLOADS )
 {
 	$uploadPage = isset($page) ? $page : (isset($prevpage)? $prevpage : DEFAULT_PAGE);
+	if ( !isExistingPage($uploadPage) )
+	{
+		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
+		$uploadPage = DEFAULT_PAGE;
+	}
 	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )

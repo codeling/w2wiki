@@ -103,6 +103,15 @@ final class FileNamesTest extends TestCase
 		$this->assertSame(PAGES_PATH . '/sub/page.md', fileNameForPage('sub/page'));
 	}
 
+	public function testExistingPages(): void
+	{
+		$this->assertTrue(isExistingPage('Home'));
+		$this->assertTrue(isExistingPage('MarkdownSyntax'));
+		$this->assertFalse(isExistingPage('No such page'));
+		$this->assertFalse(isExistingPage(''));
+		$this->assertFalse(isExistingPage('../config'), 'only pages (*.md) count');
+	}
+
 	public function testAllPageNamesIncludeThePagesOfTheWiki(): void
 	{
 		$names = getAllPageNames();

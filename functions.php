@@ -90,6 +90,11 @@ function fileNameForPage($page)
 	return PAGES_PATH . "/$page." . PAGES_EXT;
 }
 
+function isExistingPage($page)
+{
+	return $page !== "" && file_exists(fileNameForPage($page));
+}
+
 function imageLinkText($imgName)
 {
 	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";

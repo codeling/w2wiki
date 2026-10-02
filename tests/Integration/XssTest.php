@@ -43,18 +43,30 @@ final class XssTest extends AppTestCase
 		$this->assertStringNotContainsString(self::SCRIPT, $response->body);
 	}
 
-	public function testPreviousPageParameterIsEscapedInUploadForm(): void
+	public function testPreviousPageParameterIsNotReflected(): void
 	{
+		// only existing pages are accepted (see PreviousPageTest); the value must never be shown
 		$response = $this->http->get('/index.php', ['action' => 'upload', 'page' => '"><b>x']);
-		$this->assertStringContainsString('name="prevpage" value="&quot;&gt;&lt;b&gt;x"', $response->body);
+		$this->assertSame(400, $response->status);
+		$this->assertStringNotContainsString('<b>x', $response->body);
+	}
+
+	public function testPreviousPageIsEscapedInFormsEvenIfThePageNameIsUnusual(): void
+	{
+		$name = 'Say "hi" <b>';
+		$this->savePage($name, 'text');
+		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => $name])->body;
+		$this->assertStringContainsString('name="prevpage" value="Say &quot;hi&quot; &lt;b&gt;"', $body);
+		$this->assertNoActiveContent($body, true);
 	}
 
 	public function testImageNameIsEscapedInRenameAndDeleteForms(): void
 	{
 		foreach (['imgRename', 'imgDelete'] as $action) {
-			$response = $this->http->get('/index.php', ['action' => $action, 'imgName' => '"><b>x', 'prevpage' => '"><i>y']);
+			$response = $this->http->get('/index.php', ['action' => $action, 'imgName' => '"><b>x', 'prevpage' => 'Home']);
+			$this->assertSame(200, $response->status);
 			$this->assertStringNotContainsString('<b>x', $response->body);
-			$this->assertStringNotContainsString('<i>y', $response->body);
+			$this->assertStringContainsString('&lt;b&gt;x', $response->body);
 		}
 	}
 
