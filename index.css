@@ -37,30 +37,22 @@ form {
 li {
 	line-height: 1.5em;
 }
-
+h1,h2,h3,h4,h5,h6      {
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+h1:not(:first-child),h2:not(:first-child),h3:not(:first-child),h4:not(:first-child),h5:not(:first-child),h6:not(:first-child) {
+	margin-top: 1em;
+}
 h1 {
 	font-size: 2em;
-	font-weight: bold;
-	margin-bottom: 4px;
-	margin-top: .6em;
 }
-
 h2 {
 	font-size: 1.6em;
-	font-weight: bold;
-	margin-bottom: 4px;
-	margin-top: .5em;
 }
-
 h3 {
 	font-size: 1.2em;
-	font-weight: bold;
 }
-h3, h4, h5, h6 {
-	margin-top: .4em;
-	margin-bottom: 4px;
-}
-
 hr {
 	border-top: 1px solid #cccccc;
 	border-bottom: 0;
