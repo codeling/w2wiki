@@ -28,6 +28,9 @@ $w2_word_set = array(
 	'Upload error' => 'Upload error',
 	'Upload error: invalid file type' => 'Upload error: invalid file type',
 	'Image uploading has been disabled on this installation.' => 'Image uploading has been disabled on this installation.',
+	'Restored unsaved draft from %s.' => 'Restored unsaved draft from %s.',
+	'Warning: the page was changed since this draft was started.' => 'Warning: the page was changed since this draft was started.',
+	'Discard draft' => 'Discard draft',
 	// Override TITLE_DATE and TITLE_DATE_NO_TIME if set.
 	'date_format'         => 'Y-m-d H:i:s',
 	'date_format_no_time' => 'Y-m-d',

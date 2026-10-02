@@ -329,7 +329,12 @@ if ( $action == 'save' )
 
 if ( isEditorAction($action) )
 {
-	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\">\n";
+	$draftKey = "w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
+	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\"".
+		" data-draft-key=\"".h($draftKey)."\"".
+		" data-msg-restored=\"".__('Restored unsaved draft from %s.')."\"".
+		" data-msg-conflict=\"".__('Warning: the page was changed since this draft was started.')."\"".
+		" data-msg-discard=\"".__('Discard draft')."\">\n";
 	$html .= csrfField() . "\n";
 
 	if ( $action === 'edit' )
