@@ -6,8 +6,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The locale files are valid, well-formed and (for English) complete. Missing texts in the other
- * languages are reported as "incomplete" but don't fail, because __() falls back to the English text.
+ * The locale files are valid and well-formed. Texts used in the code which a language doesn't translate are
+ * reported as "incomplete" but don't fail, because __() falls back to the English text.
  */
 final class LocaleFilesTest extends TestCase
 {
@@ -147,10 +147,19 @@ final class LocaleFilesTest extends TestCase
 		}
 	}
 
-	public function testEnglishHasAllTextsUsedInTheCode(): void
+	/** Texts used in the code, and the entries which aren't texts of the code (e.g. titles looked up by action name) */
+	private static function knownKeys(): array
 	{
-		$missing = array_values(array_diff(self::usedKeys(), array_keys(self::load(self::ROOT_LOCALE))));
-		$this->assertSame([], $missing, 'texts used with __() but missing in locales/en.php');
+		// 'Home' is the value of DEFAULT_PAGE, which is looked up with __(DEFAULT_PAGE)
+		return array_values(array_unique(array_merge(self::usedKeys(), ['Home'], array_keys(self::load(self::ROOT_LOCALE)))));
+	}
+
+	public function testEnglishOnlyHasEntriesWhichDifferFromTheirKey(): void
+	{
+		// __() returns the key for texts without entry, so identical entries only need to be maintained
+		foreach (self::load(self::ROOT_LOCALE) as $key => $value) {
+			$this->assertNotSame($key, $value, "'$key' is shown as it is without an entry in locales/en.php");
+		}
 	}
 
 	public function testExtractionFindsTheTextsOfTheCode(): void
@@ -165,8 +174,7 @@ final class LocaleFilesTest extends TestCase
 	public function testNoUnknownTexts(string $locale): void
 	{
 		// e.g. a text of the code was renamed or has a typo (then it's never used)
-		$known = array_merge(self::usedKeys(), array_keys(self::load(self::ROOT_LOCALE)), ['imgDelete', 'imgRename']);
-		$unknown = array_values(array_diff(array_keys(self::load($locale)), $known));
+		$unknown = array_values(array_diff(array_keys(self::load($locale)), self::knownKeys()));
 		$this->assertSame([], $unknown, "texts of locales/$locale.php which are not used in the code");
 	}
 
@@ -177,9 +185,9 @@ final class LocaleFilesTest extends TestCase
 			$this->addToAssertionCount(1);
 			return;
 		}
-		$missing = array_values(array_diff(array_keys(self::load(self::ROOT_LOCALE)), array_keys(self::load($locale))));
+		$missing = array_values(array_diff(self::knownKeys(), array_keys(self::load($locale))));
 		if ($missing) {
-			$this->markTestIncomplete(count($missing) . " texts of locales/en.php are not translated in locales/$locale.php (the English text is shown): " . implode(', ', $missing));
+			$this->markTestIncomplete(count($missing) . " texts of the code are not translated in locales/$locale.php (the English text is shown): " . implode(', ', $missing));
 		}
 		$this->addToAssertionCount(1);
 	}
