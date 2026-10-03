@@ -81,6 +81,31 @@ function isCorrectPassword($password, $passwordHash = null, $plainPassword = nul
 }
 
 /**
+ * Whether the request came in over HTTPS, as reported by the web server.
+ * Headers such as X-Forwarded-Proto are deliberately not trusted, because any
+ * client can send them: behind a TLS-terminating reverse proxy the wiki sees
+ * plain HTTP.
+ */
+function isHttpsRequest(array $server)
+{
+	return !empty($server['HTTPS']) && $server['HTTPS'] !== 'off';
+}
+
+/**
+ * Parameters of the session cookie for a request ($_SERVER)
+ */
+function sessionCookieParams(array $server)
+{
+	return array(
+		'lifetime' => REQUIRE_PASSWORD ? W2_SESSION_LIFETIME : 0,
+		'path' => '/',
+		'secure' => isHttpsRequest($server),
+		'httponly' => true,
+		'samesite' => 'Lax'
+	);
+}
+
+/**
  * Whether the current session may access the wiki
  */
 function isLoggedIn()

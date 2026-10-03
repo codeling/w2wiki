@@ -20,10 +20,13 @@ final class HttpClient
 		@unlink($this->cookieJar);
 	}
 
-	/** @param array<string, string> $query */
-	public function get(string $path, array $query = []): HttpResponse
+	/**
+	 * @param array<string, string> $query
+	 * @param string[] $requestHeaders extra request headers, e.g. "X-Forwarded-Proto: https"
+	 */
+	public function get(string $path, array $query = [], array $requestHeaders = []): HttpResponse
 	{
-		return $this->request('GET', $path, $query);
+		return $this->request('GET', $path, $query, null, $requestHeaders);
 	}
 
 	/**
@@ -46,7 +49,7 @@ final class HttpClient
 	}
 
 	/** @param array<string, string|CurlFileLike>|null $fields */
-	private function request(string $method, string $path, array $query, ?array $fields = null): HttpResponse
+	private function request(string $method, string $path, array $query, ?array $fields = null, array $requestHeaders = []): HttpResponse
 	{
 		$url = $this->baseUrl . $path . ($query ? '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986) : '');
 		$headers = [];
@@ -55,6 +58,7 @@ final class HttpClient
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => false,
 			CURLOPT_TIMEOUT => 30,
+			CURLOPT_HTTPHEADER => $requestHeaders,
 			CURLOPT_COOKIEJAR => $this->cookieJar,
 			CURLOPT_COOKIEFILE => $this->cookieJar,
 			CURLOPT_HEADERFUNCTION => function ($curl, $line) use (&$headers) {
