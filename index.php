@@ -578,68 +578,86 @@ else if ( $action === 'uploaded' )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
 			$msg .= h($commitMsg)." ";
+			$processFailed = false;
 			if ($doProcess)
 			{
-				$img = new Imagick($path);
-				if ($doResize)
+				try
 				{
-					$size = array($img->getImageWidth(), $img->getImageHeight());
-					$maxsize = max(20, min(8192, intval($_POST['maxsize'] ?? 1200)));
-					$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
-				}
-				if ($doResize)
-				{
-					$newSize = array(0, 0);
-					$idx0 = ($size[0] > $size[1]) ? 0 : 1;
-					$idx1 = ($idx0 == 0) ? 1 : 0;
-					$newSize[$idx0] = $maxsize;
-					$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
-					try
+					$img = new Imagick($path);
+					if ($doResize)
 					{
-						$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
-						$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
+						$size = array($img->getImageWidth(), $img->getImageHeight());
+						$maxsize = max(20, min(8192, intval($_POST['maxsize'] ?? 1200)));
+						$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
 					}
-					catch (ImagickException $e)
+					if ($doResize)
 					{
-						$msg .= "Resizing file failed! ";
+						$newSize = array(0, 0);
+						$idx0 = ($size[0] > $size[1]) ? 0 : 1;
+						$idx1 = ($idx0 == 0) ? 1 : 0;
+						$newSize[$idx0] = $maxsize;
+						$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
+						try
+						{
+							$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
+							$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
+						}
+						catch (ImagickException $e)
+						{
+							$msg .= "Resizing file failed! ";
+						}
 					}
-				}
-				$ori = $img->getImageOrientation();
-				error_log("orientation: $ori");
-				if($ori)
-				{
-					switch($ori)
+					$ori = $img->getImageOrientation();
+					if($ori)
 					{
-					case imagick::ORIENTATION_RIGHTTOP:
-						$msg .= "Image rotated by +90°. ";
-						$img->rotateImage('#000',90);
-						break;
-					case imagick::ORIENTATION_BOTTOMRIGHT:
-						$msg .= "Image rotated by 180°. ";
-						$img->rotateImage('#000',180);
-						break;
-					case imagick:: ORIENTATION_LEFTBOTTOM:
-						$msg .= "Image rotated by -90°. ";
-						$img->rotateImage('#000',-90);
-						break;
-//					default:
-//						$msg .= "Unknown EXIF orientation specification: ".$ori.". ";
-//						break;
+						switch($ori)
+						{
+						case imagick::ORIENTATION_RIGHTTOP:
+							$msg .= "Image rotated by +90°. ";
+							$img->rotateImage('#000',90);
+							break;
+						case imagick::ORIENTATION_BOTTOMRIGHT:
+							$msg .= "Image rotated by 180°. ";
+							$img->rotateImage('#000',180);
+							break;
+						case imagick:: ORIENTATION_LEFTBOTTOM:
+							$msg .= "Image rotated by -90°. ";
+							$img->rotateImage('#000',-90);
+							break;
+//						default:
+//							$msg .= "Unknown EXIF orientation specification: ".$ori.". ";
+//							break;
+						}
+						$img->setImageOrientation(imagick::ORIENTATION_TOPLEFT);
 					}
-					$img->setImageOrientation(imagick::ORIENTATION_TOPLEFT);
+					if ($doConvert)
+					{
+						$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
+						$img->setImageFormat(CONVERT_FORMAT);
+						$msg .= "Converted to format ".CONVERT_FORMAT.". ";
+					}
+					$img->writeImage($finalPath);
+					unlink($path);
+					$img->clear();
 				}
-				if ($doConvert)
+				catch (ImagickException $e)
 				{
-					$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
-					$img->setImageFormat(CONVERT_FORMAT);
-					$msg .= "Converted to format ".CONVERT_FORMAT.". ";
+					// e.g. a corrupt image with a valid header: don't leave the half-processed upload behind
+					error_log('W2: processing the upload failed: '.$e->getMessage());
+					if (file_exists($path))
+					{
+						unlink($path);
+					}
+					$processFailed = true;
+					$msg = __('Upload error').": ".h($dstName)." could not be processed (is it a valid image?)";
 				}
-				$img->writeImage($finalPath);
-				unlink($path);
-				$img->clear();
 			}
-			gitChangeHandler($commitMsg, $msg);
-			$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
+
+			if (!$processFailed)
+			{
+				gitChangeHandler($commitMsg, $msg);
+				$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
+			}
 		}
 		else
 		{
