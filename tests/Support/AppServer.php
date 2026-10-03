@@ -12,7 +12,7 @@ namespace W2\Tests\Support;
 final class AppServer
 {
 	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'config.php', 'index.css', 'wiki.js'];
-	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons', 'pages'];
+	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons'];
 
 	/** @var array<string, AppServer> running servers by configuration */
 	private static array $instances = [];
@@ -21,6 +21,7 @@ final class AppServer
 	private string $appRoot;
 	private string $dir;
 	private string $logFile;
+	private string $pagesFolder;
 	private int $port;
 	/** @var array<string, mixed> */
 	private array $options;
@@ -34,7 +35,12 @@ final class AppServer
 	 *                                        or for the variable $allowedIPs
 	 * @param array<string, mixed> $options   "svgSanitizer": make the enshrined/svg-sanitize library
 	 *                                        (see svgSanitizerDir()) available to the app;
-	 *                                        "port": use this port instead of a free one
+	 *                                        "port": use this port instead of a free one;
+	 *                                        "git": make the pages folder a git repository (with user.name and
+	 *                                        user.email), see initGit(); "gitRemote": also create a local bare
+	 *                                        repository as "origin" (implies "git");
+	 *                                        "pagesFolder": name of the pages folder (default "pages"), e.g. with
+	 *                                        spaces and quotes, which is set as PAGES_PATH
 	 */
 	public static function get(array $overrides = [], array $options = []): self
 	{
@@ -79,6 +85,7 @@ final class AppServer
 		$this->appRoot = rtrim(getenv('W2_APP_ROOT') ?: dirname(__DIR__, 2), '/');
 		$this->dir = sys_get_temp_dir() . '/w2test-' . bin2hex(random_bytes(6));
 		$this->logFile = $this->dir . '.log';
+		$this->pagesFolder = (string)($options['pagesFolder'] ?? 'pages');
 		mkdir($this->dir . '/sessions', 0777, true);
 		foreach (self::APP_FILES as $file) {
 			if (is_file("$this->appRoot/$file")) {
@@ -90,12 +97,19 @@ final class AppServer
 				self::copyDir("$this->appRoot/$subDir", "$this->dir/$subDir");
 			}
 		}
-		if (!is_dir("$this->dir/pages/images")) {
-			mkdir("$this->dir/pages/images", 0777, true);
+		if (is_dir("$this->appRoot/pages")) {
+			self::copyDir("$this->appRoot/pages", $this->pagesDir());
+		}
+		if (!is_dir($this->imagesDir())) {
+			mkdir($this->imagesDir(), 0777, true);
 		}
 		// the uploads folder is served statically from the root folder, see README.md
-		symlink('pages/images', "$this->dir/images");
+		symlink($this->pagesFolder . '/images', "$this->dir/images");
+		if ($this->pagesFolder !== 'pages') {
+			$overrides['PAGES_PATH'] = $this->pagesDir();
+		}
 		$this->writeConfig($overrides);
+		$this->initGit();
 		if (!empty($options['svgSanitizer'])) {
 			$this->installSvgSanitizer();
 		}
@@ -114,12 +128,25 @@ final class AppServer
 
 	public function pagesDir(): string
 	{
-		return $this->dir . '/pages';
+		return $this->dir . '/' . $this->pagesFolder;
+	}
+
+	/** Folder of the bare repository which is "origin" of the pages repository (option "gitRemote") */
+	public function remoteDir(): string
+	{
+		return $this->dir . '/remote.git';
+	}
+
+	/** Output of git (without the trailing line break) in the pages folder, or in the given repository */
+	public function git(string $arguments, ?string $dir = null): string
+	{
+		$command = 'git -C ' . escapeshellarg($dir ?? $this->pagesDir()) . ' ' . $arguments . ' 2>&1';
+		return rtrim((string)shell_exec($command), "\n");
 	}
 
 	public function imagesDir(): string
 	{
-		return $this->dir . '/pages/images';
+		return $this->pagesDir() . '/images';
 	}
 
 	public function logSize(): int
@@ -144,6 +171,35 @@ final class AppServer
 		self::removeContents($this->pagesDir(), $keep);
 		foreach (glob($this->appRoot . '/pages/*.md') as $page) {
 			copy($page, $this->pagesDir() . '/' . basename($page));
+		}
+		$this->initGit();
+	}
+
+	/**
+	 * Make the pages folder a repository with the initial pages committed (branch main;
+	 * with a local bare repository as origin if requested). Does nothing without the option.
+	 */
+	private function initGit(): void
+	{
+		if (empty($this->options['git']) && empty($this->options['gitRemote'])) {
+			return;
+		}
+		$remote = $this->remoteDir();
+		if (is_dir($remote)) {
+			self::removeContents($remote, []);
+			rmdir($remote);
+		}
+		$commands = [
+			'init -q -b main', 'config user.name "W2 Test"', 'config user.email test@example.com',
+			'config commit.gpgsign false', 'add -A', 'commit -q -m "Initial pages"',
+		];
+		if (!empty($this->options['gitRemote'])) {
+			$this->git('init -q --bare -b main ' . escapeshellarg($remote), $this->dir);
+			$commands[] = 'remote add origin ' . escapeshellarg($remote);
+			$commands[] = 'push -q -u origin main';
+		}
+		foreach ($commands as $command) {
+			$this->git($command);
 		}
 	}
 
@@ -232,7 +288,11 @@ PHP);
 			$command,
 			[0 => ['file', '/dev/null', 'r'], 1 => ['file', $this->logFile, 'a'], 2 => ['file', $this->logFile, 'a']],
 			$pipes,
-			$this->dir
+			$this->dir,
+			// git commands run by the app must not depend on the configuration of the test machine
+			// (or find a repository around the temp folder)
+			['GIT_CONFIG_GLOBAL' => '/dev/null', 'GIT_CONFIG_NOSYSTEM' => '1', 'GIT_CEILING_DIRECTORIES' => sys_get_temp_dir()]
+			+ getenv()
 		);
 		if (!is_resource($this->process)) {
 			throw new \RuntimeException('Could not start PHP built-in web server');

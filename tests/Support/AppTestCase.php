@@ -28,7 +28,7 @@ abstract class AppTestCase extends TestCase
 		return [];
 	}
 
-	/** @return array<string, bool> options for the test server, see AppServer::get() */
+	/** @return array<string, mixed> options for the test server, see AppServer::get() */
 	protected function serverOptions(): array
 	{
 		return [];

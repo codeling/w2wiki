@@ -34,6 +34,11 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `configOverrides()` in the test class; it returns values for the constants defined in
   `config.php` (or `$allowedIPs`).
 
+The git integration is tested with the server options `git` and `gitRemote` (see `AppServer::get()`):
+they make the pages folder of the test copy a git repository (with a local bare repository as `origin`),
+and `pagesFolder` renames the pages folder, e.g. to a path with spaces and quotes. The `Git*Test` classes
+check commits (`git log`), pushes, shell escaping and the generic error messages. They need `git` (2.28+).
+
 ## Running the tests against another version of the wiki
 
 `W2_APP_ROOT=/path/to/checkout vendor/bin/phpunit` tests that checkout instead of this
