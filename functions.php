@@ -218,12 +218,14 @@ function hasValidUploadExt($fileName)
 
 function pageURL($page)
 {
-	return SELF . VIEW . "/".str_replace("%2F", "/", str_replace("%23", "#", rawurlencode(sanitizeFilename($page))));
+	$encoded = str_replace("%2F", "/", str_replace("%23", "#", rawurlencode(sanitizeFilename($page))));
+	// with VIEW (e.g. '?action=view&page=') the page name is a query value, otherwise it is the PATH_INFO
+	return SELF . (VIEW !== '' ? VIEW : "/") . $encoded;
 }
 
 function pageLink($page, $title, $attributes="")
 {
-	return "<a href=\"" . pageURL($page) ."\"$attributes>$title</a>";
+	return "<a href=\"" . htmlspecialchars(pageURL($page), ENT_QUOTES) ."\"$attributes>$title</a>";
 }
 
 function toHTMLID($noid)

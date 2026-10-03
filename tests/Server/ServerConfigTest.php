@@ -18,6 +18,8 @@ final class ServerConfigTest extends TestCase
 {
 	private string $root;
 	private HttpClient $http;
+	/** URL path of the wiki folder, empty in the web root (W2_SUBFOLDER of tests/Server/run.sh) */
+	private string $prefix = '';
 	/** @var string[] files created by a test */
 	private array $created = [];
 
@@ -29,7 +31,8 @@ final class ServerConfigTest extends TestCase
 			$this->markTestSkipped('W2_SERVER_URL and W2_SERVER_ROOT are not set, see tests/Server/run.sh');
 		}
 		$this->root = rtrim($root, '/');
-		$this->http = new HttpClient($url);
+		$this->prefix = rtrim((string)getenv('W2_SERVER_PREFIX'), '/');
+		$this->http = new HttpClient($url . $this->prefix);
 	}
 
 	protected function tearDown(): void
@@ -79,6 +82,52 @@ final class ServerConfigTest extends TestCase
 		$this->assertStringContainsString('Welcome to W2', $response->body);
 		$this->assertStringContainsString('Welcome to W2', $this->http->get('/index.php/Home')->body, 'PATH_INFO');
 		$this->assertStringContainsString('Welcome to W2', $this->http->get('/index.php', ['action' => 'view', 'page' => 'Home'])->body);
+	}
+
+	/** With VIEW set (for servers without PATH_INFO), the links to pages are query URLs which work */
+	public function testPageLinksWithViewSetting(): void
+	{
+		$config = "$this->root/config.php";
+		$original = file_get_contents($config);
+		$changed = str_replace("define('VIEW', '');", "define('VIEW', '?action=view&page=');", $original, $count);
+		$this->assertSame(1, $count, 'VIEW not found in config.php');
+		$this->place('pages/Some Page.md', 'Text of some page');
+		file_put_contents($config, $changed);
+		try {
+			$html = $this->http->get('/index.php', ['action' => 'all'])->body;
+			$this->assertStringNotContainsString('page=/', $html);
+			$this->assertStringContainsString('href="' . $this->prefix . '/index.php?action=view&amp;page=Some%20Page"', $html);
+			$this->assertStringContainsString('Text of some page', $this->http->get('/index.php', ['action' => 'view', 'page' => 'Some Page'])->body);
+			$this->assertStringContainsString('Text of some page', $this->http->get('/index.php?action=view&page=Some%20Page')->body);
+		} finally {
+			file_put_contents($config, $original);
+		}
+	}
+
+	/** The URLs of style sheet, icons, scripts, images and pages carry the folder of the wiki, and work */
+	public function testUrlsInASubfolder(): void
+	{
+		if ($this->prefix === '') {
+			$this->markTestSkipped('The wiki is installed in the web root (run tests/Server/run.sh with W2_SUBFOLDER=/w2)');
+		}
+		$this->place('pages/images/sub.gif', base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+		$this->place('pages/Image Page.md', "![sub](" . $this->prefix . "/images/sub.gif)\n");
+		$base = (string)getenv('W2_SERVER_URL');
+		$host = new HttpClient($base);
+
+		$html = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home'])->body;
+		preg_match_all('/(?:src|href)="(\/[^"]*\.(?:css|js|svg|png)(?:\?[^"]*)?)"/', $html, $matches);
+		$this->assertNotEmpty($matches[1]);
+		foreach ($matches[1] as $url) {
+			$this->assertStringStartsWith($this->prefix . '/', $url);
+			$this->assertSame(200, $host->get($url)->status, $url);
+		}
+
+		$page = $this->http->get('/index.php/Image%20Page')->body;
+		$this->assertSame(1, preg_match('/<img src="(' . preg_quote($this->prefix, '/') . '\/images\/sub\.gif\?v=\d+)"/', $page, $image), 'image URL');
+		$this->assertSame(200, $host->get($image[1])->status);
+		$this->assertContains($this->http->get('/pages/Image%20Page.md')->status, [403, 404], 'page source is protected');
+		$this->assertContains($host->get('/images/sub.gif')->status, [403, 404], 'the wiki is not available outside its folder');
 	}
 
 	#[DataProvider('publicFiles')]
