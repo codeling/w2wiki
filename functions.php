@@ -249,8 +249,77 @@ function filterURL($url)
 	return $url;
 }
 
+/**
+ * Replace lines consisting only of an embed ("![[Page name]]") with the Markdown source of that page,
+ * recursively. Embeds inside fenced code blocks are left alone. Anything which can't be embedded (an
+ * invalid or missing page, a page already being embedded, or exceeding the limits INCLUDE_MAX_DEPTH
+ * and INCLUDE_MAX_SIZE) is replaced by a visible marker instead.
+ *
+ * $stack	names of the pages currently being embedded (to detect cycles)
+ * $budget	bytes still available for embedded text; shared by all embeds of a rendering
+ */
+function expandIncludes($text, array $stack = array(), &$budget = null)
+{
+	$budget ??= defined('INCLUDE_MAX_SIZE') ? INCLUDE_MAX_SIZE : 1048576;
+	$maxDepth = defined('INCLUDE_MAX_DEPTH') ? INCLUDE_MAX_DEPTH : 5;
+	$fence = null;
+	$lines = preg_split('/(\r\n|\n|\r)/', $text);
+	foreach ($lines as $i => $line)
+	{
+		if ( preg_match('/^ {0,3}(`{3,}|~{3,})/', $line, $m) )
+		{
+			if ( $fence === null )
+			{
+				$fence = $m[1];
+			}
+			else if ( $m[1][0] === $fence[0] && strlen($m[1]) >= strlen($fence) && trim($line) === $m[1] )
+			{
+				$fence = null;
+			}
+			continue;
+		}
+		if ( $fence !== null || !preg_match('/^!\[\[([^\[\]|#]+)\]\][ \t]*$/', $line, $m) )
+		{
+			continue;
+		}
+		$page = sanitizeFilename(trim($m[1]));
+		$failure = null;
+		if ( !isValidPageName($page) || !isExistingPage($page) )
+		{
+			$failure = "not found";
+		}
+		else if ( in_array($page, $stack, true) )
+		{
+			$failure = "cycle";
+		}
+		else if ( count($stack) >= $maxDepth )
+		{
+			$failure = "too deeply nested";
+		}
+		else
+		{
+			$included = (string)file_get_contents(fileNameForPage($page));
+			$budget -= strlen($included);
+			if ( $budget < 0 )
+			{
+				$failure = "too large";
+			}
+			else
+			{
+				$lines[$i] = "\n" . expandIncludes($included, array_merge($stack, array($page)), $budget) . "\n";
+			}
+		}
+		if ( $failure !== null )
+		{
+			$lines[$i] = "*[include failed (" . $failure . "): `" . str_replace('`', "'", $page) . "`]*";
+		}
+	}
+	return implode("\n", $lines);
+}
+
 function toHTML($inText)
 {
+	$inText = expandIncludes($inText);
 	$parser = new MarkdownExtra;
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';

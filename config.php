@@ -148,6 +148,15 @@ define('EDIT_ROWS', 18);
 // thousands of pages.
 define('AUTOLINK_PAGE_TITLES', false);
 
+// INCLUDE_MAX_DEPTH, INCLUDE_MAX_SIZE
+//
+// Limits for embedding pages with a line like ![[Other page]]: the maximum
+// nesting depth of embeds, and the maximum total size (in bytes) of all
+// pages embedded into one page. They protect against pages embedding each
+// other and against exponentially growing embeds.
+define('INCLUDE_MAX_DEPTH', 5);
+define('INCLUDE_MAX_SIZE', 1048576);
+
 
 // -----------------------------
 // Security and session settings

@@ -73,6 +73,7 @@ function printDrawer()
 		"__".__('Bold')."__ - <strong>".__('Bold')."</strong><br/>".
 		"<br/>".
 		"[[".__('Link to page')."]]<br/>".
+		"![[".__('Link to page')."]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
 		"[".__('link text')."](http://url)<br/><br/>".
 		"![".__('Alt text')."](/images/image.jpg)<br/>".
