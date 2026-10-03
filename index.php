@@ -68,26 +68,26 @@ function printDrawer()
 		"###### ".__('Header')." 6<br/>".
 		"<br/>".
 		"*".__('Emphasize')."* - <em>".__('Emphasize')."</em><br/>".
-		"_".__('Emphasize')."* - <em>".__('Emphasize')."</em><br/>".
+		"_".__('Emphasize')."_ - <em>".__('Emphasize')."</em><br/>".
 		"**".__('Bold')."** - <strong>".__('Bold')."</strong><br/>".
 		"__".__('Bold')."__ - <strong>".__('Bold')."</strong><br/>".
 		"<br/>".
-		"[[Link to page]]<br/>".
+		"[[".__('Link to page')."]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
-		"[link text](http://url)<br/><br/>".
-		"![Alt text](/images/image.jpg)<br/>".
-		"![Alt text](/images/image.jpg \"Optional title\")<br/>".
+		"[".__('link text')."](http://url)<br/><br/>".
+		"![".__('Alt text')."](/images/image.jpg)<br/>".
+		"![".__('Alt text')."](/images/image.jpg \"".__('Optional title')."\")<br/>".
 		"<br/>".
-		"- Unordered list<br/>".
-		"+ Unordered list<br/>".
-		"* Unordered list<br/>".
-		"1. Ordered list<br/>".
+		"- ".__('Unordered list')."<br/>".
+		"+ ".__('Unordered list')."<br/>".
+		"* ".__('Unordered list')."<br/>".
+		"1. ".__('Ordered list')."<br/>".
 		"<br/>".
-		"> Blockquote<br/>".// <blockquote>Blockquotes</blockquote>\n".
-		"```Code```<br/>". //<pre>Code</pre>\n\n".
-		"`inline-code`<br/><br/>".
-		"*** Horizontal rule<br/>".
-		"--- Horizontal rule<br/>\n".
+		"> ".__('Blockquote')."<br/>".
+		"```".__('Code')."```<br/>".
+		"`".__('Inline code')."`<br/><br/>".
+		"*** ".__('Horizontal rule')."<br/>".
+		"--- ".__('Horizontal rule')."<br/>\n".
 		"        </div>\n".
 		"      </div>\n".
 		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".

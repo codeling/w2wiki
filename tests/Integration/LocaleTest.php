@@ -190,4 +190,25 @@ final class LocaleTest extends AppTestCase
 			$locale
 		);
 	}
+
+	#[DataProvider('locales')]
+	public function testMarkdownHelpExamplesAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$body = $this->http->get('/index.php?action=edit&page=Home')->body;
+		$expected = [
+			'[[' . self::text($words, 'Link to page') . ']]',
+			'[' . self::text($words, 'link text') . '](http://url)',
+			'![' . self::text($words, 'Alt text') . '](/images/image.jpg "' . self::text($words, 'Optional title') . '")',
+			'- ' . self::text($words, 'Unordered list') . '<br/>',
+			'1. ' . self::text($words, 'Ordered list') . '<br/>',
+			'```' . self::text($words, 'Code') . '```',
+			'`' . self::text($words, 'Inline code') . '`',
+			'--- ' . self::text($words, 'Horizontal rule') . '<br/>',
+		];
+		foreach ($expected as $text) {
+			// (quotes are escaped by __(), the example title is in quotes of the markup)
+			$this->assertStringContainsString(str_replace('&quot;', '"', $text), str_replace('&quot;', '"', $body), $locale);
+		}
+	}
 }
