@@ -52,10 +52,9 @@ final class MarkdownToHtmlTest extends TestCase
 		$this->assertStringContainsString('<a id="Fish-&amp;-&quot;chips&quot;">', $html);
 	}
 
-	public function testImageShorthand(): void
+	public function testBracesAreNoLongerImageShorthand(): void
 	{
-		$this->assertStringContainsString('<img src="/images/a b.png" alt="a b.png" />', toHTML('{{a b.png}}'));
-		$this->assertStringContainsString('<img src="/images/x&quot; onerror=&quot;y" alt="x&quot; onerror=&quot;y" />', toHTML('{{x" onerror="y}}'));
+		$this->assertStringNotContainsString('<img', toHTML('{{a.png}}'));
 	}
 
 	public function testMarkdownImagesAndSafeLinks(): void

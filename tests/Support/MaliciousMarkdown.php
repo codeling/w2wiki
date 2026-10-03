@@ -8,8 +8,6 @@ final class MaliciousMarkdown
 	public static function all(): array
 	{
 		return [
-			'image shorthand attribute injection' => ['{{x" onerror="alert(1)}}'],
-			'image shorthand with markup' => ['{{<script>alert(1)</script>}}'],
 			'heading anchor attribute injection' => ['# a"/onmouseover="alert(2) & b'],
 			'javascript link' => ['[c](javascript:alert(3))'],
 			'mixed case javascript link' => ['[c](JaVaScRiPt:alert(3))'],
