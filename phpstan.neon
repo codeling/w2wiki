@@ -1,0 +1,19 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 1
+    phpVersion:
+        min: 80100
+        max: 80499
+    paths:
+        - index.php
+        - api.php
+        - auth.php
+        - auth_functions.php
+        - functions.php
+        - config.php
+    excludePaths:
+        - Michelf
+        - vendor
+        - tests

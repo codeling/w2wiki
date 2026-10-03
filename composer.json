@@ -8,6 +8,7 @@
     },
     "require-dev": {
         "enshrined/svg-sanitize": "^1.0",
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^10.5"
     },
     "suggest": {
@@ -19,6 +20,7 @@
         }
     },
     "scripts": {
+        "analyse": "phpstan analyse --memory-limit=512M",
         "test": "phpunit",
         "test:browser": "cd tests/Browser && npx playwright test",
         "test:integration": "phpunit --testsuite integration",

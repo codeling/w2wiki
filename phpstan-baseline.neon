@@ -1,0 +1,4 @@
+# Baseline of the findings that existed when PHPStan was added.
+# Regenerate with: composer analyse -- --generate-baseline
+parameters:
+    ignoreErrors: []
