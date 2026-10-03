@@ -81,6 +81,28 @@ final class ServerConfigTest extends TestCase
 		$this->assertStringContainsString('Welcome to W2', $this->http->get('/index.php', ['action' => 'view', 'page' => 'Home'])->body);
 	}
 
+	/** With VIEW set (for servers without PATH_INFO), the links to pages are query URLs which work */
+	public function testPageLinksWithViewSetting(): void
+	{
+		$config = "$this->root/config.php";
+		$original = file_get_contents($config);
+		$changed = str_replace("define('VIEW', '');", "define('VIEW', '?action=view&page=');", $original, $count);
+		$this->assertSame(1, $count, 'VIEW not found in config.php');
+		$this->place('pages/Some Page.md', 'Text of some page');
+		file_put_contents($config, $changed);
+		sleep(3); // (PHP's opcache may re-check config.php only every 2 seconds)
+		try {
+			$html = $this->http->get('/index.php', ['action' => 'all'])->body;
+			$this->assertStringNotContainsString('page=/', $html);
+			$this->assertStringContainsString('href="/index.php?action=view&amp;page=Some%20Page"', $html);
+			$this->assertStringContainsString('Text of some page', $this->http->get('/index.php', ['action' => 'view', 'page' => 'Some Page'])->body);
+			$this->assertStringContainsString('Text of some page', $this->http->get('/index.php?action=view&page=Some%20Page')->body);
+		} finally {
+			file_put_contents($config, $original);
+			sleep(3);
+		}
+	}
+
 	#[DataProvider('publicFiles')]
 	public function testStaticFilesOfTheWikiAreServed(string $path): void
 	{
