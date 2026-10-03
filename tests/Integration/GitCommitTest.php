@@ -105,15 +105,20 @@ final class GitCommitTest extends GitTestCase
 		$this->assertSame("D\timages/a.gif", $this->lastCommitChanges());
 	}
 
-	public function testImageChangesIncludeUpdatedPagesInTheCommit(): void
+	public function testImageChangesListUpdatedPagesInThePlainTextCommitMessage(): void
 	{
-		$this->upload('a.gif', self::gif());
-		$this->savePage('Gallery', '![x](/images/a.gif)');
-		$this->deleteImage('a.gif');
-		$this->assertStringStartsWith('Image deleted: a.gif', $this->lastCommitMessage());
-		$this->assertStringContainsString('Gallery', $this->lastCommitMessage());
-		$this->assertStringContainsString("M\tGallery.md", $this->lastCommitChanges());
+		$this->upload("a'b.gif", self::gif());
+		$this->savePage("Gall'ery", '![x](/images/a\'b.gif)');
+		$this->savePage('Other', '![y](/images/a\'b.gif)');
+		$this->deleteImage("a'b.gif");
+		$this->assertSame("Image deleted: a'b.gif (Updated images in the following pages: Gall'ery, Other)", $this->lastCommitMessage());
+		$this->assertStringContainsString("M\tGall'ery.md", $this->lastCommitChanges());
 		$this->assertSame('', $this->server->git('status --porcelain'));
+
+		$this->upload('c.gif', self::gif());
+		$this->savePage('Third', '![z](/images/c.gif)');
+		$this->renameImage('c.gif', "d's.gif");
+		$this->assertSame("Image renamed: c.gif to d's.gif (Updated images in the following pages: Third)", $this->lastCommitMessage());
 	}
 
 	// --- shell escaping ------------------------------------------------------------------

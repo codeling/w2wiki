@@ -789,6 +789,11 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		$msg = ($action === 'imgDeleted')
 			? (__('Image deleted').": ".h($oldImgName))
 			: (__('Image renamed').": ".h($oldImgName)." ".__('to')." ".h($newImgName));
+		// the commit message is plain text (the note above is HTML)
+		$commitMsg = ($action === 'imgDeleted')
+			? (__('Image deleted').": ".$oldImgName)
+			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
+		$changedPageNames = array();
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
 		$changedPages = array();
@@ -803,16 +808,18 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			if ($count > 0) // if something changed
 			{
 				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+				$changedPageNames[] = $replacePage;
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
 		if (count($changedPages) > 0)
 		{
+			$commitMsg .= " (".__('Updated images in the following pages:')." ".implode(", ", $changedPageNames).")";
 			$msg .= "<br/>\n".__('Updated images in the following pages:')."\n<ul><li>";
 			$msg .= implode("</li><li>", $changedPages);
 			$msg .= "</li></ul>";
 		}
-		gitChangeHandler($msg, $msg);
+		gitChangeHandler($commitMsg, $msg);
 	}
 	else
 	{
