@@ -89,7 +89,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function publicFiles(): array
 	{
-		return [['/index.css'], ['/wiki.js'], ['/icons/home.svg'], ['/icons/w2-icon.png']];
+		return [['/index.css'], ['/wiki.js'], ['/w2-icons/home.svg'], ['/w2-icons/w2-icon.png']];
 	}
 
 	#[DataProvider('publicFiles')]
@@ -165,7 +165,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function folders(): array
 	{
-		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/locales/'], ['/icons/']];
+		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/locales/'], ['/w2-icons/']];
 	}
 
 	public function testHiddenFilesAndFoldersAreNotServed(): void

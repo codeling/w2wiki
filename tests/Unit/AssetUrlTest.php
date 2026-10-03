@@ -10,7 +10,7 @@ final class AssetUrlTest extends TestCase
 	{
 		$expected = filemtime(dirname(__DIR__, 2) . '/wiki.js');
 		$this->assertSame(BASE_URI . "/wiki.js?v=$expected", assetURL('wiki.js'));
-		$this->assertMatchesRegularExpression('#^/icons/home\.svg\?v=\d+$#', assetURL('icons/home.svg'));
+		$this->assertMatchesRegularExpression('#^/w2-icons/home\.svg\?v=\d+$#', assetURL('w2-icons/home.svg'));
 	}
 
 	public function testMissingFilesGetNoVersion(): void

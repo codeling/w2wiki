@@ -290,7 +290,7 @@ function toHTML($inText)
 }
 
 /**
- * URL of a static file of the wiki (path relative to the W2 folder, e.g. "wiki.js" or "icons/home.svg"),
+ * URL of a static file of the wiki (path relative to the W2 folder, e.g. "wiki.js" or "w2-icons/home.svg"),
  * with a version parameter taken from the modification time of the file. A changed file therefore gets
  * a new URL, which allows serving the files with long cache lifetimes. Files that don't exist get no parameter.
  */
@@ -347,9 +347,9 @@ function getPageActions($page, $action, $imgSuffix)
 		if ($action != $pageActions[$i])
 		{
 			$result .= "      <a href=\"".SELF."?action=".$pageActions[$i].
-				"&amp;page=".urlencode($page)."\"><img src=\"".assetURL("icons/".$pageActions[$i].$imgSuffix.".svg")."\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
+				"&amp;page=".urlencode($page)."\"><img src=\"".assetURL("w2-icons/".$pageActions[$i].$imgSuffix.".svg")."\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
 		}
 	}
-	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"".assetURL("icons/link".$imgSuffix.".svg")."\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
+	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"".assetURL("w2-icons/link".$imgSuffix.".svg")."\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
 	return $result;
 }
