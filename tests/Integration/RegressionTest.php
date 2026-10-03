@@ -117,7 +117,7 @@ final class RegressionTest extends AppTestCase
 			'existing page' => $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home']),
 		];
 		foreach ($pages as $description => $response) {
-			$this->assertStringContainsString('<script src="/wiki.js"></script>', $response->body, $description);
+			$this->assertStringContainsString('<script src="/wiki.js?v=', $response->body, $description);
 			$this->assertStringContainsString('id="drawer"', $response->body, "$description: formatting help");
 		}
 		$this->assertStringNotContainsString('wiki.js', $this->http->get('/index.php')->body, 'not needed when viewing');

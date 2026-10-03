@@ -38,7 +38,6 @@ ln -s pages/images "$root/images"     # see README.md: uploads are served static
 chmod 755 "$root"
 chmod -R a+rwX "$root/pages"          # the web server user needs to write pages and uploads
 
-# (Apache's default alias for /icons/ hides the icons of the wiki, which are referenced as /icons/..., so it is removed)
 name="w2test-$$"
 case $kind in
     apache)
@@ -47,7 +46,6 @@ case $kind in
             -v "$root:/var/www/html" \
             -v "$repo/tests/Server/apache.conf:/etc/apache2/conf-enabled/w2.conf:ro" \
             "$php_image" sh -c "a2enmod headers > /dev/null &&
-                sed -i '/^Alias \/icons\//d' /etc/apache2/mods-available/alias.conf &&
                 sed -i 's/^Listen 80\$/Listen $port/' /etc/apache2/ports.conf &&
                 sed -i 's/:80>/:$port>/' /etc/apache2/sites-available/000-default.conf &&
                 echo 'ServerName localhost' > /etc/apache2/conf-enabled/servername.conf &&

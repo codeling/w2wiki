@@ -89,7 +89,28 @@ final class ServerConfigTest extends TestCase
 
 	public static function publicFiles(): array
 	{
-		return [['/index.css'], ['/wiki.js'], ['/icons/home.svg'], ['/icons/w2-icon.png']];
+		return [['/index.css'], ['/wiki.js'], ['/w2-icons/home.svg'], ['/w2-icons/w2-icon.png']];
+	}
+
+	#[DataProvider('publicFiles')]
+	public function testStaticFilesAreCachedLong(string $path): void
+	{
+		$this->assertSame('max-age=31536000, immutable', $this->http->get($path)->header('cache-control'));
+	}
+
+	public function testUploadsAreCachedLong(): void
+	{
+		$this->place('pages/images/a.gif', base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
+		$this->place('pages/images/s.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+		$this->place('pages/images/d.pdf', '%PDF-1.0');
+		foreach (['a.gif', 's.svg', 'd.pdf'] as $name) {
+			$this->assertSame('max-age=31536000, immutable', $this->http->get("/images/$name")->header('cache-control'), $name);
+		}
+	}
+
+	public function testPagesAreNotCached(): void
+	{
+		$this->assertStringContainsString('no-store', (string)$this->http->get('/index.php')->header('cache-control'));
 	}
 
 	#[DataProvider('sourceFiles')]
@@ -144,7 +165,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function folders(): array
 	{
-		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/locales/'], ['/icons/']];
+		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/locales/'], ['/w2-icons/']];
 	}
 
 	public function testHiddenFilesAndFoldersAreNotServed(): void
