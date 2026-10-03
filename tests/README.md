@@ -33,7 +33,11 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
-- `tests/Integration`: the tests. To test with another configuration, override
+  `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) and that
+  `locales/en.php` has all texts used with `__()` in the code; texts missing in the other languages are only
+  reported as "incomplete", because `__()` falls back to the English text.
+- `tests/Integration`: the tests. `LocaleTest` runs the main views with every locale file (the data set name is
+  the locale, set with `W2_LOCALE`); `LocaleEscapingTest` uses a generated locale with markup in its texts. To test with another configuration, override
   `configOverrides()` in the test class; it returns values for the constants defined in
   `config.php` (or `$allowedIPs`).
 
