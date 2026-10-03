@@ -210,11 +210,18 @@ function destroy_session()
 // Main code
 
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && !$_POST && !$_FILES)
+{
+	// PHP discards the whole body of a request larger than post_max_size (no token, no file)
+	http_response_code(413);
+	die(sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), h(ini_get('post_max_size'))).' '.
+		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
+}
 if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
 	http_response_code(403);
-	die('Invalid request: missing or wrong security token (or uploaded file too large). Please go back, reload the page and try again.');
+	die('Invalid request: missing or wrong security token. Please go back, reload the page and try again.');
 }
 if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 {
@@ -535,6 +542,13 @@ else if ( $action === 'uploaded' )
 	if ( DISABLE_UPLOADS )
 	{
 		die('Invalid access. Uploads are disabled in the configuration.');
+	}
+	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
+	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
+	{
+		$limit = ini_get('upload_max_filesize');
+		redirectWithMessage(requireValidPreviousPage('prevpage'), sprintf(
+			__('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), h($limit)));
 	}
 	$tmpName = $_FILES['userfile']['tmp_name'];
 	$dstName = sanitizeFilename($_FILES['userfile']['name']);
