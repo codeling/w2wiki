@@ -109,14 +109,6 @@ final class XssTest extends AppTestCase
 		$this->assertContains('/images/a.png', $sources);
 	}
 
-	public function testImageShorthandEscapesFileName(): void
-	{
-		$this->savePage('Shorthand', '{{x" onerror="alert(1)}}');
-		$images = $this->elements($this->http->get($this->pageUrl('Shorthand'))->body, 'img');
-		$sources = array_filter(array_map(fn($i) => $i->getAttribute('src'), $images), fn($s) => str_contains($s, 'onerror'));
-		$this->assertCount(1, $sources, 'the payload must stay inside the src attribute');
-	}
-
 	public function testUploadedFileNameIsEscapedInUploadListAndMessage(): void
 	{
 		$name = '<img src=x onerror=alert(1)>.gif';

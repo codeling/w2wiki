@@ -41,5 +41,5 @@ test('SVG files in the upload list and in pages are shown as images', async ({ p
   await page.goto(`${base}/index.php?action=upload`);
   await interact(page);
   expect(dialogs).toEqual([]);
-  await expect(page.locator('img.thumbImg[src="/images/listed.svg"]')).toHaveCount(1);
+  await expect(page.locator('img.thumbImg[src^="/images/listed.svg?v="]')).toHaveCount(1);
 });

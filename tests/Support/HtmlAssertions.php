@@ -34,7 +34,7 @@ trait HtmlAssertions
 			$tag = strtolower($element->nodeName);
 			if ($tag === 'script') {
 				if ($element->hasAttribute('src')) {
-					$this->assertContains($element->getAttribute('src'), ['wiki.js', '/wiki.js'], 'unexpected external script');
+					$this->assertMatchesRegularExpression('#^/?wiki\.js(\?v=\d+)?$#', $element->getAttribute('src'), 'unexpected external script');
 				} elseif (!$allowInlineScripts) {
 					$this->fail('inline <script> found: ' . substr($element->textContent, 0, 80));
 				}

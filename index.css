@@ -158,7 +158,7 @@ input#gitmsg {
 }
 
 .main a[href^="http"]::after {
-	content: url('/icons/internet.png');
+	content: url('w2-icons/internet.png');
 }
 
 .main a.literalMatch {

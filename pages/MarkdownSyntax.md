@@ -776,10 +776,6 @@ to produce:
 
 <h3 id="img">Images</h3>
 
-There is a syntax specific to this wiki, to link to uploaded images;
-
-    {{image.png}} will show the image.png in the image folder
-
 Admittedly, it's fairly difficult to devise a "natural" syntax for
 placing images into a plain text document format.
 
