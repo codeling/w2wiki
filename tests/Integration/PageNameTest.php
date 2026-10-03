@@ -74,14 +74,14 @@ final class PageNameTest extends AppTestCase
 	public function testInvalidPageNamesAreRefused(string $name): void
 	{
 		$before = $this->server->pageFiles();
-		$note = $this->noteAfter($this->savePage($name, 'text'));
+		$note = $this->noteInResponse($this->savePage($name, 'text'));
 		$this->assertStringContainsString('invalid page name', $note);
 		$this->assertSame($before, $this->server->pageFiles());
 	}
 
 	public function testExistingPagesAreNotOverwrittenWhenCreatingPages(): void
 	{
-		$note = $this->noteAfter($this->savePage('Home', 'overwritten'));
+		$note = $this->noteInResponse($this->savePage('Home', 'overwritten'));
 		$this->assertStringContainsString('already exists', $note);
 		$this->assertStringContainsString('Welcome to W2', $this->pageText('Home'));
 	}

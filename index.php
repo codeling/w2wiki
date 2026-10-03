@@ -321,9 +321,12 @@ if ( $action == 'save' )
 			$usermsg = $_POST['gitmsg'] ?? '';
 			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
 			gitChangeHandler($commitmsg, $msg);
+			redirectWithMessage($page, $msg);
 		}
 	}
-	redirectWithMessage($page, $msg);
+	// saving failed: show the editor again (with the entered title, text and message)
+	// instead of redirecting, so that nothing typed is lost
+	$_SESSION["msg"] = $msg;
 }
 
 if ( isEditorAction($action) )
@@ -698,9 +701,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$msg = '';
 	if ($action === 'deleted')
 	{
-		$success = unlink(fileNameForPage($oldPageName));
+		$success = is_file(fileNameForPage($oldPageName)) && unlink(fileNameForPage($oldPageName));
 	}
-	else if (!isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	else if (!is_file(fileNameForPage($oldPageName)) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
 	{
 		$success = false;
 	}

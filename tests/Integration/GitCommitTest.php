@@ -72,6 +72,9 @@ final class GitCommitTest extends GitTestCase
 	{
 		$this->assertStringContainsString('Error renaming', $this->noteAfter($this->renamePage('Home', 'MarkdownSyntax')));
 		$this->assertStringContainsString('Error renaming', $this->noteAfter($this->renamePage('Home', 'images/Home')));
+		$this->assertStringContainsString('Error renaming', $this->noteAfter($this->renamePage('Missing', 'Other')));
+		$this->assertStringContainsString('Error deleting', $this->noteAfter($this->deletePage('Missing')));
+		$this->assertFileDoesNotExist($this->pageFile('Other'));
 		$this->assertSame(1, $this->commitCount());
 	}
 
@@ -196,22 +199,24 @@ final class GitCommitTest extends GitTestCase
 	public function testSavingAnExistingPageAsNewIsRefusedWithoutCommit(): void
 	{
 		$response = $this->savePageWithMessage('Home', 'overwritten', 'my message');
-		$this->assertStringContainsString('already exists', $this->noteAfter($response));
+		$this->assertStringContainsString('already exists', $this->noteInResponse($response));
 		$this->assertSame(1, $this->commitCount());
 		$this->assertStringNotContainsString('overwritten', $this->pageText('Home'));
 	}
 
 	public function testMessageIsKeptWhenSavingFails(): void
 	{
-		// index.php has code to show the form again (with title, text and message) when
-		// saving fails, but it is never reached: the request is always redirected to the page
-		$this->markTestSkipped('Known problem: the message of a failed save is lost, see redirectWithMessage() after the save');		$response = $this->savePageWithMessage('Home', 'overwritten', 'my message');
-		$this->assertSame(303, $response->status);
-		$page = $this->http->follow($response);
-		$this->assertStringContainsString('already exists', $page->body);
-		// The page which shows the error is the one to edit again: the form of the failed
-		// attempt (new page, text and message) must not be lost
-		$this->assertStringContainsString('my message', $page->body);
+		$response = $this->savePageWithMessage('Home', 'my new text', 'my message');
+		// no redirect: the form is shown again, with the error
+		$this->assertSame(200, $response->status);
+		$this->assertStringContainsString('already exists', $response->body);
+		$this->assertStringContainsString('<input type="text" id="gitmsg" name="gitmsg" value="my message" />', $response->body);
+		$this->assertStringContainsString('my new text</textarea>', $response->body);
+		$this->assertStringContainsString('name="page" value="Home"', $response->body);
+		$this->assertSame(1, $this->commitCount());
+
+		// the error is shown once
+		$this->assertStringNotContainsString('already exists', $this->http->get($this->pageUrl('Home'))->body);
 	}
 
 	/** No command from the text of the messages has been executed (it would create these files) */
