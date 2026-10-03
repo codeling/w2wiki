@@ -75,7 +75,6 @@ function printDrawer()
 		"[[Link to page]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
 		"[link text](http://url)<br/><br/>".
-		"{{image.jpg}}<br/>".
 		"![Alt text](/images/image.jpg)<br/>".
 		"![Alt text](/images/image.jpg \"Optional title\")<br/>".
 		"<br/>".
@@ -464,7 +463,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(/images/".preg_quote($baseImgName, '@')."@i", $text) )
+				if ( preg_match("@\(".preg_quote(BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName, '@')."[)\s]@i", $text) )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -592,11 +591,12 @@ else if ( $action === 'uploaded' )
 					$idx1 = ($idx0 == 0) ? 1 : 0;
 					$newSize[$idx0] = $maxsize;
 					$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
-					if (!$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1))
+					try
 					{
+						$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
 						$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
 					}
-					else
+					catch (ImagickException $e)
 					{
 						$msg .= "Resizing file failed! ";
 					}
@@ -793,8 +793,9 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			$newContent = preg_replace("/!\[(.*?)\]\(\/images\/".preg_quote($oldImgName, '/')."\)/",
-				(($action === 'imgDeleted') ? "" : "![\\1](/images/".pregReplacementQuote($newImgName).")"),
+			// matches /images/name, optionally prefixed with BASE_URI and followed by a "title"
+			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?\/".preg_quote(UPLOAD_FOLDER, '/')."\/)".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
+				(($action === 'imgDeleted') ? "" : "![\\1](\\2".pregReplacementQuote($newImgName)."\\3)"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{

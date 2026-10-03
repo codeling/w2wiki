@@ -118,6 +118,14 @@ final class UploadTest extends AppTestCase
 		$this->assertSame('![Image Description](/images/pic_two.gif) and ![other](/images/b.gif)', $this->pageText('Gallery'));
 	}
 
+	public function testRenameKeepsTitleOfImageReferences(): void
+	{
+		$this->upload('a.gif', self::gif());
+		$this->savePage('Gallery', '![x](/images/a.gif "A title")');
+		$this->renameImage('a.gif', 'c.gif');
+		$this->assertSame('![x](/images/c.gif "A title")', $this->pageText('Gallery'));
+	}
+
 	public static function scriptFileNames(): array
 	{
 		return [
