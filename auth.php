@@ -40,7 +40,9 @@ if ( count($allowedIPs) > 0 )
 	if ( !$accepted )
 	{
 		http_response_code(403);
-		print "<html><body>Access from IP address ".htmlspecialchars($ip)." is not allowed</body></html>";
+		// (api.php doesn't load the locale)
+		$text = function_exists('__') ? __('Access from IP address %s is not allowed') : 'Access from IP address %s is not allowed';
+		print "<html><body>" . sprintf($text, htmlspecialchars($ip)) . "</body></html>";
 		exit;
 	}
 }

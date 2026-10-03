@@ -147,4 +147,47 @@ final class LocaleTest extends AppTestCase
 			$locale
 		);
 	}
+
+	#[DataProvider('locales')]
+	public function testUploadMessagesAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$upload = fn() => $this->upload('a.gif', self::gif());
+		$note = $this->noteAfter($upload());
+		$this->assertStringContainsString(html_entity_decode(sprintf(self::text($words, "File '%s' uploaded!"), 'a.gif'), ENT_QUOTES), $note, $locale);
+		$this->assertStringContainsString(
+			html_entity_decode(sprintf(self::text($words, 'Use %s to refer to it!'), '![' . ($words['Image Description'] ?? 'Image Description') . '](/images/a.gif)'), ENT_QUOTES),
+			$note,
+			$locale
+		);
+		$note = $this->noteAfter($upload());
+		$this->assertStringContainsString(html_entity_decode(sprintf(self::text($words, '%s already exists!'), 'a.gif'), ENT_QUOTES), $note, $locale);
+	}
+
+	#[DataProvider('locales')]
+	public function testSimilarPageNoteIsTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$this->savePage('Similar Page', 'x');
+		$body = $this->http->get($this->pageUrl('Simular Page'))->body;
+		$this->assertStringContainsString('<strong>' . self::text($words, 'Note') . ':</strong>', $body, $locale);
+		$this->assertStringContainsString(
+			sprintf(self::text($words, 'Found similar page %s. Maybe you meant to edit this instead?'), '<a href="/index.php/Similar%20Page">Similar Page</a>'),
+			$body,
+			$locale
+		);
+	}
+
+	#[DataProvider('locales')]
+	public function testMessagesOfRejectedRequestsAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$response = $this->http->post('/index.php', ['action' => 'save', 'page' => 'X', 'newText' => 'x']);
+		$this->assertSame(403, $response->status);
+		$this->assertStringContainsString(
+			self::text($words, 'Invalid request: missing or wrong security token. Please go back, reload the page and try again.'),
+			$response->body,
+			$locale
+		);
+	}
 }

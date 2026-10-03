@@ -128,7 +128,7 @@ if ( !isLoggedIn() )
 		}
 		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
 		{
-			print "    <p class=\"note\">Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.</p>\n";
+			print "    <p class=\"note\">" . __('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.') . "</p>\n";
 		}
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
@@ -174,7 +174,7 @@ function checkedExecute(&$msg, $cmd)
 	{
 		// details (command, output) may reveal server internals, so only log them
 		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
-		$msg .= "<br/>Error executing git command (return value: ".$returnValue."); see the web server's error log for details.";
+		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
 	}
 	return ($returnValue == 0);
 }
@@ -221,7 +221,7 @@ if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRename
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
 	http_response_code(403);
-	die('Invalid request: missing or wrong security token. Please go back, reload the page and try again.');
+	die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
 }
 if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 {
@@ -269,7 +269,7 @@ if ($action === 'view' || $action === 'edit')
 		{
 			$basePage = basename($p);
 			if ($basePage == $page) {
-				redirectWithMessage($p, "Page ".h($page)." does not exist, redirected instead to first page in a subfolder with matching filename (".h($p).")");
+				redirectWithMessage($p, sprintf(__("Page %s does not exist, redirected instead to first page in a subfolder with matching filename (%s)"), h($page), h($p)));
 			}
 		}
 		$newPage = $page;
@@ -361,7 +361,7 @@ if ( isEditorAction($action) )
 			{
 				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
 				{
-					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, h($pageName)).". Maybe you meant to edit this instead?";
+					$html .= "<br/><strong>".__('Note').":</strong> ".sprintf(__('Found similar page %s. Maybe you meant to edit this instead?'), pageLink($pageName, h($pageName)));
 				}
 			}
 			$html .= "</div>\n";
@@ -541,7 +541,7 @@ else if ( $action === 'uploaded' )
 {
 	if ( DISABLE_UPLOADS )
 	{
-		die('Invalid access. Uploads are disabled in the configuration.');
+		die(__('Invalid access. Uploads are disabled in the configuration.'));
 	}
 	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
 	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
@@ -586,12 +586,12 @@ else if ( $action === 'uploaded' )
 		}
 		if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
 		{
-			$msg .= __('Upload error').": ".h(basename($finalPath))." already exists!";
+			$msg .= __('Upload error').": ".sprintf(__('%s already exists!'), h(basename($finalPath)));
 		}
 		else if ( ($svgData !== null) ? (file_put_contents($path, $svgData) !== false) : (move_uploaded_file($tmpName, $path) === true) )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
-			$msg .= h($commitMsg)." ";
+			$msg .= sprintf(__("File '%s' uploaded!"), h($dstName))." ";
 			$processFailed = false;
 			if ($doProcess)
 			{
@@ -614,11 +614,11 @@ else if ( $action === 'uploaded' )
 						try
 						{
 							$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
-							$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
+							$msg .= sprintf(__('Original size was %s, resized to %s.'), "$size[0]x$size[1]", "$newSize[0]x$newSize[1]")." ";
 						}
 						catch (ImagickException $e)
 						{
-							$msg .= "Resizing file failed! ";
+							$msg .= __('Resizing file failed!')." ";
 						}
 					}
 					$ori = $img->getImageOrientation();
@@ -627,15 +627,15 @@ else if ( $action === 'uploaded' )
 						switch($ori)
 						{
 						case imagick::ORIENTATION_RIGHTTOP:
-							$msg .= "Image rotated by +90°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '+90')." ";
 							$img->rotateImage('#000',90);
 							break;
 						case imagick::ORIENTATION_BOTTOMRIGHT:
-							$msg .= "Image rotated by 180°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '180')." ";
 							$img->rotateImage('#000',180);
 							break;
 						case imagick:: ORIENTATION_LEFTBOTTOM:
-							$msg .= "Image rotated by -90°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '-90')." ";
 							$img->rotateImage('#000',-90);
 							break;
 //						default:
@@ -648,7 +648,7 @@ else if ( $action === 'uploaded' )
 					{
 						$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
 						$img->setImageFormat(CONVERT_FORMAT);
-						$msg .= "Converted to format ".CONVERT_FORMAT.". ";
+						$msg .= sprintf(__('Converted to format %s.'), h(CONVERT_FORMAT))." ";
 					}
 					$img->writeImage($finalPath);
 					unlink($path);
@@ -663,14 +663,14 @@ else if ( $action === 'uploaded' )
 						unlink($path);
 					}
 					$processFailed = true;
-					$msg = __('Upload error').": ".h($dstName)." could not be processed (is it a valid image?)";
+					$msg = __('Upload error').": ".sprintf(__('%s could not be processed (is it a valid image?)'), h($dstName));
 				}
 			}
 
 			if (!$processFailed)
 			{
 				gitChangeHandler($commitMsg, $msg);
-				$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
+				$msg .= sprintf(__('Use %s to refer to it!'), "<pre>".h(imageLinkText($dstName))."</pre>");
 			}
 		}
 		else
@@ -680,15 +680,15 @@ else if ( $action === 'uploaded' )
 			{
 				// Likely a permissions issue
 				error_log("W2: can't write upload to $path");
-				$msg .= __('Upload error') .": Can't write to the uploads folder<br/><br/>\n".
-					"Check that your permissions are set correctly.";
+				$msg .= __('Upload error') .": ".__("Can't write to the uploads folder")."<br/><br/>\n".
+					__('Check that your permissions are set correctly.');
 			}
 			else
 			{
 				// Give generic error message
 				$msg .= __('Upload error').", error #".$error_code."<br/><br/>\n".
-					"Please see <a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">here</a> for more information.<br/><br/>\n".
-					"If you see this message, please <a href=\"https://github.com/codeling/w2wiki/issues\">file a bug to improve w2wiki</a>";
+					sprintf(__('Please see %s for more information.'), "<a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">".__('here')."</a>")."<br/><br/>\n".
+					sprintf(__('If you see this message, please %s'), "<a href=\"https://github.com/codeling/w2wiki/issues\">".__('file a bug to improve w2wiki')."</a>");
 			}
 		}
 	}
