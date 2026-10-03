@@ -13,13 +13,7 @@ if ( REQUIRE_PASSWORD )
 	ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
 }
 ini_set('session.use_strict_mode', 1);
-session_set_cookie_params(array(
-	'lifetime' => REQUIRE_PASSWORD ? W2_SESSION_LIFETIME : 0,
-	'path' => '/',
-	'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-	'httponly' => true,
-	'samesite' => 'Lax'
-));
+session_set_cookie_params(sessionCookieParams($_SERVER));
 session_name(W2_SESSION_NAME);
 session_start();
 
@@ -46,7 +40,9 @@ if ( count($allowedIPs) > 0 )
 	if ( !$accepted )
 	{
 		http_response_code(403);
-		print "<html><body>Access from IP address ".htmlspecialchars($ip)." is not allowed</body></html>";
+		// (api.php doesn't load the locale)
+		$text = function_exists('__') ? __('Access from IP address %s is not allowed') : 'Access from IP address %s is not allowed';
+		print "<html><body>" . sprintf($text, htmlspecialchars($ip)) . "</body></html>";
 		exit;
 	}
 }

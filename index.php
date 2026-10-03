@@ -68,26 +68,26 @@ function printDrawer()
 		"###### ".__('Header')." 6<br/>".
 		"<br/>".
 		"*".__('Emphasize')."* - <em>".__('Emphasize')."</em><br/>".
-		"_".__('Emphasize')."* - <em>".__('Emphasize')."</em><br/>".
+		"_".__('Emphasize')."_ - <em>".__('Emphasize')."</em><br/>".
 		"**".__('Bold')."** - <strong>".__('Bold')."</strong><br/>".
 		"__".__('Bold')."__ - <strong>".__('Bold')."</strong><br/>".
 		"<br/>".
-		"[[Link to page]]<br/>".
+		"[[".__('Link to page')."]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
-		"[link text](http://url)<br/><br/>".
-		"![Alt text](/images/image.jpg)<br/>".
-		"![Alt text](/images/image.jpg \"Optional title\")<br/>".
+		"[".__('link text')."](http://url)<br/><br/>".
+		"![".__('Alt text')."](/images/image.jpg)<br/>".
+		"![".__('Alt text')."](/images/image.jpg \"".__('Optional title')."\")<br/>".
 		"<br/>".
-		"- Unordered list<br/>".
-		"+ Unordered list<br/>".
-		"* Unordered list<br/>".
-		"1. Ordered list<br/>".
+		"- ".__('Unordered list')."<br/>".
+		"+ ".__('Unordered list')."<br/>".
+		"* ".__('Unordered list')."<br/>".
+		"1. ".__('Ordered list')."<br/>".
 		"<br/>".
-		"> Blockquote<br/>".// <blockquote>Blockquotes</blockquote>\n".
-		"```Code```<br/>". //<pre>Code</pre>\n\n".
-		"`inline-code`<br/><br/>".
-		"*** Horizontal rule<br/>".
-		"--- Horizontal rule<br/>\n".
+		"> ".__('Blockquote')."<br/>".
+		"```".__('Code')."```<br/>".
+		"`".__('Inline code')."`<br/><br/>".
+		"*** ".__('Horizontal rule')."<br/>".
+		"--- ".__('Horizontal rule')."<br/>\n".
 		"        </div>\n".
 		"      </div>\n".
 		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".
@@ -128,7 +128,7 @@ if ( !isLoggedIn() )
 		}
 		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
 		{
-			print "    <p class=\"note\">Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.</p>\n";
+			print "    <p class=\"note\">" . __('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.') . "</p>\n";
 		}
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
@@ -174,7 +174,7 @@ function checkedExecute(&$msg, $cmd)
 	{
 		// details (command, output) may reveal server internals, so only log them
 		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
-		$msg .= "<br/>Error executing git command (return value: ".$returnValue."); see the web server's error log for details.";
+		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
 	}
 	return ($returnValue == 0);
 }
@@ -210,11 +210,18 @@ function destroy_session()
 // Main code
 
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && !$_POST && !$_FILES)
+{
+	// PHP discards the whole body of a request larger than post_max_size (no token, no file)
+	http_response_code(413);
+	die(sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), h(ini_get('post_max_size'))).' '.
+		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
+}
 if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
 	http_response_code(403);
-	die('Invalid request: missing or wrong security token (or uploaded file too large). Please go back, reload the page and try again.');
+	die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
 }
 if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 {
@@ -262,7 +269,7 @@ if ($action === 'view' || $action === 'edit')
 		{
 			$basePage = basename($p);
 			if ($basePage == $page) {
-				redirectWithMessage($p, "Page ".h($page)." does not exist, redirected instead to first page in a subfolder with matching filename (".h($p).")");
+				redirectWithMessage($p, sprintf(__("Page %s does not exist, redirected instead to first page in a subfolder with matching filename (%s)"), h($page), h($p)));
 			}
 		}
 		$newPage = $page;
@@ -284,8 +291,8 @@ if ( $action == 'save' )
 	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
 	{
 		$msg .= file_exists($filename)
-			? "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n"
-			: "Error creating page '".h($page)."' - invalid page name! Page names must not start with '".UPLOAD_FOLDER."/', or contain empty or hidden ('.'-prefixed) folder names.\n";
+			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
+			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
 		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
@@ -304,7 +311,7 @@ if ( $action == 'save' )
 		$success = file_put_contents($filename, $newText);
 		if ( $success === FALSE)
 		{
-			$msg .= "Error saving changes! Make sure your web server has write access to the pages folder.\n";
+			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
 			error_log("W2: error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
@@ -354,7 +361,7 @@ if ( isEditorAction($action) )
 			{
 				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
 				{
-					$html .= "<br/><strong>Note:</strong> Found similar page ".pageLink($pageName, h($pageName)).". Maybe you meant to edit this instead?";
+					$html .= "<br/><strong>".__('Note').":</strong> ".sprintf(__('Found similar page %s. Maybe you meant to edit this instead?'), pageLink($pageName, h($pageName)));
 				}
 			}
 			$html .= "</div>\n";
@@ -366,7 +373,7 @@ if ( isEditorAction($action) )
 	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
-		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
+		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
 	}
 
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
@@ -410,14 +417,14 @@ else if ( $action === 'upload' )
 			'function processForm(e) {'."\n".
 			'    e.preventDefault();'."\n".
 			'    var fileInput = document.getElementById("file");'."\n".
-			'    if (fileInput.files.length == 0) { alert("No file selected!"); return; }'."\n".
+			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
 			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
 			'                if (data) {'."\n".
-			'                     upload = window.confirm("File "+filename+" already exists. Overwrite?");'."\n".
+			'                     upload = window.confirm('.__js('File %s already exists. Overwrite?').'.replace("%s", () => filename));'."\n".
 			'                }'."\n".
 			'                if (upload) {'."\n".
 			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
@@ -483,10 +490,10 @@ else if ( $action === 'upload' )
 
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</th>".
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
 		"<th>".__("Usage")."</th>".
-		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</th>".
-		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">Size</a>"):"<span class=\"sortBy\">Size</span>")."</th>".
+		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
+		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
 		"<th>".__("Action")."</th>";
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
@@ -534,7 +541,14 @@ else if ( $action === 'uploaded' )
 {
 	if ( DISABLE_UPLOADS )
 	{
-		die('Invalid access. Uploads are disabled in the configuration.');
+		die(__('Invalid access. Uploads are disabled in the configuration.'));
+	}
+	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
+	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
+	{
+		$limit = ini_get('upload_max_filesize');
+		redirectWithMessage(requireValidPreviousPage('prevpage'), sprintf(
+			__('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), h($limit)));
 	}
 	$tmpName = $_FILES['userfile']['tmp_name'];
 	$dstName = sanitizeFilename($_FILES['userfile']['name']);
@@ -572,12 +586,12 @@ else if ( $action === 'uploaded' )
 		}
 		if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
 		{
-			$msg .= __('Upload error').": ".h(basename($finalPath))." already exists!";
+			$msg .= __('Upload error').": ".sprintf(__('%s already exists!'), h(basename($finalPath)));
 		}
 		else if ( ($svgData !== null) ? (file_put_contents($path, $svgData) !== false) : (move_uploaded_file($tmpName, $path) === true) )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
-			$msg .= h($commitMsg)." ";
+			$msg .= sprintf(__("File '%s' uploaded!"), h($dstName))." ";
 			$processFailed = false;
 			if ($doProcess)
 			{
@@ -600,11 +614,11 @@ else if ( $action === 'uploaded' )
 						try
 						{
 							$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
-							$msg .= "Original size was $size[0]x$size[1], resized to $newSize[0]x$newSize[1]. ";
+							$msg .= sprintf(__('Original size was %s, resized to %s.'), "$size[0]x$size[1]", "$newSize[0]x$newSize[1]")." ";
 						}
 						catch (ImagickException $e)
 						{
-							$msg .= "Resizing file failed! ";
+							$msg .= __('Resizing file failed!')." ";
 						}
 					}
 					$ori = $img->getImageOrientation();
@@ -613,15 +627,15 @@ else if ( $action === 'uploaded' )
 						switch($ori)
 						{
 						case imagick::ORIENTATION_RIGHTTOP:
-							$msg .= "Image rotated by +90°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '+90')." ";
 							$img->rotateImage('#000',90);
 							break;
 						case imagick::ORIENTATION_BOTTOMRIGHT:
-							$msg .= "Image rotated by 180°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '180')." ";
 							$img->rotateImage('#000',180);
 							break;
 						case imagick:: ORIENTATION_LEFTBOTTOM:
-							$msg .= "Image rotated by -90°. ";
+							$msg .= sprintf(__('Image rotated by %s°.'), '-90')." ";
 							$img->rotateImage('#000',-90);
 							break;
 //						default:
@@ -634,7 +648,7 @@ else if ( $action === 'uploaded' )
 					{
 						$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
 						$img->setImageFormat(CONVERT_FORMAT);
-						$msg .= "Converted to format ".CONVERT_FORMAT.". ";
+						$msg .= sprintf(__('Converted to format %s.'), h(CONVERT_FORMAT))." ";
 					}
 					$img->writeImage($finalPath);
 					unlink($path);
@@ -649,14 +663,14 @@ else if ( $action === 'uploaded' )
 						unlink($path);
 					}
 					$processFailed = true;
-					$msg = __('Upload error').": ".h($dstName)." could not be processed (is it a valid image?)";
+					$msg = __('Upload error').": ".sprintf(__('%s could not be processed (is it a valid image?)'), h($dstName));
 				}
 			}
 
 			if (!$processFailed)
 			{
 				gitChangeHandler($commitMsg, $msg);
-				$msg .= "Use <pre>".h(imageLinkText($dstName))."</pre> to refer to it!";
+				$msg .= sprintf(__('Use %s to refer to it!'), "<pre>".h(imageLinkText($dstName))."</pre>");
 			}
 		}
 		else
@@ -666,15 +680,15 @@ else if ( $action === 'uploaded' )
 			{
 				// Likely a permissions issue
 				error_log("W2: can't write upload to $path");
-				$msg .= __('Upload error') .": Can't write to the uploads folder<br/><br/>\n".
-					"Check that your permissions are set correctly.";
+				$msg .= __('Upload error') .": ".__("Can't write to the uploads folder")."<br/><br/>\n".
+					__('Check that your permissions are set correctly.');
 			}
 			else
 			{
 				// Give generic error message
 				$msg .= __('Upload error').", error #".$error_code."<br/><br/>\n".
-					"Please see <a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">here</a> for more information.<br/><br/>\n".
-					"If you see this message, please <a href=\"https://github.com/codeling/w2wiki/issues\">file a bug to improve w2wiki</a>";
+					sprintf(__('Please see %s for more information.'), "<a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">".__('here')."</a>")."<br/><br/>\n".
+					sprintf(__('If you see this message, please %s'), "<a href=\"https://github.com/codeling/w2wiki/issues\">".__('file a bug to improve w2wiki')."</a>");
 			}
 		}
 	}
@@ -701,7 +715,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
+	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"".__('Cancel')."\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
@@ -875,7 +889,7 @@ else if ( $action === 'all' )
 	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
 		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
 		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=all&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
 		"<th>".__('Action')."</th>".
@@ -897,7 +911,7 @@ else if ( $action === 'search' )
 {
 	$matches = 0;
 	$q = $_REQUEST['q'];
-	$html .= "    <h1>Search: ".h($q)."</h1>\n";
+	$html .= "    <h1>".__('Search').": ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
 	{

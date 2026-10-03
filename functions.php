@@ -51,6 +51,17 @@ function __( $label, $alt_word = null )
 	return h($w2_word_set[$label]);
 }
 
+/**
+ * Get translated word as a JavaScript string literal (with quotes), for inline scripts
+ *
+ * String	$label		Key for locale word
+ * return	String
+ */
+function __js( $label )
+{
+	return json_encode(html_entity_decode(__($label), ENT_QUOTES | ENT_HTML5, W2_CHARSET), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
+}
+
 function descLengthSort($val_1, $val_2)
 {
 	$firstVal = strlen($val_1);

@@ -40,7 +40,8 @@ final class AppServer
 	 *                                        user.email), see initGit(); "gitRemote": also create a local bare
 	 *                                        repository as "origin" (implies "git");
 	 *                                        "pagesFolder": name of the pages folder (default "pages"), e.g. with
-	 *                                        spaces and quotes, which is set as PAGES_PATH
+	 *                                        spaces and quotes, which is set as PAGES_PATH;
+	 *                                        "phpIni": PHP ini values for the server, e.g. ['post_max_size' => '100K']
 	 */
 	public static function get(array $overrides = [], array $options = []): self
 	{
@@ -284,6 +285,9 @@ PHP);
 			'-d', 'display_errors=0', '-d', 'log_errors=1', '-d', 'error_reporting=-1',
 			'-d', 'opcache.enable=0', '-d', "session.save_path=$this->dir/sessions",
 		];
+		foreach ($this->options['phpIni'] ?? [] as $name => $value) {
+			array_push($command, '-d', "$name=$value");
+		}
 		$this->process = proc_open(
 			$command,
 			[0 => ['file', '/dev/null', 'r'], 1 => ['file', $this->logFile, 'a'], 2 => ['file', $this->logFile, 'a']],

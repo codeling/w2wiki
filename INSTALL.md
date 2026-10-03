@@ -134,6 +134,15 @@ location ^~ /images/ {
 }
 ```
 
+### Upload size limits
+
+Uploads are limited by PHP: `upload_max_filesize` (the largest single file) and
+`post_max_size` (the largest request, which must be larger than the file). W2
+shows a message naming the limit that was hit. Web servers have limits of their
+own, which apply first and are not detected by W2: `client_max_body_size` in
+nginx (default 1 MB) and `LimitRequestBody` in Apache. Raise them together, e.g.
+`client_max_body_size 20m;` for `upload_max_filesize = 16M` and `post_max_size = 20M`.
+
 ### SVG uploads
 
 SVG files can contain scripts, which would run in the context of the wiki when
