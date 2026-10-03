@@ -98,4 +98,53 @@ final class LocaleTest extends AppTestCase
 			$this->assertMatchesRegularExpression('/<span class="titledate">[^<]+<\/span>/', $page);
 		}
 	}
+
+	private static function text(array $words, string $key): string
+	{
+		return htmlspecialchars($words[$key] ?? $key, ENT_QUOTES, 'UTF-8');
+	}
+
+	#[DataProvider('locales')]
+	public function testListHeadersAndFormButtonsAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		foreach (['/index.php?action=upload', '/index.php?action=all'] as $url) {
+			$body = $this->http->get($url)->body;
+			foreach (['Name', 'Modified', 'Size'] as $key) {
+				$this->assertStringContainsString('>' . self::text($words, $key) . '</', $body, "$locale: $url $key");
+			}
+		}
+		$this->assertStringContainsString('value="' . self::text($words, 'Cancel') . '"', $this->http->get('/index.php?action=delete&page=Home')->body);
+		$this->assertStringContainsString('<h1>' . self::text($words, 'Search') . ': home</h1>', $this->http->get('/index.php?action=search&q=home')->body);
+	}
+
+	#[DataProvider('locales')]
+	public function testUploadScriptMessagesAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$body = $this->http->get('/index.php?action=upload')->body;
+		foreach (['No file selected!', 'File %s already exists. Overwrite?'] as $key) {
+			$literal = json_encode($words[$key] ?? $key, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
+			$this->assertStringContainsString($literal, $body, "$locale: $key");
+		}
+	}
+
+	#[DataProvider('locales')]
+	public function testPageCreationErrorsAreTranslated(string $locale): void
+	{
+		$words = self::words($locale);
+		$existing = $this->savePage('Home', 'again')->body;
+		$key = "Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!";
+		$this->assertStringContainsString(
+			sprintf(self::text($words, $key), 'Home', '<a href="?action=edit&amp;page=Home">' . self::text($words, 'edit') . '</a>'),
+			$existing,
+			$locale
+		);
+		$key = "Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names.";
+		$this->assertStringContainsString(
+			sprintf(self::text($words, $key), '.hidden/x', 'images'),
+			$this->savePage('.hidden/x', 'text')->body,
+			$locale
+		);
+	}
 }

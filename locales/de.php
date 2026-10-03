@@ -69,6 +69,13 @@ $w2_word_set = array(
 	'Restored unsaved draft from %s.' => 'Ungespeicherter Entwurf vom %s wiederhergestellt.',
 	'Warning: the page was changed since this draft was started.' => 'Achtung: Die Seite wurde geändert, seit dieser Entwurf begonnen wurde.',
 	'Discard draft' => 'Entwurf verwerfen',
+	'Message' => 'Nachricht',
+	'edit' => 'bearbeite',
+	'No file selected!' => 'Keine Datei ausgewählt!',
+	'File %s already exists. Overwrite?' => 'Die Datei %s existiert bereits. Überschreiben?',
+	"Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!" => "Fehler beim Anlegen der Seite '%s' - sie existiert bereits! Bitte wähle einen anderen Namen oder %s die bestehende Seite (der aktuelle Text geht dabei verloren!)!",
+	"Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names." => "Fehler beim Anlegen der Seite '%s' - ungültiger Seitenname! Seitennamen dürfen nicht mit '%s/' beginnen und keine leeren oder versteckten (mit '.' beginnenden) Ordnernamen enthalten.",
+	'Error saving changes! Make sure your web server has write access to the pages folder.' => 'Fehler beim Speichern der Änderungen! Stelle sicher, dass der Webserver Schreibzugriff auf den Seitenordner hat.',
 	// Override TITLE_DATE and TITLE_DATE_NO_TIME if set.
 	'date_format'         => 'd.m.Y H:i',
 	'date_format_no_time' => 'd.m.Y',

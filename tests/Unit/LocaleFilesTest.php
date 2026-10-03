@@ -45,7 +45,7 @@ final class LocaleFilesTest extends TestCase
 			));
 			foreach ($tokens as $i => $token) {
 				$previous = $tokens[$i - 1] ?? '';
-				if (is_array($token) && $token[0] === T_STRING && $token[1] === '__' && ($tokens[$i + 1] ?? '') === '('
+				if (is_array($token) && $token[0] === T_STRING && in_array($token[1], ['__', '__js'], true) && ($tokens[$i + 1] ?? '') === '('
 					&& !(is_array($previous) && $previous[0] === T_FUNCTION)
 					&& is_array($tokens[$i + 2] ?? null) && $tokens[$i + 2][0] === T_CONSTANT_ENCAPSED_STRING) {
 					$keys[] = eval('return ' . $tokens[$i + 2][1] . ';');

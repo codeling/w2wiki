@@ -291,8 +291,8 @@ if ( $action == 'save' )
 	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
 	{
 		$msg .= file_exists($filename)
-			? "Error creating page '".h($page)."' - it already exists! Please choose a different name, or <a href=\"?action=edit&amp;page=".urlencode($page)."\">edit</a> the existing page (this discards current text!)!\n"
-			: "Error creating page '".h($page)."' - invalid page name! Page names must not start with '".UPLOAD_FOLDER."/', or contain empty or hidden ('.'-prefixed) folder names.\n";
+			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
+			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
 		$action = 'new';
 		$text = $newText;
 		$newPage = $page;
@@ -311,7 +311,7 @@ if ( $action == 'save' )
 		$success = file_put_contents($filename, $newText);
 		if ( $success === FALSE)
 		{
-			$msg .= "Error saving changes! Make sure your web server has write access to the pages folder.\n";
+			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
 			error_log("W2: error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
@@ -373,7 +373,7 @@ if ( isEditorAction($action) )
 	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
-		$html .= "<p>Message: <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
+		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
 	}
 
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
@@ -417,14 +417,14 @@ else if ( $action === 'upload' )
 			'function processForm(e) {'."\n".
 			'    e.preventDefault();'."\n".
 			'    var fileInput = document.getElementById("file");'."\n".
-			'    if (fileInput.files.length == 0) { alert("No file selected!"); return; }'."\n".
+			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
 			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
 			'                if (data) {'."\n".
-			'                     upload = window.confirm("File "+filename+" already exists. Overwrite?");'."\n".
+			'                     upload = window.confirm('.__js('File %s already exists. Overwrite?').'.replace("%s", () => filename));'."\n".
 			'                }'."\n".
 			'                if (upload) {'."\n".
 			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
@@ -490,10 +490,10 @@ else if ( $action === 'upload' )
 
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">Name</a>"):"<span class=\"sortBy\">Name</span>")."</th>".
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
 		"<th>".__("Usage")."</th>".
-		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">Modified</a>"):"<span class=\"sortBy\">Modified</span>")."</th>".
-		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">Size</a>"):"<span class=\"sortBy\">Size</span>")."</th>".
+		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
+		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
 		"<th>".__("Action")."</th>";
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
@@ -715,7 +715,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"Cancel\" />\n";
+	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"".__('Cancel')."\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
@@ -889,7 +889,7 @@ else if ( $action === 'all' )
 	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
 	$html .= "<table><thead>";
 	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">Name</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
+		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
 		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
 		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=all&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
 		"<th>".__('Action')."</th>".
@@ -911,7 +911,7 @@ else if ( $action === 'search' )
 {
 	$matches = 0;
 	$q = $_REQUEST['q'];
-	$html .= "    <h1>Search: ".h($q)."</h1>\n";
+	$html .= "    <h1>".__('Search').": ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
 	{
