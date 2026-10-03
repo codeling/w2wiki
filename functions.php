@@ -85,7 +85,7 @@ function getAllPageNames($path = "")
 			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
 			continue;
 		}
-		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
+		if ( !str_ends_with($filename, "." . PAGES_EXT) )
 		{
 			continue;
 		}

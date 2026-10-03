@@ -128,6 +128,25 @@ final class FileNamesTest extends TestCase
 		$this->assertContains('MarkdownSyntax', $names);
 	}
 
+	public function testOnlyFilesWithTheExtensionAreListedAsPages(): void
+	{
+		$files = ['foomd', 'x.mdx', '.md', 'a.md'];
+		foreach ($files as $file) {
+			file_put_contents(PAGES_PATH . "/$file", 'x');
+		}
+		try {
+			$names = getAllPageNames();
+			$this->assertContains('a', $names);
+			$this->assertNotContains('fo', $names, 'a name merely ending with the extension');
+			$this->assertNotContains('foomd', $names);
+			$this->assertNotContains('x.mdx', $names);
+		} finally {
+			foreach ($files as $file) {
+				unlink(PAGES_PATH . "/$file");
+			}
+		}
+	}
+
 	public static function replacementStrings(): array
 	{
 		return [['plain'], ['$1'], ['\\1'], ['\\\\'], ['${1}'], ['a$b\\c'], ['$0$9'], ['C$1\\2'], ['']];
