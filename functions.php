@@ -286,7 +286,49 @@ function toHTML($inText)
 		$outHTML = str_replace("$prefix$caption$suffix",
 			"$prefix<a id=\"".toHTMLID($caption)."\">$caption</a>$suffix", $outHTML);
 	}
-	return $outHTML;
+	return versionUploadLinks($outHTML);
+}
+
+/**
+ * URL of a static file of the wiki (path relative to the W2 folder, e.g. "wiki.js" or "icons/home.svg"),
+ * with a version parameter taken from the modification time of the file. A changed file therefore gets
+ * a new URL, which allows serving the files with long cache lifetimes. Files that don't exist get no parameter.
+ */
+function assetURL($path)
+{
+	return versionedURL(BASE_URI . "/" . $path, __DIR__ . "/" . $path);
+}
+
+/**
+ * URL of an uploaded file (name without folder), versioned like assetURL(), as uploads can be overwritten
+ */
+function uploadURL($name)
+{
+	return versionedURL(BASE_URI . "/" . UPLOAD_FOLDER . "/" . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
+}
+
+function versionedURL($url, $file)
+{
+	$mtime = is_file($file) ? filemtime($file) : false;
+	return $mtime === false ? $url : $url . "?v=" . $mtime;
+}
+
+/**
+ * Add the version parameter to links and images in rendered Markdown which point to uploaded files
+ */
+function versionUploadLinks($html)
+{
+	$prefix = BASE_URI . "/" . UPLOAD_FOLDER . "/";
+	return preg_replace_callback('/\b(src|href)="' . preg_quote(h($prefix), '/') . '([^"?#\/]+)"/',
+		function($m) use ($prefix)
+		{
+			$name = rawurldecode(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, W2_CHARSET));
+			if ( $name === '' || $name[0] === '.' || str_contains($name, "\0") )
+			{
+				return $m[0];
+			}
+			return $m[1] . '="' . h(versionedURL($prefix . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name)) . '"';
+		}, $html);
 }
 
 function humanFilesize($bytes, $decimals = 2) {
@@ -305,9 +347,9 @@ function getPageActions($page, $action, $imgSuffix)
 		if ($action != $pageActions[$i])
 		{
 			$result .= "      <a href=\"".SELF."?action=".$pageActions[$i].
-				"&amp;page=".urlencode($page)."\"><img src=\"/icons/".$pageActions[$i].$imgSuffix.".svg\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
+				"&amp;page=".urlencode($page)."\"><img src=\"".assetURL("icons/".$pageActions[$i].$imgSuffix.".svg")."\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
 		}
 	}
-	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"/icons/link".$imgSuffix.".svg\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
+	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"".assetURL("icons/link".$imgSuffix.".svg")."\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
 	return $result;
 }

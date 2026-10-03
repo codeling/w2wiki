@@ -20,8 +20,23 @@ final class UploadTest extends AppTestCase
 		$this->assertSame(self::gif(), file_get_contents($this->imageFile('a.gif')));
 
 		$list = $this->http->get('/index.php', ['action' => 'upload'])->body;
-		$this->assertStringContainsString('<img class="thumbImg" src="/images/a.gif"', $list);
+		$this->assertStringContainsString('<img class="thumbImg" src="/images/a.gif?v=', $list);
 		$this->assertStringContainsString('Total: 2', $list);
+	}
+
+	public function testStaticResourcesAndUploadsAreReferencedWithAVersionParameter(): void
+	{
+		$this->upload('v.gif', self::gif());
+		$this->savePage('Pic', "![x](/images/v.gif)\n\n[file](/images/v.gif)");
+		$body = $this->http->get($this->pageUrl('Pic'))->body;
+		$this->assertMatchesRegularExpression('#<link type="text/css" rel="stylesheet" href="/index\.css\?v=\d+"#', $body);
+		$this->assertMatchesRegularExpression('#<link rel="icon" href="/icons/w2-icon\.png\?v=\d+"#', $body);
+		$this->assertMatchesRegularExpression('#<img src="/icons/home\.svg\?v=\d+"#', $body);
+		$this->assertMatchesRegularExpression('#<img src="/images/v\.gif\?v=\d+"#', $body);
+		$this->assertMatchesRegularExpression('#<a href="/images/v\.gif\?v=\d+"#', $body);
+
+		$edit = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Pic'])->body;
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+"#', $edit);
 	}
 
 	public function testSpacesInFileNamesAreReplaced(): void

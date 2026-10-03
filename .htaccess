@@ -3,3 +3,11 @@ RedirectMatch 404 /\.(?!well-known/)
 
 # Don't list the contents of folders (like the uploads) without index file
 Options -Indexes
+
+# The URLs of these files carry a version parameter (?v=...) which changes with the file,
+# so browsers can keep them for a long time without checking again.
+<IfModule mod_headers.c>
+	<FilesMatch "(?i)\.(js|css|svg|png)$">
+		Header set Cache-Control "max-age=31536000, immutable"
+	</FilesMatch>
+</IfModule>

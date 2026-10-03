@@ -64,11 +64,16 @@ W2 location prefix if W2 is not installed in the web root):
 location ~ /\.(?!well-known/) { deny all; }
 location ^~ /vendor/ { deny all; }
 location ^~ /pages/ { deny all; }
+location ~* \.(js|css|svg|png)$ {
+    add_header Cache-Control "max-age=31536000, immutable";
+}
 location ^~ /images/ {
     location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
     add_header X-Content-Type-Options nosniff;
+    add_header Cache-Control "max-age=31536000, immutable";
     location ~* \.svg$ {
         add_header X-Content-Type-Options nosniff;
+        add_header Cache-Control "max-age=31536000, immutable";
         add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
     }
 }

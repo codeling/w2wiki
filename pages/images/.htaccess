@@ -18,6 +18,8 @@ RemoveType .php .php3 .php4 .php5 .php7 .php8 .pht .phtml .phar
 
 <IfModule mod_headers.c>
 	Header set X-Content-Type-Options "nosniff"
+	# Links to uploads carry a version parameter (?v=...) which changes when a file is overwritten
+	Header set Cache-Control "max-age=31536000, immutable"
 	# Prevent scripts in uploaded SVG files from running in the wiki's origin
 	<FilesMatch "(?i)\.svg$">
 		Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"

@@ -33,16 +33,16 @@ function printHeader($title, $action, $bodyclass="")
 	print "<html lang=\"" . W2_LOCALE . "\">\n";
 	print "  <head>\n";
 	print "    <meta charset=\"" . W2_CHARSET . "\">\n";
-	print "    <link rel=\"apple-touch-icon\" href=\"/icons/w2-icon.png\"/>\n";
-	print "    <link rel=\"icon\" href=\"/icons/w2-icon.png\"/>\n";
+	print "    <link rel=\"apple-touch-icon\" href=\"" . assetURL("icons/w2-icon.png") . "\"/>\n";
+	print "    <link rel=\"icon\" href=\"" . assetURL("icons/w2-icon.png") . "\"/>\n";
 	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
-	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . BASE_URI . "/" . CSS_FILE ."\" />\n";
+	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . assetURL(CSS_FILE) ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
 	if (isEditorAction($action))
 	{
 		// (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently)
 		// (not relative: pages can be shown below the script, like /index.php/Page)
-		print "    <script src=\"" . BASE_URI . "/wiki.js\"></script>\n";
+		print "    <script src=\"" . assetURL("wiki.js") . "\"></script>\n";
 	}
 	print "  </head>\n";
 	print "  <body".($bodyclass != "" ? " class=\"$bodyclass\"":"").">\n";
@@ -57,7 +57,7 @@ function printFooter()
 function printDrawer()
 {
 	print "      <div id=\"drawer\" class=\"inactive\">\n".
-		"        <a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"/icons/close.svg\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
+		"        <a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"" . assetURL("icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
 		"        <h5>".__('Markdown Syntax Helper')."</h5>\n".
 		"        <div>\n".
 		"# ".__('Header')." 1<br/>".
@@ -92,9 +92,9 @@ function printDrawer()
 		"      </div>\n".
 		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".
 		"        <span class=\"icongroup\">\n".
-		"          <img src=\"/icons/format-text-bold.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
-		"          <img src=\"/icons/format-text-italic.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
-		"          <img src=\"/icons/format-text-code.svg\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"          <img src=\"" . assetURL("icons/format-text-bold.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"          <img src=\"" . assetURL("icons/format-text-italic.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
+		"          <img src=\"" . assetURL("icons/format-text-code.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
 		"        </span>\n".
 		"      </a>\n";
 }
@@ -504,13 +504,13 @@ else if ( $action === 'upload' )
 			}
 		}
 		$html .= "<tr>".
-			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".BASE_URI."/".UPLOAD_FOLDER."/".h(rawurlencode($baseImgName))."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".h($baseImgName)."</span></td>".
+			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".h(uploadURL($baseImgName))."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".h($baseImgName)."</span></td>".
 			"<td><pre>".h(imageLinkText($baseImgName))."</pre></td>".
 			"<td><nobr>".date($date_format, $img->recent)."</nobr></td>".
 			"<td><nobr>".humanFilesize($img->size)."</nobr></td>".
 			"<td>".
-			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/rename-dark.svg\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
-			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"/icons/delete.svg\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
+			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"" . assetURL("icons/rename-dark.svg") . "\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
+			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"" . assetURL("icons/delete.svg") . "\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
 		if (SHOW_PAGES_WHERE_FILE_USED)
 		{
 			$html .= "<td>";
@@ -959,9 +959,9 @@ if ($action === 'view' || $action === 'rename' || $action === 'delete' || $actio
 }
 print "    </div>\n";
 print "    <div class=\"toolbar\">\n";
-print "      <a href=\"" . SELF . "\"><img src=\"/icons/home.svg\" alt=\"". __(DEFAULT_PAGE) . "\" title=\"". __(DEFAULT_PAGE) . "\" class=\"icon\"></a>\n";
-print "      <a href=\"" . SELF . "?action=all\"><img src=\"/icons/list.svg\" alt=\"". __('All') . "\" title=\"". __('All') . "\" class=\"icon\"></a>\n";
-print "      <a href=\"" . SELF . "?action=new\"><img src=\"/icons/new.svg\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
+print "      <a href=\"" . SELF . "\"><img src=\"" . assetURL("icons/home.svg") . "\" alt=\"". __(DEFAULT_PAGE) . "\" title=\"". __(DEFAULT_PAGE) . "\" class=\"icon\"></a>\n";
+print "      <a href=\"" . SELF . "?action=all\"><img src=\"" . assetURL("icons/list.svg") . "\" alt=\"". __('All') . "\" title=\"". __('All') . "\" class=\"icon\"></a>\n";
+print "      <a href=\"" . SELF . "?action=new\"><img src=\"" . assetURL("icons/new.svg") . "\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
 if ( !DISABLE_UPLOADS )
 {
 	$uploadPage = isset($page) ? $page : (isset($prevpage)? $prevpage : DEFAULT_PAGE);
@@ -970,7 +970,7 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"/icons/upload.svg\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
+	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"" . assetURL("icons/upload.svg") . "\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
 {
