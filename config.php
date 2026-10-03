@@ -32,11 +32,15 @@ define('UPLOAD_FOLDER', 'images');
 define('PAGES_EXT', 'md');
 
 
+// URL setup: BASE_URI, SELF and VIEW (see "Web server setup" in INSTALL.md)
+//
 // BASE_URI
 //
-// The base URI for this W2 installation.  You only need to change this if we guess wrong.
-// You should not use a trailing slash.
-define('BASE_URI', str_replace('/index.php', '', $_SERVER['SCRIPT_NAME']));
+// The base URI for this W2 installation: the folder of the script, which static files
+// (style sheet, icons, uploaded images) are referenced from. You only need to change this
+// if we guess wrong, e.g. behind a reverse proxy which changes the path.
+// You should not use a trailing slash; it is empty if W2 is installed in the web root.
+define('BASE_URI', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'));
 
 // SELF
 //
@@ -45,7 +49,8 @@ define('SELF', $_SERVER['SCRIPT_NAME']);
 
 // VIEW 
 //
-// Needed only if your web server spawns PHP as a CGI instead of an internal module.
+// Needed only if your web server does not pass PATH_INFO to PHP (so that URLs like
+// /index.php/Page don't work), e.g. nginx or a CGI setup without PATH_INFO support.
 // For example: define('VIEW', '?action=view&page=');
 // The page name is appended directly to this value (without a slash); links to pages
 // and redirects (e.g. after saving) use it instead of index.php/Page.

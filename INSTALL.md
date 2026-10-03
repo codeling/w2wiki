@@ -15,6 +15,61 @@
 You should now be ready to access your W2 installation.
 
 
+# Web server setup
+
+W2 is a plain PHP application, and works with Apache (with `mod_php` or
+PHP-FPM) out of the box. Other web servers need a few things set up by hand.
+(The rules which protect the `pages` folder and the uploads are described in
+"Web server configuration" under "Security" below.)
+
+**Page URLs (PATH_INFO).** W2 links to pages like `/index.php/Page`, so the web
+server has to pass the part after `index.php` to PHP as `PATH_INFO`. If it
+doesn't, you get "not found" pages or wrong links. For nginx with PHP-FPM:
+
+```
+location ~ ^(.+\.php)(/.*)?$ {
+    fastcgi_split_path_info ^(.+\.php)(/.*)$;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_param PATH_INFO $fastcgi_path_info;
+    fastcgi_pass unix:/run/php/php-fpm.sock;  # adapt to your setup
+}
+```
+
+If you can't get `PATH_INFO` to work (some CGI setups), set `VIEW` in
+`config.php` so that pages are addressed by a query string instead:
+
+```
+define('VIEW', '?action=view&page=');
+```
+
+W2 then links to `/index.php?action=view&page=Page`; the page name is appended
+to `VIEW` as is, without a slash.
+
+**Uploaded images.** Uploads are stored in `pages/images` (see `UPLOAD_FOLDER`),
+which must not be served directly, but pages refer to them as
+`<W2 URL>/images/<name>`. So the web server has to serve `pages/images` under
+the URL `images` inside the W2 folder: either create a link (on Linux/macOS:
+`ln -s pages/images images` in the W2 folder) or, for nginx, an alias such as
+`location ^~ /images/ { alias /path/to/w2/pages/images/; }` (see the rules
+below, which belong in the same location). The folder name `images` is
+currently fixed.
+
+**Subfolders and base URL.** W2 can be installed in a subfolder of the web
+root. It derives its base URL (`BASE_URI`, used for the style sheet, icons,
+`wiki.js` and images) from the folder of the script (`SCRIPT_NAME`), and `SELF`
+is the URL of `index.php`. If the web server or a reverse proxy changes the
+path so that these are wrong, set them in `config.php`, e.g.
+`define('BASE_URI', '/wiki');` and `define('SELF', '/wiki/index.php');`
+(no trailing slash for `BASE_URI`). The nginx rules below have to use the same
+prefix.
+
+**Static files.** The style sheet, scripts and icons (`w2-icons`) are served
+directly by the web server, and referenced with a version parameter
+(`wiki.js?v=...`). The nginx rules below send long cache headers for them;
+the same is possible in Apache with `mod_expires`/`mod_headers`.
+
+
 # Configuration
 
 The file config.php contains many options for you to customize your W2 setup.
