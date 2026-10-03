@@ -1,4 +1,4 @@
-# Uploaded files are served statically (via the "images" link in the W2 root
+# Uploaded files are served statically (via the link named like UPLOAD_URL in the W2 root
 # folder); make sure nothing in here can ever be executed by the web server.
 Require all granted
 

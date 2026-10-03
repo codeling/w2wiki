@@ -22,8 +22,17 @@ define('PAGES_PATH', dirname(__FILE__). '/pages');
 
 // UPLOAD_FOLDER
 //
-// The subfolder in PAGES_PATH that uploads get stored to
+// The subfolder in PAGES_PATH that uploads get stored to: a single folder name
+// (no slashes). It is not part of the wiki: Markdown files within it are not pages,
+// and pages cannot be created there. The web server has to serve it under
+// UPLOAD_URL (see "Uploaded images" in INSTALL.md).
 define('UPLOAD_FOLDER', 'images');
+
+// UPLOAD_URL
+//
+// The URL path, relative to BASE_URI, under which the web server serves UPLOAD_FOLDER.
+// This is what links to uploads in pages look like: BASE_URI/UPLOAD_URL/name
+define('UPLOAD_URL', UPLOAD_FOLDER);
 
 // PAGES_EXT
 //

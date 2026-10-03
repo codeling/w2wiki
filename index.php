@@ -75,8 +75,8 @@ function printDrawer()
 		"[[".__('Link to page')."]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
 		"[".__('link text')."](http://url)<br/><br/>".
-		"![".__('Alt text')."](/images/image.jpg)<br/>".
-		"![".__('Alt text')."](/images/image.jpg \"".__('Optional title')."\")<br/>".
+		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg)<br/>".
+		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg \"".__('Optional title')."\")<br/>".
 		"<br/>".
 		"- ".__('Unordered list')."<br/>".
 		"+ ".__('Unordered list')."<br/>".
@@ -250,7 +250,7 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 }
 if ($action === 'view' || $action === 'edit')
 {
-	if ( file_exists($filename) )
+	if ( isExistingPage($page) )
 	{
 		$text = file_get_contents($filename);
 	}
@@ -288,9 +288,9 @@ if ( $action == 'save' )
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
+	if ($isNew ? (file_exists($filename) || !isValidPageName($page)) : isInUploadFolder($page))
 	{
-		$msg .= file_exists($filename)
+		$msg .= (file_exists($filename) && !isInUploadFolder($page))
 			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
 			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
 		$action = 'new';
@@ -473,7 +473,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(".preg_quote(BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName, '@')."[)\s]@i", $text) )
+				if ( preg_match("@\(".preg_quote(uploadUrlPrefix().$baseImgName, '@')."[)\s]@i", $text) )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -733,9 +733,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$msg = '';
 	if ($action === 'deleted')
 	{
-		$success = is_file(fileNameForPage($oldPageName)) && unlink(fileNameForPage($oldPageName));
+		$success = isExistingPage($oldPageName) && unlink(fileNameForPage($oldPageName));
 	}
-	else if (!is_file(fileNameForPage($oldPageName)) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	else if (!isExistingPage($oldPageName) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
 	{
 		$success = false;
 	}
@@ -833,8 +833,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			// matches /images/name, optionally prefixed with BASE_URI and followed by a "title"
-			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?\/".preg_quote(UPLOAD_FOLDER, '/')."\/)".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
+			// matches /<UPLOAD_URL>/name, optionally prefixed with BASE_URI and followed by a "title"
+			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?".preg_quote(substr(uploadUrlPrefix(), strlen(BASE_URI)), '/').")".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
 				(($action === 'imgDeleted') ? "" : "![\\1](\\2".pregReplacementQuote($newImgName)."\\3)"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed

@@ -147,6 +147,13 @@ final class FileNamesTest extends TestCase
 		}
 	}
 
+	public function testUploadsFolderIsNotPartOfTheWiki(): void
+	{
+		$this->assertTrue(isInUploadFolder(UPLOAD_FOLDER . '/x'));
+		$this->assertFalse(isInUploadFolder('sub/' . UPLOAD_FOLDER . '/x'));
+		$this->assertFalse(isExistingPage(UPLOAD_FOLDER . '/x'));
+	}
+
 	public static function replacementStrings(): array
 	{
 		return [['plain'], ['$1'], ['\\1'], ['\\\\'], ['${1}'], ['a$b\\c'], ['$0$9'], ['C$1\\2'], ['']];

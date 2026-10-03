@@ -36,11 +36,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 
 ## TODO
 
-- Improve upload folder location/configuration
-    - Currently half hard-coded as "images" subfolder of root
-    - current setup has strange dependency for uploads folder to be called "images" and to be a direct subfolder of where index.php is (due to serving files from there statically)
-    - but path also should be within PAGES\_PATH (both pagse and uploads should be in same folder to capture both in git repository...)
-	- so current setup requires an "images" soft link in root folder linking to actual images folder within PAGES\_PATH to be fully functional
+- Upload folder: the name is configurable (`UPLOAD_FOLDER`, `UPLOAD_URL`), but it still has to be a direct subfolder of PAGES\_PATH (to capture uploads in the git repository), and the web server has to serve it statically, e.g. via a soft link in the root folder (see INSTALL.md)
 
 ## Installation & Configuration
 
