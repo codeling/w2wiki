@@ -74,6 +74,16 @@ final class AuthTest extends AppTestCase
 		$this->assertDoesNotMatchRegularExpression('/;\s*Secure/i', $sessionCookies[0], 'no Secure flag over plain HTTP');
 	}
 
+	public function testForwardedProtoHeaderDoesNotMakeTheSessionCookieSecure(): void
+	{
+		// any client can send the header, so only the web server's own HTTPS setting counts
+		$cookies = $this->http->get('/index.php', [], ['X-Forwarded-Proto: https', 'X-Forwarded-Ssl: on'])
+			->headerValues('set-cookie');
+		$sessionCookies = array_values(array_filter($cookies, fn($c) => str_starts_with($c, 'W2=')));
+		$this->assertCount(1, $sessionCookies);
+		$this->assertDoesNotMatchRegularExpression('/;\s*Secure/i', $sessionCookies[0]);
+	}
+
 	public function testWikiCanBeUsedAfterLogin(): void
 	{
 		$this->login('hunter2');
