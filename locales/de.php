@@ -52,6 +52,9 @@ $w2_word_set = array(
 	// Messages
 	'Upload error' => 'Fehler beim Hochladen',
 	'Upload error: invalid file type' => 'Fehler beim Hochladen: Dieser Dateityp ist nicht zugelassen, bitte wende Dich an deinen Administrator!',
+	'The upload is too large: the server accepts requests of up to %s (post_max_size).' => 'Der Upload ist zu groß: Der Server akzeptiert Anfragen bis zu %s (post_max_size).',
+	'Nothing was uploaded or saved. Please go back and try again with a smaller file.' => 'Es wurde nichts hochgeladen oder gespeichert. Bitte gehe zurück und versuche es mit einer kleineren Datei.',
+	'Upload error: the file is larger than the allowed %s (upload_max_filesize).' => 'Fehler beim Hochladen: Die Datei ist größer als die erlaubten %s (upload_max_filesize).',
 	'Image uploading has been disabled on this installation.' => 'Hochladen ist nicht erlaubt, bitte wende Dich an deinen Administrator!',
 	'Creating new page since no page with given title exists!' => 'Es wird eine neue Seite angelegt, weil noch keine Seite mit dem angegebenen Titel existiert!',
 	'Updated links in the following pages:' => 'Es wurden Links in den folgenden Seiten aktualisiert:',
