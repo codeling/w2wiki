@@ -28,7 +28,7 @@ abstract class AppTestCase extends TestCase
 		return [];
 	}
 
-	/** @return array<string, bool> options for the test server, see AppServer::get() */
+	/** @return array<string, mixed> options for the test server, see AppServer::get() */
 	protected function serverOptions(): array
 	{
 		return [];
@@ -131,7 +131,18 @@ abstract class AppTestCase extends TestCase
 	protected function noteAfter(HttpResponse $response): string
 	{
 		$this->assertSame(303, $response->status, 'expected a redirect');
-		$page = $this->http->follow($response);
+		return $this->noteOf($this->http->follow($response));
+	}
+
+	/** The message shown directly in the response (e.g. by the editor after saving failed) */
+	protected function noteInResponse(HttpResponse $response): string
+	{
+		$this->assertSame(200, $response->status, 'expected the page with the message, not a redirect');
+		return $this->noteOf($response);
+	}
+
+	private function noteOf(HttpResponse $page): string
+	{
 		if (!preg_match('/<div class="note">(.*?)<\/div>/s', $page->body, $matches)) {
 			return '';
 		}

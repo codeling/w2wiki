@@ -321,9 +321,12 @@ if ( $action == 'save' )
 			$usermsg = $_POST['gitmsg'] ?? '';
 			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
 			gitChangeHandler($commitmsg, $msg);
+			redirectWithMessage($page, $msg);
 		}
 	}
-	redirectWithMessage($page, $msg);
+	// saving failed: show the editor again (with the entered title, text and message)
+	// instead of redirecting, so that nothing typed is lost
+	$_SESSION["msg"] = $msg;
 }
 
 if ( isEditorAction($action) )
@@ -698,9 +701,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$msg = '';
 	if ($action === 'deleted')
 	{
-		$success = unlink(fileNameForPage($oldPageName));
+		$success = is_file(fileNameForPage($oldPageName)) && unlink(fileNameForPage($oldPageName));
 	}
-	else if (!isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	else if (!is_file(fileNameForPage($oldPageName)) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
 	{
 		$success = false;
 	}
@@ -786,6 +789,11 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		$msg = ($action === 'imgDeleted')
 			? (__('Image deleted').": ".h($oldImgName))
 			: (__('Image renamed').": ".h($oldImgName)." ".__('to')." ".h($newImgName));
+		// the commit message is plain text (the note above is HTML)
+		$commitMsg = ($action === 'imgDeleted')
+			? (__('Image deleted').": ".$oldImgName)
+			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
+		$changedPageNames = array();
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
 		$changedPages = array();
@@ -800,16 +808,18 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			if ($count > 0) // if something changed
 			{
 				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+				$changedPageNames[] = $replacePage;
 				file_put_contents(fileNameForPage($replacePage), $newContent);
 			}
 		}
 		if (count($changedPages) > 0)
 		{
+			$commitMsg .= " (".__('Updated images in the following pages:')." ".implode(", ", $changedPageNames).")";
 			$msg .= "<br/>\n".__('Updated images in the following pages:')."\n<ul><li>";
 			$msg .= implode("</li><li>", $changedPages);
 			$msg .= "</li></ul>";
 		}
-		gitChangeHandler($msg, $msg);
+		gitChangeHandler($commitMsg, $msg);
 	}
 	else
 	{
