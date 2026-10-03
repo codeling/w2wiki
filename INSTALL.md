@@ -27,12 +27,12 @@ server has to pass the part after `index.php` to PHP as `PATH_INFO`. If it
 doesn't, you get "not found" pages or wrong links. For nginx with PHP-FPM:
 
 ```
-location ~ ^(.+\.php)(/.*)?$ {
-    fastcgi_split_path_info ^(.+\.php)(/.*)$;
+location ~ \.php(/|$) {
+    fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+    fastcgi_pass unix:/run/php/php-fpm.sock;  # adapt to your setup
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     fastcgi_param PATH_INFO $fastcgi_path_info;
-    fastcgi_pass unix:/run/php/php-fpm.sock;  # adapt to your setup
 }
 ```
 
