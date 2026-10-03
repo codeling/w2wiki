@@ -68,7 +68,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: curl, dom, fileinfo, libxml, mbstring
+          extensions: curl, dom, fileinfo, imagick, libxml, mbstring
           coverage: none
           tools: composer:v2
       - name: Install dependencies

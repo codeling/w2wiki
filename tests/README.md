@@ -2,7 +2,9 @@
 
 The tests start a private copy of the wiki (with an individual `config.php`
 per test class) on PHP's built-in web server, and talk to it over HTTP. They
-need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`.
+need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`. `ImageProcessingTest` (resizing,
+rotating and converting images) also needs `imagick`, and is skipped without it; the HEIC tests are skipped
+if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder).
 
 ```
 composer install
@@ -20,6 +22,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
 
 ## Layout
 
+- `tests/fixtures/images`: JPEGs with EXIF orientation 1, 3, 6 and 8 (60x30 pixels, red left, blue right) and a small HEIC file.
 - `tests/fixtures/svg`: SVG files with scripts, event handlers, external references, entities etc. for the SVG upload tests.
 
 - `tests/Support`: `AppServer` (runs the app), `HttpClient` (cookie-aware, doesn't follow
