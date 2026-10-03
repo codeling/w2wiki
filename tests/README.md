@@ -57,6 +57,7 @@ sandboxed SVGs, no directory listings) is tested against real servers in Docker 
 ```
 tests/Server/run.sh apache    # php:apache
 tests/Server/run.sh nginx     # nginx + php-fpm
+W2_SUBFOLDER=/w2 tests/Server/run.sh nginx   # with the wiki installed in a subfolder (also for apache)
 ```
 
 The script serves a copy of the wiki and runs the suite `server` with the environment variables
