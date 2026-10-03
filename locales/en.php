@@ -27,6 +27,9 @@ $w2_word_set = array(
 	// Messages
 	'Upload error' => 'Upload error',
 	'Upload error: invalid file type' => 'Upload error: invalid file type',
+	'The upload is too large: the server accepts requests of up to %s (post_max_size).' => 'The upload is too large: the server accepts requests of up to %s (post_max_size).',
+	'Nothing was uploaded or saved. Please go back and try again with a smaller file.' => 'Nothing was uploaded or saved. Please go back and try again with a smaller file.',
+	'Upload error: the file is larger than the allowed %s (upload_max_filesize).' => 'Upload error: the file is larger than the allowed %s (upload_max_filesize).',
 	'Image uploading has been disabled on this installation.' => 'Image uploading has been disabled on this installation.',
 	'Restored unsaved draft from %s.' => 'Restored unsaved draft from %s.',
 	'Warning: the page was changed since this draft was started.' => 'Warning: the page was changed since this draft was started.',
