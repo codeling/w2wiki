@@ -998,7 +998,7 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	print "      <a href=\"" . SELF . VIEW . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"" . assetURL("w2-icons/upload.svg") . "\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
+	print "      <a href=\"" . SELF . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"" . assetURL("w2-icons/upload.svg") . "\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
 }
 if ( REQUIRE_PASSWORD )
 {

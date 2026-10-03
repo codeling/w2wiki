@@ -47,6 +47,8 @@ define('SELF', $_SERVER['SCRIPT_NAME']);
 //
 // Needed only if your web server spawns PHP as a CGI instead of an internal module.
 // For example: define('VIEW', '?action=view&page=');
+// The page name is appended directly to this value (without a slash); links to pages
+// and redirects (e.g. after saving) use it instead of index.php/Page.
 define('VIEW', '');
 
 // DEFAULT_PAGE
