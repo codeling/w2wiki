@@ -1,0 +1,22 @@
+# Allowlist: only what the wiki needs at runtime goes into the image. In particular
+# no local pages or uploads (only the default pages), no .git, no tests, no vendor/.
+*
+!index.php
+!api.php
+!auth.php
+!auth_functions.php
+!config.php
+!functions.php
+!index.css
+!wiki.js
+!.htaccess
+!Michelf
+!locales
+!w2-icons
+!pages/.htaccess
+!pages/Home.md
+!pages/MarkdownSyntax.md
+!pages/_sidebar.md
+!pages/images/.htaccess
+!vendor/.htaccess
+!container
