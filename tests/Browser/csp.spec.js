@@ -33,8 +33,8 @@ test('scripts in SVG files of the uploads folder do not run', async ({ page }) =
 
 test('control: the same file elsewhere does run scripts, so the test above can notice them', async ({ page }) => {
   const dialogs = watchDialogs(page);
-  place('Michelf/unprotected.svg');
-  await page.goto('/Michelf/unprotected.svg');
+  place('w2-icons/unprotected.svg');
+  await page.goto('/w2-icons/unprotected.svg');
   await interact(page);
   expect(dialogs.length).toBeGreaterThan(0);
 });
