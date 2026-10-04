@@ -119,8 +119,22 @@ W2 location prefix if W2 is not installed in the web root):
 location ~ /\.(?!well-known/) { deny all; }
 location ^~ /vendor/ { deny all; }
 location ^~ /pages/ { deny all; }
+location ^~ /tests/ { deny all; }
+location ^~ /locales/ { deny all; }
+location ^~ /Michelf/ { deny all; }
+location ^~ /config.php { deny all; }
+location ^~ /functions.php { deny all; }
+location ^~ /auth.php { deny all; }
+location ^~ /auth_functions.php { deny all; }
+location ^~ /composer. { deny all; }
+location ^~ /phpunit.xml { deny all; }
+location ^~ /LICENSE { deny all; }
+location ^~ /README.md { deny all; }
+location ^~ /INSTALL.md { deny all; }
+location ^~ /CLAUDE.md { deny all; }
 location ~* \.(js|css|svg|png)$ {
     add_header Cache-Control "max-age=31536000, immutable";
+    add_header X-Content-Type-Options nosniff;
 }
 location ^~ /images/ {
     location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
@@ -133,6 +147,13 @@ location ^~ /images/ {
     }
 }
 ```
+
+The scripts of the wiki send security headers with every response (Content-Security-Policy, which only allows
+scripts and styles from the wiki itself and forbids framing, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` for requests over HTTPS). Don't add
+headers of the same names in the web server, they would apply to the same responses twice. The rules above
+additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`
+and `api.php`, the `tests`, `locales` and `Michelf` folders, `composer.json`, the documentation and so on).
 
 ### Upload size limits
 

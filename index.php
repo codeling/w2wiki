@@ -57,7 +57,7 @@ function printFooter()
 function printDrawer()
 {
 	print "      <div id=\"drawer\" class=\"inactive\">\n".
-		"        <a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"" . assetURL("w2-icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
+		"        <a href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\"><img src=\"" . assetURL("w2-icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
 		"        <h5>".__('Markdown Syntax Helper')."</h5>\n".
 		"        <div>\n".
 		"# ".__('Header')." 1<br/>".
@@ -90,7 +90,7 @@ function printDrawer()
 		"--- ".__('Horizontal rule')."<br/>\n".
 		"        </div>\n".
 		"      </div>\n".
-		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".
+		"      <a id=\"drawer-control\" href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\">\n".
 		"        <span class=\"icongroup\">\n".
 		"          <img src=\"" . assetURL("w2-icons/format-text-bold.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
 		"          <img src=\"" . assetURL("w2-icons/format-text-italic.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
@@ -380,7 +380,7 @@ if ( isEditorAction($action) )
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
 	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
 	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
-	$html .= '<input id="cancel" type="button" onclick="history.go(-1);" value="'. __('Cancel') .'" />'."\n";
+	$html .= '<input id="cancel" type="button" onclick="'.HANDLER_GO_BACK.'" value="'. __('Cancel') .'" />'."\n";
 	$html .= "</p></form>\n";
 }
 else if ( $action === 'logout' )
@@ -414,7 +414,7 @@ else if ( $action === 'upload' )
 			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
 			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
 			"\n</p></form>\n";
-		$html .= '<script type="application/javascript">'."\n".
+		$html .= '<script type="application/javascript" nonce="'.cspNonce().'">'."\n".
 			'function processForm(e) {'."\n".
 			'    e.preventDefault();'."\n".
 			'    var fileInput = document.getElementById("file");'."\n".
@@ -727,7 +727,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"".__('Cancel')."\" />\n";
+	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"".HANDLER_GO_BACK."\" value=\"".__('Cancel')."\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
