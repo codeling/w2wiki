@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [apache, nginx]
+        server: [apache, nginx, container]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -106,7 +106,7 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-      - name: Test the rules with ${{ matrix.server }} in Docker (and try to run scripts in a browser)
+      - name: Test the rules with ${{ matrix.server }} in containers (and try to run scripts in a browser)
         run: W2_BROWSER=1 tests/Server/run.sh ${{ matrix.server }}
       - name: Upload the browser test report
         if: failure()

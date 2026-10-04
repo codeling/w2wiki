@@ -70,6 +70,47 @@ directly by the web server, and referenced with a version parameter
 the same is possible in Apache with `mod_expires`/`mod_headers`.
 
 
+# Running in a container (Docker and Podman)
+
+The `Containerfile` builds an image with Apache, PHP 8.3, Imagick (with HEIC
+support) and git. Use `docker` or `podman`, whichever you have:
+
+```
+docker build -f Containerfile -t w2wiki .      # podman finds the Containerfile by itself
+docker run -d --name w2 -p 127.0.0.1:8080:8080 -v w2-pages:/var/www/html/pages w2wiki
+```
+
+W2 is then at <http://localhost:8080>. `compose.yaml` does the same with
+`docker compose up -d` or `podman compose up -d`. (Images built by the GitHub
+workflow are published as `ghcr.io/codeling/w2wiki`.)
+
+- **Pages and uploads** are in the volume `/var/www/html/pages`. When it is empty (no
+  `.md` files), the start script fills it with the default pages and makes it a git
+  repository (`GIT_COMMIT_ENABLED` is on in the image, each edit is committed; the
+  author is `W2_GIT_NAME` / `W2_GIT_EMAIL`). It also (re)installs the `.htaccess` files
+  which protect the pages and uploads. To use an existing folder, mount it instead of the
+  volume. Back up the volume, e.g. `docker run --rm -v w2-pages:/p -v "$PWD":/b alpine tar -C /p -czf /b/pages.tgz .`
+- **No root**: the container runs as `www-data` (user 33) and Apache listens on port 8080. A
+  named volume belongs to that user automatically. A mounted folder has to be writable for
+  it: `chown 33:33 folder` with Docker, or with rootless Podman
+  `-v ./pages:/var/www/html/pages:Z --userns=keep-id:uid=33,gid=33` (`:Z` is for SELinux).
+  The start script says so if it can't write there. `W2_UMASK=002` makes new files
+  group-writable, for a folder shared with other users.
+- **Hardening**: `--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges`
+  works (only the pages and `/tmp` are written to); `compose.yaml` has these.
+- **Settings**: mount your own `config.php` (`-v ./config.php:/var/www/html/config.php:ro`),
+  e.g. for `REQUIRE_PASSWORD` or `W2_PASSWORD_HASH`. Start from the one in this repository:
+  the image sets `GIT_COMMIT_ENABLED` to true, and `PAGES_PATH` has to stay as it is.
+  PHP settings (upload limits are 20 MB) can be overridden with a file in `/usr/local/etc/php/conf.d/`.
+  Pushing to a remote repository (`GIT_PUSH_ENABLED`) needs credentials which the image doesn't have.
+- **HTTPS**: the container speaks plain HTTP. Publish it only on localhost or a private network
+  and put a reverse proxy with HTTPS (and, as recommended under "Security", authentication) in front.
+  If W2 is served below a path, set `BASE_URI` and `SELF` in `config.php`.
+- **Updates**: rebuild (or pull) regularly to get updates of the base image, and start a new
+  container with the same volume.
+- **Podman**: images in the OCI format don't have the `HEALTHCHECK` of the Containerfile;
+  use `podman build --format docker` if you want it.
+
 # Configuration
 
 The file config.php contains many options for you to customize your W2 setup.
@@ -112,7 +153,9 @@ password and IP restrictions could be bypassed), and nothing in the uploads
 folder (`pages/images`, served statically via an `images` link in the W2 root
 folder) may ever be executed. For Apache, the included `.htaccess` files take
 care of this; they require `AllowOverride All` (or at least `AuthConfig`,
-`FileInfo` and `Options`). For nginx, add rules like the following (adapt the
+`FileInfo` and `Options`) and `mod_headers`. Without it the headers for uploads
+and static files are silently left out, and the stock Apache of Debian/Ubuntu and
+the `php:apache` image have `AllowOverride None` and don't load `mod_headers`. For nginx, add rules like the following (adapt the
 W2 location prefix if W2 is not installed in the web root):
 
 ```
