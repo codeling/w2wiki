@@ -288,12 +288,13 @@ if ( $action == 'save' )
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
+	// (the name is checked when saving existing pages too: the client decides whether a page is new)
+	if (($isNew && file_exists($filename)) || !isValidPageName($page))
 	{
-		$msg .= file_exists($filename)
+		$msg .= ($isNew && file_exists($filename))
 			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
 			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
-		$action = 'new';
+		$action = $isNew ? 'new' : 'edit';
 		$text = $newText;
 		$newPage = $page;
 		if (GIT_COMMIT_ENABLED)
@@ -571,7 +572,8 @@ else if ( $action === 'uploaded' )
 			$typeAllowed = ($svgData !== false);
 		}
 	}
-	if ($typeAllowed && hasValidUploadExt($dstName))
+	// (and the content must be of the type belonging to the extension, which decides how it is processed)
+	if ($typeAllowed && hasValidUploadExt($dstName) && ($fileExt === 'svg' || uploadTypeMatchesExt($fileType, $fileExt)))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
@@ -597,7 +599,17 @@ else if ( $action === 'uploaded' )
 			{
 				try
 				{
-					$img = new Imagick($path);
+					// the format is given explicitly, ImageMagick must not guess it from the content
+					$source = imageMagickFormatPrefix($fileExt) . $path;
+					$probe = new Imagick();
+					$probe->pingImage($source);
+					$pixels = $probe->getImageWidth() * $probe->getImageHeight();
+					$probe->clear();
+					if ($pixels > MAX_IMAGE_PIXELS)
+					{
+						throw new ImagickException('image has too many pixels');
+					}
+					$img = new Imagick($source);
 					if ($doResize)
 					{
 						$size = array($img->getImageWidth(), $img->getImageHeight());

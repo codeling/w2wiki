@@ -211,6 +211,42 @@ function sanitizeUploadedSvg($tmpName)
 	return $clean;
 }
 
+/**
+ * Content types (as detected from the file content) which a file with the given extension may have.
+ * Without this, the content of any accepted type could be stored (and processed by ImageMagick) under
+ * any accepted extension, e.g. a PDF as "x.png". Extensions without an entry are not restricted further.
+ */
+function uploadTypesForExt($ext)
+{
+	$types = array(
+		'bmp' => array('image/bmp', 'image/x-ms-bmp'),
+		'gif' => array('image/gif'),
+		'heic' => array('image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'),
+		'heif' => array('image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'),
+		'jpg' => array('image/jpeg', 'image/pjpeg'),
+		'jpeg' => array('image/jpeg', 'image/pjpeg'),
+		'pdf' => array('application/pdf'),
+		'png' => array('image/png'),
+		'webp' => array('image/webp'),
+	);
+	return $types[$ext] ?? null;
+}
+
+function uploadTypeMatchesExt($type, $ext)
+{
+	$allowed = uploadTypesForExt($ext);
+	return $allowed === null || in_array($type, $allowed, true);
+}
+
+/**
+ * Prefix for the file name given to ImageMagick, which forces the format instead of guessing it from
+ * the content of the file ("png:/path/file.png")
+ */
+function imageMagickFormatPrefix($ext)
+{
+	return ($ext === 'jpg' || $ext === 'jpeg') ? 'jpeg:' : $ext . ':';
+}
+
 function hasValidUploadExt($fileName)
 {
 	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), validUploadExts(), true);
