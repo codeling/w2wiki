@@ -180,6 +180,37 @@ PHP's `password_hash` function, e.g. via:
 php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 ```
 
+### Failed logins
+
+Failed logins are limited so that passwords can't be guessed by trying them
+one after the other (or in parallel, or with a new session for every attempt):
+
+- After 5 failed logins (`LOGIN_MAX_FAILURES`) from the same client address,
+  that client is locked out for a minute (`LOGIN_LOCKOUT_SECONDS`). Each
+  further failure doubles the lockout, up to an hour
+  (`LOGIN_LOCKOUT_MAX_SECONDS`). While a client is locked out, the wiki
+  answers with status 429 and a `Retry-After` header, even for the correct
+  password. A successful login resets the count.
+- Across all clients, 100 failed logins per hour are accepted
+  (`LOGIN_MAX_FAILURES_PER_HOUR`), which limits attackers with many
+  addresses. Once that is reached, nobody can log in for the rest of the
+  hour; set it to 0 if you prefer that over this.
+- IPv6 addresses count as one client per /64 network.
+- The records are small files in the system's temporary folder, or in
+  `LOGIN_THROTTLE_FOLDER` if you set it. That folder must be writable by the
+  web server and must not be served by it (a place outside the web root;
+  not the pages folder, which may be committed to git). If it can't be used,
+  logging in is refused (and the error log says why), because the protection
+  would be gone otherwise. `LOGIN_MAX_FAILURES = 0` turns the limit off.
+- Behind a reverse proxy, all requests come from the proxy's address, so
+  one client's failures would lock out everybody. List the proxy's address(es)
+  in `$trustedProxies` in `config.php`; the client address is then taken
+  from the `X-Forwarded-For` header, which is ignored for requests from any
+  other address. Don't list proxies you don't have: any client could send that
+  header.
+
+The login form also contains a CSRF token, like all other forms.
+
 ## Git Integration
 
 **Note:** The following assumes you are running W2 wiki on a Linux server, and

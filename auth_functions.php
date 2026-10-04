@@ -2,7 +2,8 @@
 /*
  * W2
  *
- * Functions for access control: CSRF tokens, IP allowlist and passwords.
+ * Functions for access control: CSRF tokens, IP allowlist, passwords and the
+ * throttling of failed logins.
  * Nothing happens when this file is loaded, see auth.php for that.
  */
 
@@ -116,4 +117,240 @@ function isLoggedIn()
 function csrfField()
 {
 	return "<input type=\"hidden\" name=\"csrf_token\" value=\"" . h(csrfToken()) . "\" />";
+}
+
+/**
+ * The address of the client for throttling logins: the address the web server
+ * sees, or, if that is one of the trusted proxies, the last address in the
+ * X-Forwarded-For header which does not belong to a trusted proxy. The header
+ * is ignored for requests from other addresses, because any client can send it.
+ * IPv6 addresses are shortened to their /64 network, since one client usually
+ * controls a whole /64 and could otherwise use a new address for every attempt.
+ *
+ * @param string[] $trustedProxies entries like for the IP allowlist, see ipMatches()
+ */
+function clientAddress(array $server, array $trustedProxies = array())
+{
+	$ip = (string)($server['REMOTE_ADDR'] ?? '');
+	$isTrusted = function ($address) use ($trustedProxies) {
+		foreach ( $trustedProxies as $proxy )
+		{
+			if ( ipMatches($address, $proxy) )
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+	if ( $trustedProxies && $isTrusted($ip) && !empty($server['HTTP_X_FORWARDED_FOR']) )
+	{
+		foreach ( array_reverse(explode(',', $server['HTTP_X_FORWARDED_FOR'])) as $forwarded )
+		{
+			$forwarded = trim($forwarded);
+			if ( filter_var($forwarded, FILTER_VALIDATE_IP) === false )
+			{
+				break;   // not an address: don't trust the rest of the chain
+			}
+			$ip = $forwarded;
+			if ( !$isTrusted($forwarded) )
+			{
+				break;
+			}
+		}
+	}
+	$binary = @inet_pton($ip);
+	if ( $binary !== false && strlen($binary) === 16 )
+	{
+		$ip = inet_ntop(substr($binary, 0, 8) . str_repeat("\0", 8)) . '/64';
+	}
+	return $ip;
+}
+
+/**
+ * Limits for failed logins from the settings in config.php (a value of 0 for
+ * maxFailures turns the throttling off)
+ */
+function loginThrottleLimits()
+{
+	return array(
+		'maxFailures' => LOGIN_MAX_FAILURES,
+		'lockoutSeconds' => LOGIN_LOCKOUT_SECONDS,
+		'lockoutMaxSeconds' => LOGIN_LOCKOUT_MAX_SECONDS,
+		'globalMaxFailures' => LOGIN_MAX_FAILURES_PER_HOUR,
+		'globalWindowSeconds' => 3600
+	);
+}
+
+/**
+ * The folder with the records of failed logins: LOGIN_THROTTLE_FOLDER, or a
+ * folder in the temporary folder of the system (not served by the web server,
+ * and outside of the pages folder, which may be a git repository)
+ */
+function loginThrottleFolder()
+{
+	if ( LOGIN_THROTTLE_FOLDER !== '' )
+	{
+		return LOGIN_THROTTLE_FOLDER;
+	}
+	return rtrim(sys_get_temp_dir(), '/\\') . '/w2-login-' . substr(hash('sha256', __DIR__), 0, 16);
+}
+
+/**
+ * Read, change and write back one record of the throttle folder while holding
+ * a lock on its file, so that parallel requests can't both see the old state.
+ * $update gets the record (an array, empty if there is none) and returns the
+ * new record (empty to delete it).
+ *
+ * @return bool false if the folder or file can't be used
+ */
+function loginThrottleUpdate($folder, $name, callable $update)
+{
+	if ( !is_dir($folder) && !@mkdir($folder, 0700, true) && !is_dir($folder) )
+	{
+		return false;
+	}
+	$file = fopen($folder . '/' . hash('sha256', 'w2-login|' . $name) . '.json', 'c+');
+	if ( $file === false )
+	{
+		return false;
+	}
+	if ( !flock($file, LOCK_EX) )
+	{
+		fclose($file);
+		return false;
+	}
+	$record = json_decode((string)stream_get_contents($file), true);
+	$record = $update(is_array($record) ? $record : array());
+	ftruncate($file, 0);
+	rewind($file);
+	if ( $record )
+	{
+		fwrite($file, json_encode($record));
+	}
+	fflush($file);
+	flock($file, LOCK_UN);
+	fclose($file);
+	return true;
+}
+
+/**
+ * Delete the records which are not needed any more (their lockout is over for
+ * a while, see loginThrottleStart())
+ */
+function loginThrottlePrune($folder, $now, $maxAge)
+{
+	foreach ( glob($folder . '/*.json') ?: array() as $file )
+	{
+		$modified = @filemtime($file);
+		if ( $modified !== false && $now - $modified > $maxAge )
+		{
+			@unlink($file);
+		}
+	}
+}
+
+/**
+ * Call before checking a password. Every attempt is counted right away (a
+ * correct password takes it back with loginThrottleSucceeded()), so parallel
+ * requests can't make more guesses than allowed. Returns 0 if the password may
+ * be checked, otherwise the number of seconds until the next attempt is
+ * possible, or -1 if the records can't be used. Attempts during a lockout are
+ * refused without checking the password and don't extend the lockout.
+ *
+ * Per client ($clientKey, see clientAddress()): after the first
+ * "maxFailures" failures, the client is locked out for "lockoutSeconds", which
+ * double with every further failure up to "lockoutMaxSeconds". The count is
+ * forgotten after a quiet time as long as the longest lockout. Across all
+ * clients, "globalMaxFailures" failures are allowed per "globalWindowSeconds",
+ * which limits what an attacker with many addresses can do (and lets nobody
+ * log in for the rest of the window, since the password can't be checked).
+ */
+function loginThrottleStart($folder, $clientKey, $now, array $limits)
+{
+	if ( $limits['maxFailures'] <= 0 )
+	{
+		return 0;
+	}
+	$wait = 0;
+	$stored = loginThrottleUpdate($folder, 'client|' . $clientKey, function ($record) use (&$wait, $now, $limits) {
+		$count = (int)($record['count'] ?? 0);
+		$blockedUntil = (int)($record['blockedUntil'] ?? 0);
+		$last = (int)($record['last'] ?? 0);
+		if ( $count > 0 && $now > max($blockedUntil, $last) + $limits['lockoutMaxSeconds'] )
+		{
+			$count = 0;
+			$blockedUntil = 0;
+		}
+		if ( $blockedUntil > $now )
+		{
+			$wait = $blockedUntil - $now;
+			return array('count' => $count, 'blockedUntil' => $blockedUntil, 'last' => $last);
+		}
+		$count++;
+		if ( $count >= $limits['maxFailures'] )
+		{
+			$step = min($count - $limits['maxFailures'], 30);
+			$blockedUntil = $now + min($limits['lockoutSeconds'] * (2 ** $step), $limits['lockoutMaxSeconds']);
+		}
+		return array('count' => $count, 'blockedUntil' => $blockedUntil, 'last' => $now);
+	});
+	if ( $stored && $wait === 0 && $limits['globalMaxFailures'] > 0 )
+	{
+		$stored = loginThrottleUpdate($folder, 'global', function ($record) use (&$wait, $now, $limits) {
+			$start = (int)($record['start'] ?? 0);
+			$count = (int)($record['count'] ?? 0);
+			if ( $start === 0 || $now >= $start + $limits['globalWindowSeconds'] )
+			{
+				$start = $now;
+				$count = 0;
+			}
+			if ( $count >= $limits['globalMaxFailures'] )
+			{
+				$wait = $start + $limits['globalWindowSeconds'] - $now;
+			}
+			else
+			{
+				$count++;
+			}
+			return array('start' => $start, 'count' => $count);
+		});
+		if ( $stored && $wait > 0 )
+		{
+			// this attempt doesn't happen: give it back to the client
+			loginThrottleUpdate($folder, 'client|' . $clientKey, function ($record) {
+				$record['count'] = max(0, (int)($record['count'] ?? 1) - 1);
+				$record['blockedUntil'] = 0;
+				return $record['count'] > 0 ? $record : array();
+			});
+		}
+	}
+	if ( !$stored )
+	{
+		return -1;
+	}
+	if ( mt_rand(1, 100) === 1 )
+	{
+		loginThrottlePrune($folder, $now, 2 * $limits['lockoutMaxSeconds'] + $limits['globalWindowSeconds']);
+	}
+	return $wait;
+}
+
+/**
+ * Call after a correct password: forget the failures of the client (and take
+ * the attempt back from the count over all clients)
+ */
+function loginThrottleSucceeded($folder, $clientKey, array $limits)
+{
+	if ( $limits['maxFailures'] <= 0 )
+	{
+		return;
+	}
+	loginThrottleUpdate($folder, 'client|' . $clientKey, fn($record) => array());
+	if ( $limits['globalMaxFailures'] > 0 )
+	{
+		loginThrottleUpdate($folder, 'global', function ($record) {
+			$record['count'] = max(0, (int)($record['count'] ?? 1) - 1);
+			return $record;
+		});
+	}
 }

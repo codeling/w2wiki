@@ -29,13 +29,53 @@ final class AuthTest extends AppTestCase
 		}
 	}
 
-	public function testWrongPasswordsAreRefusedAndSlowedDown(): void
+	public function testWrongPasswordsAreRefused(): void
 	{
 		$response = $this->login('nope');
 		$this->assertStringContainsString('Wrong password', $response->body);
 		$this->assertLoginForm($response);
-		$this->assertGreaterThan(1.5, $response->seconds);
 		$this->assertLoginForm($this->http->get('/index.php'));
+	}
+
+	public function testLoginFormHasTheCsrfToken(): void
+	{
+		$body = $this->http->get('/index.php')->body;
+		$this->assertSame(1, preg_match('/<form method="post">.*name="csrf_token" value="([0-9a-f]{64})".*<\/form>/s', $body, $matches));
+		$this->assertSame($matches[1], $this->csrfToken());
+	}
+
+	public function testLoginWithoutTokenIsRefused(): void
+	{
+		$this->http->get('/index.php');
+		$response = $this->http->post('/index.php', ['p' => 'hunter2']);
+		$this->assertLoginForm($response);
+		$this->assertStringContainsString('session has expired', $response->body);
+		$this->assertLoginForm($this->http->get('/index.php'));
+	}
+
+	public function testLoginWithWrongTokenIsRefused(): void
+	{
+		$response = $this->login('hunter2', null, str_repeat('a', 64));
+		$this->assertLoginForm($response);
+		$this->assertStringContainsString('session has expired', $response->body);
+		$this->assertLoginForm($this->http->get('/index.php'));
+	}
+
+	public function testLoginWithTokenOfAnotherSessionIsRefused(): void
+	{
+		$otherToken = $this->csrfToken($this->newClient());
+		$this->csrfToken();
+		$this->assertLoginForm($this->login('hunter2', null, $otherToken));
+		$this->assertLoginForm($this->http->get('/index.php'));
+	}
+
+	public function testRequestsWithoutTokenAreNotCountedAsFailedLogins(): void
+	{
+		// (they don't check the password; the limit of 5 failures would be reached otherwise)
+		for ($i = 0; $i < 8; $i++) {
+			$this->http->post('/index.php', ['p' => 'nope']);
+		}
+		$this->assertSame(200, $this->login('nope')->status);
 	}
 
 	public function testEmptyPasswordIsRefused(): void

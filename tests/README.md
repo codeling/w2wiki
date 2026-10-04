@@ -27,7 +27,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
 
 - `tests/Support`: `AppServer` (runs the app), `HttpClient` (cookie-aware, doesn't follow
   redirects), `AppTestCase` (base class with helpers such as `savePage()`, `upload()`,
-  `assertNoActiveContent()`).
+  `assertNoActiveContent()`); `ThrottleTestCase` is the base class of the tests of login throttling.
 - `tests/Unit`: tests of functions from `functions.php` and `auth_functions.php` (loaded by
   `tests/bootstrap.php` with the default `config.php`, without session or output).
   `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or

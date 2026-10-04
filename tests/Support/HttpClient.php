@@ -32,10 +32,11 @@ final class HttpClient
 	/**
 	 * @param array<string, string|CurlFileLike> $fields
 	 * @param array<string, string> $query
+	 * @param string[] $requestHeaders extra request headers
 	 */
-	public function post(string $path, array $fields = [], array $query = []): HttpResponse
+	public function post(string $path, array $fields = [], array $query = [], array $requestHeaders = []): HttpResponse
 	{
-		return $this->request('POST', $path, $query, $fields);
+		return $this->request('POST', $path, $query, $fields, $requestHeaders);
 	}
 
 	/** Fetch the page a redirect response points to */

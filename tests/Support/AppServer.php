@@ -170,10 +170,20 @@ final class AppServer
 			mkdir($this->imagesDir(), 0777, true);
 		}
 		self::removeContents($this->pagesDir(), $keep);
+		$this->resetLoginThrottle();
 		foreach (glob($this->appRoot . '/pages/*.md') as $page) {
 			copy($page, $this->pagesDir() . '/' . basename($page));
 		}
 		$this->initGit();
+	}
+
+	/** Forget the failed logins recorded in the default folder (see loginThrottleFolder() in auth_functions.php) */
+	private function resetLoginThrottle(): void
+	{
+		$folder = sys_get_temp_dir() . '/w2-login-' . substr(hash('sha256', $this->dir), 0, 16);
+		if (is_dir($folder)) {
+			self::removeContents($folder, []);
+		}
 	}
 
 	/**
@@ -227,6 +237,8 @@ final class AppServer
 		}
 		self::removeContents($this->dir, []);
 		@rmdir($this->dir);
+		$this->resetLoginThrottle();
+		@rmdir(sys_get_temp_dir() . '/w2-login-' . substr(hash('sha256', $this->dir), 0, 16));
 		@unlink($this->logFile);
 	}
 

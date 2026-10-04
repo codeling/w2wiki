@@ -102,10 +102,36 @@ function printDrawer()
 if ( !isLoggedIn() )
 {
 	$loginFailed = false;
+	$loginMessage = '';
 	if ( isset($_POST['p']) )
 	{
-		if ( isCorrectPassword($_POST['p']) )
+		$limits = loginThrottleLimits();
+		$throttleFolder = loginThrottleFolder();
+		$clientKey = clientAddress($_SERVER, $trustedProxies);
+		if ( !isValidCSRFToken($_POST['csrf_token'] ?? null) )
 		{
+			// (the password isn't checked, so this is no way to guess it)
+			$loginMessage = __('Your session has expired. Please try again.');
+		}
+		elseif ( ($wait = loginThrottleStart($throttleFolder, $clientKey, time(), $limits)) !== 0 )
+		{
+			if ( $wait < 0 )
+			{
+				error_log("W2: cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
+				http_response_code(503);
+				$loginMessage = __('Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.');
+			}
+			else
+			{
+				error_log("W2: login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
+				http_response_code(429);
+				header('Retry-After: ' . $wait);
+				$loginMessage = sprintf(__('Too many failed login attempts. Please try again in %s seconds.'), $wait);
+			}
+		}
+		elseif ( isCorrectPassword($_POST['p']) )
+		{
+			loginThrottleSucceeded($throttleFolder, $clientKey, $limits);
 			// prevent session fixation
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;
@@ -114,8 +140,7 @@ if ( !isLoggedIn() )
 		else
 		{
 			$loginFailed = true;
-			error_log("W2: failed login attempt from " . $_SERVER['REMOTE_ADDR']);
-			sleep(2);   // slow down brute-force attempts
+			error_log("W2: failed login attempt from " . $clientKey);
 		}
 	}
 	if ( empty($_SESSION['password']) )
@@ -126,12 +151,17 @@ if ( !isLoggedIn() )
 		{
 			print "    <p class=\"note\">" . __('Wrong password') . "</p>\n";
 		}
+		if ( $loginMessage !== '' )
+		{
+			print "    <p class=\"note\">" . $loginMessage . "</p>\n";
+		}
 		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
 		{
 			print "    <p class=\"note\">" . __('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.') . "</p>\n";
 		}
 		print "    <form method=\"post\">\n";
 		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
+		print "      " . csrfField() . "\n";
 		print "      <input type=\"submit\" value=\"" . __('Log In') . "\">\n";
 		print "    </form>\n";
 		printFooter();
