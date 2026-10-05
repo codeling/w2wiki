@@ -82,10 +82,14 @@ function getAllPageNames($path = "")
 		}
 		if ( is_dir( PAGES_PATH . "/$path/$filename" ) )
 		{
+			if ( $path === "" && $filename === UPLOAD_FOLDER )
+			{
+				continue;
+			}
 			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
 			continue;
 		}
-		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
+		if ( !str_ends_with($filename, "." . PAGES_EXT) )
 		{
 			continue;
 		}
@@ -112,12 +116,30 @@ function isEditorAction($action)
 
 function isExistingPage($page)
 {
-	return $page !== "" && file_exists(fileNameForPage($page));
+	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));
+}
+
+/**
+ * URL prefix of uploaded files, including the trailing slash: BASE_URI/UPLOAD_URL/
+ * (UPLOAD_URL is optional in older config.php files, and defaults to UPLOAD_FOLDER)
+ */
+function uploadUrlPrefix()
+{
+	return BASE_URI . "/" . (defined('UPLOAD_URL') ? UPLOAD_URL : UPLOAD_FOLDER) . "/";
+}
+
+/**
+ * Whether the page name is within the uploads folder (which is served statically,
+ * and not part of the wiki)
+ */
+function isInUploadFolder($page)
+{
+	return explode('/', $page)[0] === UPLOAD_FOLDER;
 }
 
 function imageLinkText($imgName)
 {
-	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";
+	return "![".__("Image Description")."](".uploadUrlPrefix()."$imgName)";
 }
 
 function sanitizeFilename($inFileName)
@@ -146,7 +168,7 @@ function isValidPageName($page)
 			return false;
 		}
 	}
-	return $segments[0] !== UPLOAD_FOLDER;
+	return !isInUploadFolder($page);
 }
 
 function getFileExt($fileName)
@@ -353,7 +375,7 @@ function assetURL($path)
  */
 function uploadURL($name)
 {
-	return versionedURL(BASE_URI . "/" . UPLOAD_FOLDER . "/" . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
+	return versionedURL(uploadUrlPrefix() . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
 }
 
 function versionedURL($url, $file)
@@ -367,7 +389,7 @@ function versionedURL($url, $file)
  */
 function versionUploadLinks($html)
 {
-	$prefix = BASE_URI . "/" . UPLOAD_FOLDER . "/";
+	$prefix = uploadUrlPrefix();
 	return preg_replace_callback('/\b(src|href)="' . preg_quote(h($prefix), '/') . '([^"?#\/]+)"/',
 		function($m) use ($prefix)
 		{
