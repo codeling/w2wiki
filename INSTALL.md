@@ -5,8 +5,8 @@
    
 2. Upload the files from this repository to this directory.
 
-3. Make sure that the "images" and "pages" directories are writable by your
-   web server process.
+3. Make sure that the "pages" directory and its uploads folder ("images" by
+   default, see `UPLOAD_FOLDER`) are writable by your web server process.
    
 4. You may or may not need to edit config.php. When you're ready, look in
    there for many additional configuration options
@@ -46,14 +46,19 @@ define('VIEW', '?action=view&page=');
 W2 then links to `/index.php?action=view&page=Page`; the page name is appended
 to `VIEW` as is, without a slash.
 
-**Uploaded images.** Uploads are stored in `pages/images` (see `UPLOAD_FOLDER`),
-which must not be served directly, but pages refer to them as
-`<W2 URL>/images/<name>`. So the web server has to serve `pages/images` under
-the URL `images` inside the W2 folder: either create a link (on Linux/macOS:
-`ln -s pages/images images` in the W2 folder) or, for nginx, an alias such as
+**Uploaded images.** Uploads are stored in `pages/images` (the folder named by
+`UPLOAD_FOLDER` in `config.php`, a single folder name), which must not be served
+directly, but pages refer to them as `<W2 URL>/images/<name>` (the URL path is
+`UPLOAD_URL`, which is the folder name unless you set it otherwise). So the web
+server has to serve `pages/images` under the URL `images` inside the W2 folder:
+either create a link (on Linux/macOS: `ln -s pages/images images` in the W2
+folder) or, for nginx, an alias such as
 `location ^~ /images/ { alias /path/to/w2/pages/images/; }` (see the rules
-below, which belong in the same location). The folder name `images` is
-currently fixed.
+below, which belong in the same location). If you rename the folder, rename the
+link/location accordingly (or keep the old URL by setting `UPLOAD_URL`). The
+uploads folder is not part of the wiki: Markdown files in it are not pages, and
+pages cannot be created there. Existing links in pages are not changed when you
+change the setting.
 
 **Subfolders and base URL.** W2 can be installed in a subfolder of the web
 root. It derives its base URL (`BASE_URI`, used for the style sheet, icons,
@@ -109,8 +114,8 @@ features described below might be removed in the near future in this fork!
 
 The `pages` folder must not be served directly by the web server (otherwise the
 password and IP restrictions could be bypassed), and nothing in the uploads
-folder (`pages/images`, served statically via an `images` link in the W2 root
-folder) may ever be executed. For Apache, the included `.htaccess` files take
+folder (`pages/images` by default, served statically via an `images` link in the
+W2 root folder; adapt the names below if you changed `UPLOAD_FOLDER`/`UPLOAD_URL`) may ever be executed. For Apache, the included `.htaccess` files take
 care of this; they require `AllowOverride All` (or at least `AuthConfig`,
 `FileInfo` and `Options`). For nginx, add rules like the following (adapt the
 W2 location prefix if W2 is not installed in the web root):
