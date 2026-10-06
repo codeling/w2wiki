@@ -79,6 +79,23 @@ final class PageNameTest extends AppTestCase
 		$this->assertSame($before, $this->server->pageFiles());
 	}
 
+	#[DataProvider('invalidNames')]
+	public function testInvalidPageNamesAreRefusedWhenSavingWithoutTheNewFlag(string $name): void
+	{
+		// the client decides whether a page is new, so the name has to be checked either way
+		$before = $this->server->pageFiles();
+		$note = $this->noteInResponse($this->savePage($name, 'text', false));
+		$this->assertStringContainsString('invalid page name', $note);
+		$this->assertSame($before, $this->server->pageFiles());
+		$this->assertFileDoesNotExist($this->server->pagesDir() . '/.hidden/evil.md');
+	}
+
+	public function testExistingPagesCanStillBeEdited(): void
+	{
+		$this->assertSame(303, $this->savePage('Home', 'edited', false)->status);
+		$this->assertSame('edited', $this->pageText('Home'));
+	}
+
 	public function testExistingPagesAreNotOverwrittenWhenCreatingPages(): void
 	{
 		$note = $this->noteInResponse($this->savePage('Home', 'overwritten'));

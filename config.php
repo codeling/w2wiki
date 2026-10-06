@@ -127,6 +127,12 @@ define('SHOW_PAGES_WHERE_FILE_USED', true);
 // uploaded images with these extensions need to be converted to another format (see also CONVERT_FORMAT)
 define('IMAGE_EXTS_TO_CONVERT', 'heic,heif');
 
+// MAX_IMAGE_PIXELS
+//
+// Images with more pixels (width x height) are not processed (shrunk, rotated or converted)
+// and are refused, because decoding huge images can use up all memory of the server.
+define('MAX_IMAGE_PIXELS', 100000000);
+
 // CONVERT_FORMAT
 // format to convert uploaded images to which need to be converted (see IMAGE_EXTS_TO_CONVERT)
 define('CONVERT_FORMAT', 'jpg');

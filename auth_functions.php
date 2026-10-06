@@ -6,6 +6,10 @@
  * Nothing happens when this file is loaded, see auth.php for that.
  */
 
+// Inline event handlers used by the wiki's own pages (allowed in the Content-Security-Policy by their hash)
+const HANDLER_TOGGLE_DRAWER = 'toggleDrawer(); return false;';
+const HANDLER_GO_BACK = 'history.go(-1);';
+
 function csrfToken()
 {
 	return $_SESSION['csrf_token'];
@@ -116,4 +120,54 @@ function isLoggedIn()
 function csrfField()
 {
 	return "<input type=\"hidden\" name=\"csrf_token\" value=\"" . h(csrfToken()) . "\" />";
+}
+
+/**
+ * Nonce which allows the inline script of a page in the Content-Security-Policy (new for every request)
+ */
+function cspNonce()
+{
+	static $nonce = null;
+	return $nonce ??= base64_encode(random_bytes(16));
+}
+
+/**
+ * The Content-Security-Policy of the pages of the wiki: only scripts and styles from the wiki itself
+ * (plus the nonce'd inline script, and the wiki's own inline event handlers by hash), no plugins, no
+ * framing, forms only to the wiki. Images may come from anywhere, as pages can include external images.
+ */
+function contentSecurityPolicy()
+{
+	$handlerHashes = array_map(fn($handler) => "'sha256-" . base64_encode(hash('sha256', $handler, true)) . "'",
+		array(HANDLER_TOGGLE_DRAWER, HANDLER_GO_BACK));
+	return implode('; ', array(
+		"default-src 'self'",
+		"script-src 'self' 'nonce-" . cspNonce() . "' 'unsafe-hashes' " . implode(' ', $handlerHashes),
+		"style-src 'self'",
+		"img-src 'self' data: http: https:",
+		"object-src 'none'",
+		"base-uri 'none'",
+		"form-action 'self'",
+		"frame-ancestors 'none'"
+	));
+}
+
+/**
+ * Security headers sent with every response of the wiki's scripts ($server is $_SERVER)
+ */
+function securityHeaders(array $server)
+{
+	$headers = array(
+		'Content-Security-Policy' => contentSecurityPolicy(),
+		'X-Content-Type-Options' => 'nosniff',
+		'X-Frame-Options' => 'DENY',
+		'Referrer-Policy' => 'same-origin',
+		'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+		'Cross-Origin-Opener-Policy' => 'same-origin'
+	);
+	if ( isHttpsRequest($server) )
+	{
+		$headers['Strict-Transport-Security'] = 'max-age=31536000';
+	}
+	return $headers;
 }

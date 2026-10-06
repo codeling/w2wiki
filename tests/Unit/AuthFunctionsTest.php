@@ -138,4 +138,20 @@ final class AuthFunctionsTest extends TestCase
 		$this->assertSame('Lax', $params['samesite']);
 		$this->assertSame('/', $params['path']);
 	}
+
+	public function testStrictTransportSecurityIsSentOnlyOverHttps(): void
+	{
+		$this->assertArrayNotHasKey('Strict-Transport-Security', securityHeaders([]));
+		$this->assertArrayNotHasKey('Strict-Transport-Security', securityHeaders(['HTTPS' => 'off']));
+		$this->assertSame('max-age=31536000', securityHeaders(['HTTPS' => 'on'])['Strict-Transport-Security']);
+		$this->assertArrayNotHasKey('Strict-Transport-Security', securityHeaders(['HTTP_X_FORWARDED_PROTO' => 'https']), 'not trusted');
+	}
+
+	public function testContentSecurityPolicyAllowsOnlyTheWikisOwnScripts(): void
+	{
+		$policy = contentSecurityPolicy();
+		$this->assertStringContainsString("script-src 'self' 'nonce-" . cspNonce() . "' 'unsafe-hashes' 'sha256-", $policy);
+		$this->assertStringNotContainsString('unsafe-inline', $policy);
+		$this->assertStringNotContainsString('unsafe-eval', $policy);
+	}
 }
