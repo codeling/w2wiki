@@ -176,6 +176,31 @@ final class ServerConfigTest extends TestCase
 		return [['/config.php'], ['/auth.php'], ['/auth_functions.php'], ['/functions.php'], ['/locales/en.php']];
 	}
 
+	#[DataProvider('unneededFiles')]
+	public function testFilesWhichVisitorsDoNotNeedAreNotServed(string $path): void
+	{
+		$this->assertNotServed($this->http->get($path), 'No direct access');
+		$this->assertNotServed($this->http->get($path), '<?php');
+	}
+
+	public static function unneededFiles(): array
+	{
+		return [
+			['/config.php'], ['/functions.php'], ['/auth.php'], ['/auth_functions.php'],
+			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'],
+			['/tests/README.md'], ['/tests/bootstrap.php'], ['/composer.json'], ['/phpunit.xml.dist'],
+			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'],
+		];
+	}
+
+	public function testEntryPointsAreNotAffectedByTheDenyRules(): void
+	{
+		$this->assertSame(200, $this->http->get('/index.php')->status);
+		$this->assertSame(200, $this->http->get('/api.php')->status);
+		$this->assertStringContainsString("frame-ancestors 'none'", (string)$this->http->get('/index.php')->header('content-security-policy'));
+		$this->assertSame('nosniff', strtolower((string)$this->http->get('/wiki.js')->header('x-content-type-options')));
+	}
+
 	// --- pages and hidden files ----------------------------------------------------------
 
 	#[DataProvider('pageFiles')]

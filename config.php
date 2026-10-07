@@ -22,8 +22,17 @@ define('PAGES_PATH', dirname(__FILE__). '/pages');
 
 // UPLOAD_FOLDER
 //
-// The subfolder in PAGES_PATH that uploads get stored to
+// The subfolder in PAGES_PATH that uploads get stored to: a single folder name
+// (no slashes). It is not part of the wiki: Markdown files within it are not pages,
+// and pages cannot be created there. The web server has to serve it under
+// UPLOAD_URL (see "Uploaded images" in INSTALL.md).
 define('UPLOAD_FOLDER', 'images');
+
+// UPLOAD_URL
+//
+// The URL path, relative to BASE_URI, under which the web server serves UPLOAD_FOLDER.
+// This is what links to uploads in pages look like: BASE_URI/UPLOAD_URL/name
+define('UPLOAD_URL', UPLOAD_FOLDER);
 
 // PAGES_EXT
 //
@@ -117,6 +126,12 @@ define('SHOW_PAGES_WHERE_FILE_USED', true);
 // IMAGE_EXTS_TO_CONVERT
 // uploaded images with these extensions need to be converted to another format (see also CONVERT_FORMAT)
 define('IMAGE_EXTS_TO_CONVERT', 'heic,heif');
+
+// MAX_IMAGE_PIXELS
+//
+// Images with more pixels (width x height) are not processed (shrunk, rotated or converted)
+// and are refused, because decoding huge images can use up all memory of the server.
+define('MAX_IMAGE_PIXELS', 100000000);
 
 // CONVERT_FORMAT
 // format to convert uploaded images to which need to be converted (see IMAGE_EXTS_TO_CONVERT)

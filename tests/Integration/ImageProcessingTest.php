@@ -48,6 +48,17 @@ final class ImageProcessingTest extends AppTestCase
 		return $this->noteAfter($this->upload($name, $content, 'image/png', ['resize' => 'true'] + $extra));
 	}
 
+	// --- type and extension ------------------------------------------------------------
+
+	public function testContentOfAnotherAcceptedTypeIsNotStoredUnderAnImageExtension(): void
+	{
+		// a PDF as "x.png" would be handed to ImageMagick as PDF (Ghostscript) when the format is guessed from the content
+		$pdf = "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
+		$note = $this->uploadResized('x.png', $pdf);
+		$this->assertStringContainsString('invalid file type', $note);
+		$this->assertSame([], $this->uploadedFiles());
+	}
+
 	// --- resize ----------------------------------------------------------------------
 
 	public function testLargeLandscapeImageIsShrunkKeepingTheAspectRatio(): void

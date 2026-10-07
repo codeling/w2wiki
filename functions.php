@@ -82,10 +82,14 @@ function getAllPageNames($path = "")
 		}
 		if ( is_dir( PAGES_PATH . "/$path/$filename" ) )
 		{
+			if ( $path === "" && $filename === UPLOAD_FOLDER )
+			{
+				continue;
+			}
 			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
 			continue;
 		}
-		if ( preg_match("/".PAGES_EXT."$/", $filename) != 1)
+		if ( !str_ends_with($filename, "." . PAGES_EXT) )
 		{
 			continue;
 		}
@@ -112,12 +116,30 @@ function isEditorAction($action)
 
 function isExistingPage($page)
 {
-	return $page !== "" && file_exists(fileNameForPage($page));
+	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));
+}
+
+/**
+ * URL prefix of uploaded files, including the trailing slash: BASE_URI/UPLOAD_URL/
+ * (UPLOAD_URL is optional in older config.php files, and defaults to UPLOAD_FOLDER)
+ */
+function uploadUrlPrefix()
+{
+	return BASE_URI . "/" . (defined('UPLOAD_URL') ? UPLOAD_URL : UPLOAD_FOLDER) . "/";
+}
+
+/**
+ * Whether the page name is within the uploads folder (which is served statically,
+ * and not part of the wiki)
+ */
+function isInUploadFolder($page)
+{
+	return explode('/', $page)[0] === UPLOAD_FOLDER;
 }
 
 function imageLinkText($imgName)
 {
-	return "![".__("Image Description")."](".BASE_URI."/".UPLOAD_FOLDER."/$imgName)";
+	return "![".__("Image Description")."](".uploadUrlPrefix()."$imgName)";
 }
 
 function sanitizeFilename($inFileName)
@@ -146,7 +168,7 @@ function isValidPageName($page)
 			return false;
 		}
 	}
-	return $segments[0] !== UPLOAD_FOLDER;
+	return !isInUploadFolder($page);
 }
 
 function getFileExt($fileName)
@@ -209,6 +231,42 @@ function sanitizeUploadedSvg($tmpName)
 		return false;
 	}
 	return $clean;
+}
+
+/**
+ * Content types (as detected from the file content) which a file with the given extension may have.
+ * Without this, the content of any accepted type could be stored (and processed by ImageMagick) under
+ * any accepted extension, e.g. a PDF as "x.png". Extensions without an entry are not restricted further.
+ */
+function uploadTypesForExt($ext)
+{
+	$types = array(
+		'bmp' => array('image/bmp', 'image/x-ms-bmp'),
+		'gif' => array('image/gif'),
+		'heic' => array('image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'),
+		'heif' => array('image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'),
+		'jpg' => array('image/jpeg', 'image/pjpeg'),
+		'jpeg' => array('image/jpeg', 'image/pjpeg'),
+		'pdf' => array('application/pdf'),
+		'png' => array('image/png'),
+		'webp' => array('image/webp'),
+	);
+	return $types[$ext] ?? null;
+}
+
+function uploadTypeMatchesExt($type, $ext)
+{
+	$allowed = uploadTypesForExt($ext);
+	return $allowed === null || in_array($type, $allowed, true);
+}
+
+/**
+ * Prefix for the file name given to ImageMagick, which forces the format instead of guessing it from
+ * the content of the file ("png:/path/file.png")
+ */
+function imageMagickFormatPrefix($ext)
+{
+	return ($ext === 'jpg' || $ext === 'jpeg') ? 'jpeg:' : $ext . ':';
 }
 
 function hasValidUploadExt($fileName)
@@ -317,7 +375,7 @@ function assetURL($path)
  */
 function uploadURL($name)
 {
-	return versionedURL(BASE_URI . "/" . UPLOAD_FOLDER . "/" . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
+	return versionedURL(uploadUrlPrefix() . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
 }
 
 function versionedURL($url, $file)
@@ -331,7 +389,7 @@ function versionedURL($url, $file)
  */
 function versionUploadLinks($html)
 {
-	$prefix = BASE_URI . "/" . UPLOAD_FOLDER . "/";
+	$prefix = uploadUrlPrefix();
 	return preg_replace_callback('/\b(src|href)="' . preg_quote(h($prefix), '/') . '([^"?#\/]+)"/',
 		function($m) use ($prefix)
 		{
