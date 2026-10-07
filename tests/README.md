@@ -11,7 +11,7 @@ composer install
 composer test              # everything
 composer test:unit         # fast tests of helper functions
 composer test:integration  # HTTP tests, all but the SVG upload tests
-composer test:server       # rules for Apache and nginx, needs Docker (see below)
+composer test:server       # rules for Apache and nginx, and the container image, needs Docker or Podman (see below)
 composer test:browser      # scripts in a real browser, see below
 composer test:svg          # SVG uploads, needs the enshrined/svg-sanitize test dependency
 vendor/bin/phpunit --filter UploadTest
@@ -56,19 +56,41 @@ for versions that log PHP warnings.
 
 The protection which depends on the web server (`.htaccess` files for Apache, the rules from
 INSTALL.md for nginx: no access to page sources, `.git` and `vendor`, no scripts in the uploads,
-sandboxed SVGs, no directory listings) is tested against real servers in Docker containers:
+sandboxed SVGs, no directory listings) is tested against real servers in containers (Docker or Podman):
 
 ```
-tests/Server/run.sh apache    # php:apache
-tests/Server/run.sh nginx     # nginx + php-fpm
+tests/Server/run.sh apache      # php:apache
+tests/Server/run.sh nginx       # nginx + php-fpm
+tests/Server/run.sh container   # the image built from the Containerfile
 W2_SUBFOLDER=/w2 tests/Server/run.sh nginx   # with the wiki installed in a subfolder (also for apache)
 ```
 
 The script serves a copy of the wiki and runs the suite `server` with the environment variables
-`W2_SERVER_URL` and `W2_SERVER_ROOT`; without them these tests are skipped. It uses host networking
-and the ports 8080 (`W2_SERVER_PORT`) and, for nginx, 9000. `W2_NGINX_IMAGE` and `W2_PHP_VERSION`
+`W2_SERVER_URL` and `W2_SERVER_ROOT`; without them these tests are skipped. `apache` and `nginx` use
+host networking and the ports 8080 (`W2_SERVER_PORT`) and, for nginx, 9000; `container` publishes the
+port 8080 of the image as `W2_SERVER_PORT` instead. `W2_NGINX_IMAGE` and `W2_PHP_VERSION`
 select the images. The nginx rules tested are in `tests/Server/nginx/w2.conf.template`; a unit test
 makes sure they are the same as in INSTALL.md.
+
+- The container engine is `docker` if it is installed, otherwise `podman`; `W2_CONTAINER_ENGINE=podman`
+  selects it. Files are mounted with `z` (shared SELinux label), so that this works on Fedora & co.
+- `container` builds the image (or uses `W2_IMAGE=name`), copies its files to a temporary folder, and
+  runs the image on that folder, with `pages` as a separate mount (it is a volume of the image). So the
+  tests also cover the start script of the image (default pages, `.htaccess` files, git repository), its
+  Apache and PHP settings, and a web server which doesn't run as root. It starts the image with
+  `W2_UMASK=000`, so that the tests (another user) can change files which the web server user created.
+
+What the container tests found out (and the Containerfile does, see "Running in a container" in INSTALL.md):
+
+- The stock `php:apache` image has `AllowOverride None` and no `mod_headers`: the `.htaccess` files of W2
+  are ignored (pages, `.git` and uploads would be served, and PHP files in the uploads executed), and the
+  headers for uploads (nosniff, SVG sandbox, caching) are missing. `tests/Server/apache.conf` is the
+  settings of a typical Apache installation which make them work; the image has the same.
+- Uploads are served from the `images` link in the wiki folder, so the pages folder must be inside it:
+  a volume at another path (like `/pages`) is not served, and `PAGES_PATH` is a constant in `config.php`.
+- Files which the web server user creates in a mounted folder belong to another user than the tests:
+  the folder has to be writable for everybody, and git needs `safe.directory` for such a folder.
+- With a read-only root file system, only `/tmp` and the pages folder have to be writable.
 
 ## Browser tests
 

@@ -1,0 +1,24 @@
+# Docker Compose / Podman Compose: `docker compose up -d` (or `podman compose up -d`)
+# then open http://localhost:8080 . See "Running in a container" in INSTALL.md.
+services:
+  w2:
+    build:
+      context: .
+      dockerfile: Containerfile
+    # image: ghcr.io/codeling/w2wiki:latest   # instead of building
+    ports:
+      - "127.0.0.1:8080:8080"     # only this computer; put a reverse proxy with HTTPS in front for others
+    volumes:
+      - w2-pages:/var/www/html/pages
+      # your own config.php (see config.php; GIT_COMMIT_ENABLED is true in the image's copy):
+      # - ./config.php:/var/www/html/config.php:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  w2-pages:
