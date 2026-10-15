@@ -176,6 +176,31 @@ function getFileExt($fileName)
 	return preg_match('/\.([^.\/]+)$/', $fileName, $matches) ? strtolower($matches[1]) : null;
 }
 
+/**
+ * The name under which an uploaded file gets stored: the name of the uploaded file,
+ * or the (optional) name the user chose instead. The chosen name keeps the extension
+ * of the uploaded file, as the content must match it (so "cat" becomes "cat.jpg").
+ */
+function uploadTargetName($uploadedName, $chosenName = '')
+{
+	$clean = function($name) {
+		// spaces are replaced as image display currently doesn't like them
+		return basename(str_replace(" ", "_", sanitizeFilename(trim((string)$name))));
+	};
+	$dstName = $clean($uploadedName);
+	$chosen = $clean($chosenName);
+	if ( $chosen === '' )
+	{
+		return $dstName;
+	}
+	$ext = getFileExt($dstName);
+	if ( $ext !== null && getFileExt($chosen) !== $ext )
+	{
+		$chosen .= "." . $ext;
+	}
+	return $chosen;
+}
+
 function isHiddenFile($fileName)
 {
 	return str_starts_with(basename($fileName), '.');

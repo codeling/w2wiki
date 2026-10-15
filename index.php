@@ -408,6 +408,8 @@ else if ( $action === 'upload' )
 			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
 			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
+			'<label for="newname">'.__('Save as').'</label> '.
+			'<input id="newname" type="text" name="newname" placeholder="'.h(__('Keep file name')).'" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
 			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
@@ -420,7 +422,8 @@ else if ( $action === 'upload' )
 			'    var fileInput = document.getElementById("file");'."\n".
 			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
-			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
+			'    var newname = document.getElementById("newname").value;'."\n".
+			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename)+"&newname="+encodeURIComponent(newname))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
@@ -552,11 +555,9 @@ else if ( $action === 'uploaded' )
 			__('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), h($limit)));
 	}
 	$tmpName = $_FILES['userfile']['tmp_name'];
-	$dstName = sanitizeFilename($_FILES['userfile']['name']);
-	$dstName = str_replace(" ", "_", $dstName);  // image display currently doesn't like spaces!
+	$dstName = uploadTargetName($_FILES['userfile']['name'], $_POST['newname'] ?? '');
 	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
 	$fileType = mime_content_type($tmpName);
-	$dstName = basename($dstName);
 	$fileExt = getFileExt($dstName);
 	$msg = '';
 	$typeAllowed = in_array($fileType, validUploadTypes(), true);

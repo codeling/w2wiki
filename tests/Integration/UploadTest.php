@@ -114,6 +114,27 @@ final class UploadTest extends AppTestCase
 		$this->assertSame($changed, file_get_contents($this->imageFile('a.gif')));
 	}
 
+	public function testUploadedImagesCanBeSavedUnderAnotherName(): void
+	{
+		$note = $this->noteAfter($this->upload('IMG_0001.gif', self::gif(), 'image/gif', ['newname' => 'my cat']));
+		$this->assertStringContainsString("File 'my_cat.gif' uploaded", $note);
+		$this->assertSame(['my_cat.gif'], $this->uploadedFiles());
+	}
+
+	public function testChosenNameDoesNotOverwriteWithoutConfirmation(): void
+	{
+		$this->upload('a.gif', self::gif());
+		$note = $this->noteAfter($this->upload('b.gif', self::gif() . "\0", 'image/gif', ['newname' => 'a']));
+		$this->assertStringContainsString('already exists', $note);
+		$this->assertSame(['a.gif'], $this->uploadedFiles());
+	}
+
+	public function testChosenNameCannotChangeTheFileType(): void
+	{
+		$this->upload('a.gif', self::gif(), 'image/gif', ['newname' => 'shell.php']);
+		$this->assertSame(['shell.php.gif'], $this->uploadedFiles());
+	}
+
 	public function testUploadFormOnlyAsksForOverwriteConfirmationViaScript(): void
 	{
 		$body = $this->http->get('/index.php', ['action' => 'upload'])->body;

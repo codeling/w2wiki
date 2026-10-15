@@ -42,6 +42,26 @@ final class FileNamesTest extends TestCase
 		$this->assertSame($expected, getFileExt($name));
 	}
 
+	public static function targetNames(): array
+	{
+		return [
+			'no new name' => ['a b.gif', '', 'a_b.gif'],
+			'blank new name' => ['a.gif', '  ', 'a.gif'],
+			'new name' => ['a.gif', 'cat.gif', 'cat.gif'],
+			'extension is kept' => ['a.jpg', 'cat', 'cat.jpg'],
+			'other extension is not used' => ['a.gif', 'x.php', 'x.php.gif'],
+			'extension case' => ['a.jpg', 'cat.JPG', 'cat.JPG'],
+			'spaces' => ['a.png', 'my cat', 'my_cat.png'],
+			'no folders' => ['a.png', '../../evil', '-/-/evil.png'],
+		];
+	}
+
+	#[DataProvider('targetNames')]
+	public function testUploadTargetName(string $uploaded, string $chosen, string $expected): void
+	{
+		$this->assertSame(basename($expected), uploadTargetName($uploaded, $chosen));
+	}
+
 	public function testHiddenFiles(): void
 	{
 		$this->assertTrue(isHiddenFile('.htaccess'));
