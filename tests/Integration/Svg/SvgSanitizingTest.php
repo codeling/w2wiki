@@ -143,6 +143,16 @@ final class SvgSanitizingTest extends SvgAppTestCase
 		$this->assertSame(['b_c.svg'], $this->uploadedFiles());
 	}
 
+	public function testImagesCannotBeRenamedToSvgAndBack(): void
+	{
+		// a PNG renamed to .svg would be served as SVG without ever being sanitized
+		$this->upload('a.png', self::png(), 'image/png');
+		$this->assertStringContainsString('Error renaming', $this->noteAfter($this->renameImage('a.png', 'a.svg')));
+		$this->uploadSvg('b.svg', $this->svgFixture('benign'));
+		$this->assertStringContainsString('Error renaming', $this->noteAfter($this->renameImage('b.svg', 'b.png')));
+		$this->assertSame(['a.png', 'b.svg'], $this->uploadedFiles());
+	}
+
 	public function testResizeOptionNeverSendsSvgFilesToImageMagick(): void
 	{
 		// with the option set, other images are processed by ImageMagick (an extension which is not always installed)

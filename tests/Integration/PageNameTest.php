@@ -96,6 +96,61 @@ final class PageNameTest extends AppTestCase
 		$this->assertSame('edited', $this->pageText('Home'));
 	}
 
+	/** Files which are not pages of the wiki, but exist in the pages folder (e.g. created before names were checked) */
+	private function placeStrayPages(): array
+	{
+		$files = ['.hidden/secret' => 'hidden secret text', 'images/stray' => 'stray text in uploads', '.git/info' => 'git folder text'];
+		foreach ($files as $name => $text) {
+			if (!is_dir(dirname($this->pageFile($name)))) {
+				mkdir(dirname($this->pageFile($name)), 0777, true);
+			}
+			file_put_contents($this->pageFile($name), $text);
+		}
+		return $files;
+	}
+
+	public function testHiddenAndUploadFolderPagesAreNotShownOrEdited(): void
+	{
+		foreach ($this->placeStrayPages() as $name => $text) {
+			$this->assertStringNotContainsString($text, $this->http->get($this->pageUrl($name))->body, "view $name");
+			$this->assertStringNotContainsString($text, $this->http->get('/index.php', ['action' => 'edit', 'page' => $name])->body, "edit $name");
+		}
+	}
+
+	public function testHiddenAndUploadFolderPagesAreNotListedOrFound(): void
+	{
+		$count = function () {
+			$this->assertSame(1, preg_match('/Total: (\\d+) pages/', $this->http->get('/index.php', ['action' => 'all'])->body, $total));
+			return (int)$total[1];
+		};
+		$before = $count();
+		$this->placeStrayPages();
+		$this->assertSame($before, $count());
+		foreach (['hidden secret', 'stray text', 'git folder'] as $text) {
+			$this->assertStringContainsString('0 matches', $this->postAction('search', ['q' => $text])->body, $text);
+		}
+	}
+
+	public function testHiddenAndUploadFolderPagesCannotBeDeletedOrRenamed(): void
+	{
+		$files = $this->placeStrayPages();
+		foreach ($files as $name => $text) {
+			$this->assertStringContainsString('Error deleting', $this->noteAfter($this->postAction('deleted', ['oldPageName' => $name])), $name);
+			$this->assertStringContainsString('Error renaming', $this->noteAfter($this->postAction('renamed', ['oldPageName' => $name, 'newName' => 'Moved'])), $name);
+			$this->assertSame($text, file_get_contents($this->pageFile($name)), $name);
+		}
+		$this->assertFileDoesNotExist($this->pageFile('Moved'));
+	}
+
+	public function testLinksToHiddenPagesAreMarkedAsMissing(): void
+	{
+		$this->placeStrayPages();
+		$this->savePage('Linker', '[[.hidden/secret]] and [[Home]]');
+		$body = $this->http->get($this->pageUrl('Linker'))->body;
+		$this->assertMatchesRegularExpression('/<a href="[^"]*secret" class="noexist">/', $body);
+		$this->assertMatchesRegularExpression('/<a href="[^"]*Home">/', $body);
+	}
+
 	public function testExistingPagesAreNotOverwrittenWhenCreatingPages(): void
 	{
 		$note = $this->noteInResponse($this->savePage('Home', 'overwritten'));

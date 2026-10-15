@@ -76,7 +76,8 @@ function getAllPageNames($path = "")
 	$dir = opendir(PAGES_PATH . "/$path" );
 	while ( $filename = readdir($dir) )
 	{
-		if ( $filename === "." || $filename === ".." )
+		// (hidden files and folders, like .git, never contain pages)
+		if ( str_starts_with($filename, ".") )
 		{
 			continue;
 		}
@@ -135,7 +136,7 @@ function isEditorAction($action)
 
 function isExistingPage($page)
 {
-	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));
+	return isValidPageName($page) && file_exists(fileNameForPage($page));
 }
 
 /**
@@ -313,6 +314,23 @@ function imageMagickFormatPrefix($ext)
 	return ($ext === 'jpg' || $ext === 'jpeg') ? 'jpeg:' : $ext . ':';
 }
 
+/**
+ * Whether renaming an uploaded file keeps its type, i.e. the new extension is the same as the old one (or
+ * one that stands for the same content, like jpg and jpeg). The content was checked against the old
+ * extension when it was uploaded (an SVG was sanitized), so it must not get another one by renaming.
+ */
+function renameKeepsFileType($oldName, $newName)
+{
+	$oldExt = getFileExt($oldName);
+	$newExt = getFileExt($newName);
+	if ( $oldExt === $newExt )
+	{
+		return true;
+	}
+	$oldTypes = uploadTypesForExt($oldExt);
+	return $oldTypes !== null && $oldTypes === uploadTypesForExt($newExt);
+}
+
 function hasValidUploadExt($fileName)
 {
 	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), validUploadExts(), true);
@@ -449,8 +467,7 @@ function toHTML($inText)
 		$linkedPage = $linkTitleSplit[0];    // split away potential link text
 		$linkText = (count($linkTitleSplit) > 1) ? $linkTitleSplit[1] : $linkedPage;
 		$pagePart = explode('#', $linkedPage)[0];  // split away a potential anchor part
-		$linkedFilename = fileNameForPage(sanitizeFilename($pagePart));
-		$exists = file_exists($linkedFilename);
+		$exists = isExistingPage(sanitizeFilename($pagePart));
 		$outHTML = str_replace("[[$fullLinkText]]",
 			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
 	}
