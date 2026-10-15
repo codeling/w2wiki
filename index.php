@@ -861,8 +861,9 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 	else
 	{
 		// only allow renaming to a valid upload extension; otherwise, e.g.
-		// an image containing PHP code could be renamed to .php and executed
-		$success = is_file($oldImgPath) && hasValidUploadExt($newImgName) &&
+		// an image containing PHP code could be renamed to .php and executed;
+		// the type must stay the same (a PNG must not become an unsanitized SVG)
+		$success = is_file($oldImgPath) && hasValidUploadExt($newImgName) && renameKeepsFileType($oldImgName, $newImgName) &&
 			!file_exists($imgPath.$newImgName) &&
 			rename($oldImgPath, $imgPath.$newImgName);
 	}
