@@ -8,6 +8,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 - Elegant text markup:
     - Uses [Markdown Syntax](https://github.com/codeling/w2wiki/blob/master/pages/MarkdownSyntax.md).
     - It supports double-brackets [[like this]] to link to another page in the wiki by title
+    - A line with only `![[Page name]]` embeds the content of that page (nested up to `INCLUDE_MAX_DEPTH` levels; cycles and oversized embeds are replaced by a marker)
 - Title & content search
 - Filesystem storage (no database required) in plain Markdown text files.
 - Image uploading support
