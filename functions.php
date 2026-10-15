@@ -178,15 +178,15 @@ function gitSyncFile()
 /**
  * Seconds which must pass after a pull attempt until the action may pull again:
  * GIT_PULL_VIEW_INTERVAL for viewing, GIT_PULL_EDIT_INTERVAL (at most five
- * minutes) for the editor
+ * minutes) for the editor (both are optional in older config.php files)
  */
 function gitPullInterval($action)
 {
 	if ( isEditorAction($action) )
 	{
-		return max(0, min(5 * 60, (int)GIT_PULL_EDIT_INTERVAL));
+		return max(0, min(5 * 60, (int)(defined('GIT_PULL_EDIT_INTERVAL') ? GIT_PULL_EDIT_INTERVAL : 5 * 60)));
 	}
-	return max(0, (int)GIT_PULL_VIEW_INTERVAL);
+	return max(0, (int)(defined('GIT_PULL_VIEW_INTERVAL') ? GIT_PULL_VIEW_INTERVAL : 60 * 60));
 }
 
 /**

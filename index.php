@@ -245,7 +245,8 @@ const GIT_PULL_CONFLICT = 3;
 // Merge conflicts are undone (so the pages never contain conflict markers) and reported.
 function gitPull($action, &$msg)
 {
-	if (!GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
+	// (GIT_PULL_ENABLED is optional in older config.php files)
+	if (!defined('GIT_PULL_ENABLED') || !GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
 	{
 		return;
 	}
