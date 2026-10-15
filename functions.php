@@ -100,6 +100,37 @@ function getAllPageNames($path = "")
 	return $filenames;
 }
 
+/**
+ * Whether the request contains data the wiki cannot handle: the parameters it reads are single text values
+ * (not arrays like "page[]=x") without null bytes (which file functions refuse with an error), the same
+ * holds for the page name in the URL, and an uploaded file is a single file.
+ *
+ * @param array $get $_GET
+ * @param array $post $_POST
+ * @param array $server $_SERVER
+ * @param array $files $_FILES
+ */
+function hasMalformedRequestData(array $get, array $post, array $server, array $files = array())
+{
+	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
+		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p');
+	foreach ( array($get, $post) as $values )
+	{
+		foreach ( $textParameters as $name )
+		{
+			if ( isset($values[$name]) && (!is_string($values[$name]) || str_contains($values[$name], "\0")) )
+			{
+				return true;
+			}
+		}
+	}
+	if ( str_contains((string)($server['PATH_INFO'] ?? ''), "\0") )
+	{
+		return true;
+	}
+	return isset($files['userfile']) && !is_string($files['userfile']['tmp_name'] ?? null);
+}
+
 function fileNameForPage($page)
 {
 	return PAGES_PATH . "/$page." . PAGES_EXT;

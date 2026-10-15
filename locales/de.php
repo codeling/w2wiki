@@ -36,6 +36,7 @@ $w2_word_set = array(
 	'Too many failed login attempts. Please try again in %s seconds.' => 'Zu viele fehlgeschlagene Anmeldeversuche. Bitte versuche es in %s Sekunden erneut.',
 	'Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.' => 'Das Einloggen ist wegen eines Konfigurationsproblems des Servers im Moment nicht möglich. Details stehen im Fehlerlog des Webservers.',
 	'Invalid page name' => 'Ungültiger Seitenname',
+	'Invalid request' => 'Ungültige Anfrage',
 	'Title'  => 'Titel',
 	'Image Description' => 'Bildbeschreibung',
 	'Name'   => 'Name',

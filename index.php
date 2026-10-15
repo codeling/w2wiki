@@ -247,6 +247,11 @@ function destroy_session()
 
 // Main code
 
+if (hasMalformedRequestData($_GET, $_POST, $_SERVER, $_FILES))
+{
+	http_response_code(400);
+	die(__('Invalid request'));
+}
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && !$_POST && !$_FILES)
 {
@@ -586,6 +591,10 @@ else if ( $action === 'uploaded' )
 		die(__('Invalid access. Uploads are disabled in the configuration.'));
 	}
 	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
+	if ( $uploadError === UPLOAD_ERR_NO_FILE )
+	{
+		redirectWithMessage(requireValidPreviousPage('prevpage'), __('Upload error').": ".__('No file selected!'));
+	}
 	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
 	{
 		$limit = ini_get('upload_max_filesize');
@@ -755,7 +764,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 {
 	if ($action === 'imgDelete' || $action === 'imgRename' )
 	{
-		$page = sanitizeFilename($_REQUEST['imgName']);
+		$page = sanitizeFilename($_REQUEST['imgName'] ?? '');
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
@@ -779,8 +788,8 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 else if ( $action === 'renamed' || $action === 'deleted')
 {
 	// TODO: prevent relative filenames from being injected
-	$oldPageName = sanitizeFilename($_POST['oldPageName']);
-	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName']);
+	$oldPageName = sanitizeFilename($_POST['oldPageName'] ?? '');
+	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName'] ?? '');
 	$msg = '';
 	if ($action === 'deleted')
 	{
@@ -845,10 +854,10 @@ else if ( $action === 'renamed' || $action === 'deleted')
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
-	$oldImgName = basename(sanitizeFilename($_POST['oldPageName']));
+	$oldImgName = basename(sanitizeFilename($_POST['oldPageName'] ?? ''));
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
-	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
+	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'] ?? '')));
 	if (isHiddenFile($oldImgName))
 	{
 		// never touch e.g. the .htaccess file protecting the uploads folder
@@ -961,7 +970,7 @@ else if ( $action === 'all' )
 else if ( $action === 'search' )
 {
 	$matches = 0;
-	$q = $_REQUEST['q'];
+	$q = $_REQUEST['q'] ?? '';
 	$html .= "    <h1>".__('Search').": ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
