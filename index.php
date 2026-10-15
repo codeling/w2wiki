@@ -118,13 +118,13 @@ if ( !isLoggedIn() )
 		{
 			if ( $wait < 0 )
 			{
-				error_log("W2: cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
+				w2Log("cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
 				http_response_code(503);
 				$loginMessage = __('Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.');
 			}
 			else
 			{
-				error_log("W2: login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
+				w2Log("login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
 				http_response_code(429);
 				header('Retry-After: ' . $wait);
 				$loginMessage = sprintf(__('Too many failed login attempts. Please try again in %s seconds.'), $wait);
@@ -140,7 +140,7 @@ if ( !isLoggedIn() )
 			if ( isLegacyPasswordHash() )
 			{
 				// (the user has just proven to know the password, so we can offer its new hash)
-				error_log("W2: logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
+				w2Log("logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
 				$_SESSION['msg'] = __('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') .
 					' <code>' . h(password_hash($_POST['p'], PASSWORD_DEFAULT)) . '</code>';
 			}
@@ -148,7 +148,7 @@ if ( !isLoggedIn() )
 		else
 		{
 			$loginFailed = true;
-			error_log("W2: failed login attempt from " . $clientKey);
+			w2Log("failed login attempt from " . $clientKey);
 		}
 	}
 	if ( empty($_SESSION['password']) )
@@ -211,7 +211,7 @@ function checkedExecute(&$msg, $cmd)
 	if ($returnValue != 0)
 	{
 		// details (command, output) may reveal server internals, so only log them
-		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
 		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
 	}
 	return ($returnValue == 0);
@@ -356,7 +356,7 @@ if ( $action == 'save' )
 		if ( $success === FALSE)
 		{
 			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
-			error_log("W2: error saving $filename");
+			w2Log("error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
 			$newPage = $page;
@@ -717,7 +717,7 @@ else if ( $action === 'uploaded' )
 				catch (ImagickException $e)
 				{
 					// e.g. a corrupt image with a valid header: don't leave the half-processed upload behind
-					error_log('W2: processing the upload failed: '.$e->getMessage());
+					w2Log('processing the upload failed: '.$e->getMessage());
 					if (file_exists($path))
 					{
 						unlink($path);
@@ -739,7 +739,7 @@ else if ( $action === 'uploaded' )
 			if ( $error_code === 0 )
 			{
 				// Likely a permissions issue
-				error_log("W2: can't write upload to $path");
+				w2Log("can't write upload to $path");
 				$msg .= __('Upload error') .": ".__("Can't write to the uploads folder")."<br/><br/>\n".
 					__('Check that your permissions are set correctly.');
 			}
@@ -755,7 +755,7 @@ else if ( $action === 'uploaded' )
 	else
 	{
 		$msg .= __('Upload error: invalid file type');
-		error_log("Upload error: file name = $dstName, invalid file type $fileType");
+		w2Log("Upload error: file name = $dstName, invalid file type $fileType");
 	}
 	$prevpage = requireValidPreviousPage('prevpage');
 	redirectWithMessage($prevpage, $msg);

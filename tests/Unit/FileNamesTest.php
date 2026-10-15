@@ -194,6 +194,20 @@ final class FileNamesTest extends TestCase
 		$this->assertSame(['ccc', 'bb', 'a'], $names);
 	}
 
+	public function testLogTextEscapesControlCharacters(): void
+	{
+		$this->assertSame('plain text with Ümläuts', logText('plain text with Ümläuts'));
+		$this->assertSame('a\\x0aW2: forged\\x0d\\x0ab', logText("a\nW2: forged\r\nb"));
+		$this->assertSame('tab\\x09nul\\x00esc\\x1bdel\\x7f', logText("tab\tnul\0esc\x1bdel\x7f"));
+		$this->assertSame('', logText(''));
+	}
+
+	public function testLogTextLimitsTheLength(): void
+	{
+		$this->assertSame(str_repeat('a', 2000) . '...', logText(str_repeat('a', 5000)));
+		$this->assertSame(str_repeat('a', 2000), logText(str_repeat('a', 2000)));
+	}
+
 	public static function renames(): array
 	{
 		return [
