@@ -50,6 +50,8 @@ $w2_word_set = array(
 	'to' => 'in',
 	'Shrink if larger than ' => 'Verkleinern wenn größer als ',
 	'Pixels' => 'Pixel',
+	'Save as' => 'Speichern als',
+	'Keep file name' => 'Dateiname beibehalten',
 	'What links here:' => 'Seiten die hierher linken:',
 	'Close' => 'Schließen',
 	// Messages

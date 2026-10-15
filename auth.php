@@ -17,6 +17,11 @@ session_set_cookie_params(sessionCookieParams($_SERVER));
 session_name(W2_SESSION_NAME);
 session_start();
 
+foreach ( securityHeaders($_SERVER) as $name => $value )
+{
+	header("$name: $value");
+}
+
 // token protecting state-changing requests against cross-site request forgery
 if ( empty($_SESSION['csrf_token']) )
 {

@@ -42,6 +42,26 @@ final class FileNamesTest extends TestCase
 		$this->assertSame($expected, getFileExt($name));
 	}
 
+	public static function targetNames(): array
+	{
+		return [
+			'no new name' => ['a b.gif', '', 'a_b.gif'],
+			'blank new name' => ['a.gif', '  ', 'a.gif'],
+			'new name' => ['a.gif', 'cat.gif', 'cat.gif'],
+			'extension is kept' => ['a.jpg', 'cat', 'cat.jpg'],
+			'other extension is not used' => ['a.gif', 'x.php', 'x.php.gif'],
+			'extension case' => ['a.jpg', 'cat.JPG', 'cat.JPG'],
+			'spaces' => ['a.png', 'my cat', 'my_cat.png'],
+			'no folders' => ['a.png', '../../evil', '-/-/evil.png'],
+		];
+	}
+
+	#[DataProvider('targetNames')]
+	public function testUploadTargetName(string $uploaded, string $chosen, string $expected): void
+	{
+		$this->assertSame(basename($expected), uploadTargetName($uploaded, $chosen));
+	}
+
 	public function testHiddenFiles(): void
 	{
 		$this->assertTrue(isHiddenFile('.htaccess'));
@@ -126,6 +146,32 @@ final class FileNamesTest extends TestCase
 		$names = getAllPageNames();
 		$this->assertContains('Home', $names);
 		$this->assertContains('MarkdownSyntax', $names);
+	}
+
+	public function testOnlyFilesWithTheExtensionAreListedAsPages(): void
+	{
+		$files = ['foomd', 'x.mdx', '.md', 'a.md'];
+		foreach ($files as $file) {
+			file_put_contents(PAGES_PATH . "/$file", 'x');
+		}
+		try {
+			$names = getAllPageNames();
+			$this->assertContains('a', $names);
+			$this->assertNotContains('fo', $names, 'a name merely ending with the extension');
+			$this->assertNotContains('foomd', $names);
+			$this->assertNotContains('x.mdx', $names);
+		} finally {
+			foreach ($files as $file) {
+				unlink(PAGES_PATH . "/$file");
+			}
+		}
+	}
+
+	public function testUploadsFolderIsNotPartOfTheWiki(): void
+	{
+		$this->assertTrue(isInUploadFolder(UPLOAD_FOLDER . '/x'));
+		$this->assertFalse(isInUploadFolder('sub/' . UPLOAD_FOLDER . '/x'));
+		$this->assertFalse(isExistingPage(UPLOAD_FOLDER . '/x'));
 	}
 
 	public static function replacementStrings(): array

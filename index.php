@@ -57,7 +57,7 @@ function printFooter()
 function printDrawer()
 {
 	print "      <div id=\"drawer\" class=\"inactive\">\n".
-		"        <a href=\"\" onclick=\"toggleDrawer(); return false;\"><img src=\"" . assetURL("w2-icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
+		"        <a href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\"><img src=\"" . assetURL("w2-icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
 		"        <h5>".__('Markdown Syntax Helper')."</h5>\n".
 		"        <div>\n".
 		"# ".__('Header')." 1<br/>".
@@ -75,8 +75,8 @@ function printDrawer()
 		"[[".__('Link to page')."]]<br/>".
 		"&lt;http://example.com/&gt;<br/>".
 		"[".__('link text')."](http://url)<br/><br/>".
-		"![".__('Alt text')."](/images/image.jpg)<br/>".
-		"![".__('Alt text')."](/images/image.jpg \"".__('Optional title')."\")<br/>".
+		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg)<br/>".
+		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg \"".__('Optional title')."\")<br/>".
 		"<br/>".
 		"- ".__('Unordered list')."<br/>".
 		"+ ".__('Unordered list')."<br/>".
@@ -90,7 +90,7 @@ function printDrawer()
 		"--- ".__('Horizontal rule')."<br/>\n".
 		"        </div>\n".
 		"      </div>\n".
-		"      <a id=\"drawer-control\" href=\"\" onclick=\"toggleDrawer(); return false;\">\n".
+		"      <a id=\"drawer-control\" href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\">\n".
 		"        <span class=\"icongroup\">\n".
 		"          <img src=\"" . assetURL("w2-icons/format-text-bold.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
 		"          <img src=\"" . assetURL("w2-icons/format-text-italic.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
@@ -280,7 +280,7 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 }
 if ($action === 'view' || $action === 'edit')
 {
-	if ( file_exists($filename) )
+	if ( isExistingPage($page) )
 	{
 		$text = file_get_contents($filename);
 	}
@@ -318,12 +318,13 @@ if ( $action == 'save' )
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	if ($isNew && (file_exists($filename) || !isValidPageName($page)))
+	// (the name is checked when saving existing pages too: the client decides whether a page is new)
+	if (($isNew && file_exists($filename)) || !isValidPageName($page))
 	{
-		$msg .= file_exists($filename)
+		$msg .= ($isNew && file_exists($filename))
 			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
 			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
-		$action = 'new';
+		$action = $isNew ? 'new' : 'edit';
 		$text = $newText;
 		$newPage = $page;
 		if (GIT_COMMIT_ENABLED)
@@ -409,7 +410,7 @@ if ( isEditorAction($action) )
 	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
 	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
 	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
-	$html .= '<input id="cancel" type="button" onclick="history.go(-1);" value="'. __('Cancel') .'" />'."\n";
+	$html .= '<input id="cancel" type="button" onclick="'.HANDLER_GO_BACK.'" value="'. __('Cancel') .'" />'."\n";
 	$html .= "</p></form>\n";
 }
 else if ( $action === 'logout' )
@@ -437,19 +438,22 @@ else if ( $action === 'upload' )
 			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
 			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
 			'<input id="file" type="file" name="userfile" />'."\n".
+			'<label for="newname">'.__('Save as').'</label> '.
+			'<input id="newname" type="text" name="newname" placeholder="'.h(__('Keep file name')).'" />'."\n".
 			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
 			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
 			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
 			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
 			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
 			"\n</p></form>\n";
-		$html .= '<script type="application/javascript">'."\n".
+		$html .= '<script type="application/javascript" nonce="'.cspNonce().'">'."\n".
 			'function processForm(e) {'."\n".
 			'    e.preventDefault();'."\n".
 			'    var fileInput = document.getElementById("file");'."\n".
 			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
 			'    var filename = fileInput.files[0].name;'."\n".
-			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename))'."\n".
+			'    var newname = document.getElementById("newname").value;'."\n".
+			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename)+"&newname="+encodeURIComponent(newname))'."\n".
 			'        .then((response) => {'."\n".
 			'            response.json().then((data) => {'."\n".
 			'                upload = true;'."\n".
@@ -503,7 +507,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(".preg_quote(BASE_URI."/".UPLOAD_FOLDER."/".$baseImgName, '@')."[)\s]@i", $text) )
+				if ( preg_match("@\(".preg_quote(uploadUrlPrefix().$baseImgName, '@')."[)\s]@i", $text) )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -581,11 +585,9 @@ else if ( $action === 'uploaded' )
 			__('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), h($limit)));
 	}
 	$tmpName = $_FILES['userfile']['tmp_name'];
-	$dstName = sanitizeFilename($_FILES['userfile']['name']);
-	$dstName = str_replace(" ", "_", $dstName);  // image display currently doesn't like spaces!
+	$dstName = uploadTargetName($_FILES['userfile']['name'], $_POST['newname'] ?? '');
 	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
 	$fileType = mime_content_type($tmpName);
-	$dstName = basename($dstName);
 	$fileExt = getFileExt($dstName);
 	$msg = '';
 	$typeAllowed = in_array($fileType, validUploadTypes(), true);
@@ -601,7 +603,8 @@ else if ( $action === 'uploaded' )
 			$typeAllowed = ($svgData !== false);
 		}
 	}
-	if ($typeAllowed && hasValidUploadExt($dstName))
+	// (and the content must be of the type belonging to the extension, which decides how it is processed)
+	if ($typeAllowed && hasValidUploadExt($dstName) && ($fileExt === 'svg' || uploadTypeMatchesExt($fileType, $fileExt)))
 	{
 		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
 		$doResize = isset($_POST['resize']) && $_POST['resize'] === 'true';
@@ -627,7 +630,17 @@ else if ( $action === 'uploaded' )
 			{
 				try
 				{
-					$img = new Imagick($path);
+					// the format is given explicitly, ImageMagick must not guess it from the content
+					$source = imageMagickFormatPrefix($fileExt) . $path;
+					$probe = new Imagick();
+					$probe->pingImage($source);
+					$pixels = $probe->getImageWidth() * $probe->getImageHeight();
+					$probe->clear();
+					if ($pixels > MAX_IMAGE_PIXELS)
+					{
+						throw new ImagickException('image has too many pixels');
+					}
+					$img = new Imagick($source);
 					if ($doResize)
 					{
 						$size = array($img->getImageWidth(), $img->getImageHeight());
@@ -745,7 +758,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 			: "?")
 		. "</p>";
 	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"history.go(-1);\" value=\"".__('Cancel')."\" />\n";
+	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"".HANDLER_GO_BACK."\" value=\"".__('Cancel')."\" />\n";
 	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
 	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
 	if ($action === 'imgDelete' || $action === 'imgRename')
@@ -763,9 +776,9 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$msg = '';
 	if ($action === 'deleted')
 	{
-		$success = is_file(fileNameForPage($oldPageName)) && unlink(fileNameForPage($oldPageName));
+		$success = isExistingPage($oldPageName) && unlink(fileNameForPage($oldPageName));
 	}
-	else if (!is_file(fileNameForPage($oldPageName)) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
+	else if (!isExistingPage($oldPageName) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
 	{
 		$success = false;
 	}
@@ -863,8 +876,8 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		{
 			$content = file_get_contents(fileNameForPage($replacePage));
 			$count = 0;
-			// matches /images/name, optionally prefixed with BASE_URI and followed by a "title"
-			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?\/".preg_quote(UPLOAD_FOLDER, '/')."\/)".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
+			// matches /<UPLOAD_URL>/name, optionally prefixed with BASE_URI and followed by a "title"
+			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?".preg_quote(substr(uploadUrlPrefix(), strlen(BASE_URI)), '/').")".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
 				(($action === 'imgDeleted') ? "" : "![\\1](\\2".pregReplacementQuote($newImgName)."\\3)"),
 				$content, -1, $count);
 			if ($count > 0) // if something changed

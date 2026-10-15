@@ -22,6 +22,7 @@ final class AppServer
 	private string $dir;
 	private string $logFile;
 	private string $pagesFolder;
+	private string $uploadFolder;
 	private int $port;
 	/** @var array<string, mixed> */
 	private array $options;
@@ -87,6 +88,7 @@ final class AppServer
 		$this->dir = sys_get_temp_dir() . '/w2test-' . bin2hex(random_bytes(6));
 		$this->logFile = $this->dir . '.log';
 		$this->pagesFolder = (string)($options['pagesFolder'] ?? 'pages');
+		$this->uploadFolder = (string)($overrides['UPLOAD_FOLDER'] ?? 'images');
 		mkdir($this->dir . '/sessions', 0777, true);
 		foreach (self::APP_FILES as $file) {
 			if (is_file("$this->appRoot/$file")) {
@@ -100,12 +102,15 @@ final class AppServer
 		}
 		if (is_dir("$this->appRoot/pages")) {
 			self::copyDir("$this->appRoot/pages", $this->pagesDir());
+			if ($this->uploadFolder !== 'images' && is_dir($this->pagesDir() . '/images')) {
+				rename($this->pagesDir() . '/images', $this->imagesDir());
+			}
 		}
 		if (!is_dir($this->imagesDir())) {
 			mkdir($this->imagesDir(), 0777, true);
 		}
 		// the uploads folder is served statically from the root folder, see README.md
-		symlink($this->pagesFolder . '/images', "$this->dir/images");
+		symlink($this->pagesFolder . '/' . $this->uploadFolder, "$this->dir/" . ($overrides['UPLOAD_URL'] ?? $this->uploadFolder));
 		if ($this->pagesFolder !== 'pages') {
 			$overrides['PAGES_PATH'] = $this->pagesDir();
 		}
@@ -147,7 +152,7 @@ final class AppServer
 
 	public function imagesDir(): string
 	{
-		return $this->pagesDir() . '/images';
+		return $this->pagesDir() . '/' . $this->uploadFolder;
 	}
 
 	public function logSize(): int

@@ -23,6 +23,13 @@ final class IpAllowlistDeniedTest extends AppTestCase
 		}
 	}
 
+	public function testRefusedResponsesHaveSecurityHeaders(): void
+	{
+		$response = $this->http->get('/index.php');
+		$this->assertSame('DENY', $response->header('x-frame-options'));
+		$this->assertStringContainsString("frame-ancestors 'none'", (string)$response->header('content-security-policy'));
+	}
+
 	public function testChangesAreRefusedToo(): void
 	{
 		$response = $this->http->post('/index.php', ['action' => 'save', 'page' => 'Sneaky', 'newText' => 'x', 'isNew' => 'true']);

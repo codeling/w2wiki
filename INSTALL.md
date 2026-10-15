@@ -5,8 +5,8 @@
    
 2. Upload the files from this repository to this directory.
 
-3. Make sure that the "images" and "pages" directories are writable by your
-   web server process.
+3. Make sure that the "pages" directory and its uploads folder ("images" by
+   default, see `UPLOAD_FOLDER`) are writable by your web server process.
    
 4. You may or may not need to edit config.php. When you're ready, look in
    there for many additional configuration options
@@ -46,14 +46,19 @@ define('VIEW', '?action=view&page=');
 W2 then links to `/index.php?action=view&page=Page`; the page name is appended
 to `VIEW` as is, without a slash.
 
-**Uploaded images.** Uploads are stored in `pages/images` (see `UPLOAD_FOLDER`),
-which must not be served directly, but pages refer to them as
-`<W2 URL>/images/<name>`. So the web server has to serve `pages/images` under
-the URL `images` inside the W2 folder: either create a link (on Linux/macOS:
-`ln -s pages/images images` in the W2 folder) or, for nginx, an alias such as
+**Uploaded images.** Uploads are stored in `pages/images` (the folder named by
+`UPLOAD_FOLDER` in `config.php`, a single folder name), which must not be served
+directly, but pages refer to them as `<W2 URL>/images/<name>` (the URL path is
+`UPLOAD_URL`, which is the folder name unless you set it otherwise). So the web
+server has to serve `pages/images` under the URL `images` inside the W2 folder:
+either create a link (on Linux/macOS: `ln -s pages/images images` in the W2
+folder) or, for nginx, an alias such as
 `location ^~ /images/ { alias /path/to/w2/pages/images/; }` (see the rules
-below, which belong in the same location). The folder name `images` is
-currently fixed.
+below, which belong in the same location). If you rename the folder, rename the
+link/location accordingly (or keep the old URL by setting `UPLOAD_URL`). The
+uploads folder is not part of the wiki: Markdown files in it are not pages, and
+pages cannot be created there. Existing links in pages are not changed when you
+change the setting.
 
 **Subfolders and base URL.** W2 can be installed in a subfolder of the web
 root. It derives its base URL (`BASE_URI`, used for the style sheet, icons,
@@ -69,6 +74,47 @@ directly by the web server, and referenced with a version parameter
 (`wiki.js?v=...`). The nginx rules below send long cache headers for them;
 the same is possible in Apache with `mod_expires`/`mod_headers`.
 
+
+# Running in a container (Docker and Podman)
+
+The `Containerfile` builds an image with Apache, PHP 8.3, Imagick (with HEIC
+support) and git. Use `docker` or `podman`, whichever you have:
+
+```
+docker build -f Containerfile -t w2wiki .      # podman finds the Containerfile by itself
+docker run -d --name w2 -p 127.0.0.1:8080:8080 -v w2-pages:/var/www/html/pages w2wiki
+```
+
+W2 is then at <http://localhost:8080>. `compose.yaml` does the same with
+`docker compose up -d` or `podman compose up -d`. (Images built by the GitHub
+workflow are published as `ghcr.io/codeling/w2wiki`.)
+
+- **Pages and uploads** are in the volume `/var/www/html/pages`. When it is empty (no
+  `.md` files), the start script fills it with the default pages and makes it a git
+  repository (`GIT_COMMIT_ENABLED` is on in the image, each edit is committed; the
+  author is `W2_GIT_NAME` / `W2_GIT_EMAIL`). It also (re)installs the `.htaccess` files
+  which protect the pages and uploads. To use an existing folder, mount it instead of the
+  volume. Back up the volume, e.g. `docker run --rm -v w2-pages:/p -v "$PWD":/b alpine tar -C /p -czf /b/pages.tgz .`
+- **No root**: the container runs as `www-data` (user 33) and Apache listens on port 8080. A
+  named volume belongs to that user automatically. A mounted folder has to be writable for
+  it: `chown 33:33 folder` with Docker, or with rootless Podman
+  `-v ./pages:/var/www/html/pages:Z --userns=keep-id:uid=33,gid=33` (`:Z` is for SELinux).
+  The start script says so if it can't write there. `W2_UMASK=002` makes new files
+  group-writable, for a folder shared with other users.
+- **Hardening**: `--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges`
+  works (only the pages and `/tmp` are written to); `compose.yaml` has these.
+- **Settings**: mount your own `config.php` (`-v ./config.php:/var/www/html/config.php:ro`),
+  e.g. for `REQUIRE_PASSWORD` or `W2_PASSWORD_HASH`. Start from the one in this repository:
+  the image sets `GIT_COMMIT_ENABLED` to true, and `PAGES_PATH` has to stay as it is.
+  PHP settings (upload limits are 20 MB) can be overridden with a file in `/usr/local/etc/php/conf.d/`.
+  Pushing to a remote repository (`GIT_PUSH_ENABLED`) needs credentials which the image doesn't have.
+- **HTTPS**: the container speaks plain HTTP. Publish it only on localhost or a private network
+  and put a reverse proxy with HTTPS (and, as recommended under "Security", authentication) in front.
+  If W2 is served below a path, set `BASE_URI` and `SELF` in `config.php`.
+- **Updates**: rebuild (or pull) regularly to get updates of the base image, and start a new
+  container with the same volume.
+- **Podman**: images in the OCI format don't have the `HEALTHCHECK` of the Containerfile;
+  use `podman build --format docker` if you want it.
 
 # Configuration
 
@@ -109,18 +155,34 @@ features described below might be removed in the near future in this fork!
 
 The `pages` folder must not be served directly by the web server (otherwise the
 password and IP restrictions could be bypassed), and nothing in the uploads
-folder (`pages/images`, served statically via an `images` link in the W2 root
-folder) may ever be executed. For Apache, the included `.htaccess` files take
+folder (`pages/images` by default, served statically via an `images` link in the
+W2 root folder; adapt the names below if you changed `UPLOAD_FOLDER`/`UPLOAD_URL`) may ever be executed. For Apache, the included `.htaccess` files take
 care of this; they require `AllowOverride All` (or at least `AuthConfig`,
-`FileInfo` and `Options`). For nginx, add rules like the following (adapt the
+`FileInfo` and `Options`) and `mod_headers`. Without it the headers for uploads
+and static files are silently left out, and the stock Apache of Debian/Ubuntu and
+the `php:apache` image have `AllowOverride None` and don't load `mod_headers`. For nginx, add rules like the following (adapt the
 W2 location prefix if W2 is not installed in the web root):
 
 ```
 location ~ /\.(?!well-known/) { deny all; }
 location ^~ /vendor/ { deny all; }
 location ^~ /pages/ { deny all; }
+location ^~ /tests/ { deny all; }
+location ^~ /locales/ { deny all; }
+location ^~ /Michelf/ { deny all; }
+location ^~ /config.php { deny all; }
+location ^~ /functions.php { deny all; }
+location ^~ /auth.php { deny all; }
+location ^~ /auth_functions.php { deny all; }
+location ^~ /composer. { deny all; }
+location ^~ /phpunit.xml { deny all; }
+location ^~ /LICENSE { deny all; }
+location ^~ /README.md { deny all; }
+location ^~ /INSTALL.md { deny all; }
+location ^~ /CLAUDE.md { deny all; }
 location ~* \.(js|css|svg|png)$ {
     add_header Cache-Control "max-age=31536000, immutable";
+    add_header X-Content-Type-Options nosniff;
 }
 location ^~ /images/ {
     location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
@@ -133,6 +195,13 @@ location ^~ /images/ {
     }
 }
 ```
+
+The scripts of the wiki send security headers with every response (Content-Security-Policy, which only allows
+scripts and styles from the wiki itself and forbids framing, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` for requests over HTTPS). Don't add
+headers of the same names in the web server, they would apply to the same responses twice. The rules above
+additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`
+and `api.php`, the `tests`, `locales` and `Michelf` folders, `composer.json`, the documentation and so on).
 
 ### Upload size limits
 
@@ -151,8 +220,8 @@ them, install the [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sa
 library, which removes scripts, event handlers, `javascript:` links and remote
 references from uploaded SVG files, and enable the feature:
 
-- Run `composer require enshrined/svg-sanitize` in the W2 folder (requires the
-  PHP extensions `dom` and `libxml`).
+- Run `composer install --no-dev` in the W2 folder (requires the PHP extensions
+  `dom` and `libxml`); this installs the library, a regular dependency of W2.
 - Set `SVG_UPLOADS_ENABLED` to `true` in `config.php`.
 
 Files that are not valid SVG files, or larger than 1 MB, are rejected. As long

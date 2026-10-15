@@ -1,6 +1,7 @@
 <?php
 define('W2APP', true);
 
+require_once "functions.php";
 require_once "config.php";
 require_once "auth.php";
 
@@ -18,7 +19,8 @@ $task = $_REQUEST['task'] ?? '';
 if ($task == 'checkupload')
 {
 	// only consider file names directly within the uploads folder
-	$filename = basename(str_replace('\\', '/', (string)($_REQUEST['filename'] ?? '')));
+	// (the name the file is going to be stored under, if the user chose a different one)
+	$filename = uploadTargetName((string)($_REQUEST['filename'] ?? ''), (string)($_REQUEST['newname'] ?? ''));
 	// hidden files (like .htaccess) are not uploads, and "." / ".." are folders
 	$isUpload = $filename !== '' && !str_starts_with($filename, '.');
 	echo json_encode($isUpload && file_exists(PAGES_PATH . "/". UPLOAD_FOLDER . "/" . $filename));
