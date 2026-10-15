@@ -193,4 +193,40 @@ final class FileNamesTest extends TestCase
 		usort($names, 'descLengthSort');
 		$this->assertSame(['ccc', 'bb', 'a'], $names);
 	}
+
+	public function testLogTextEscapesControlCharacters(): void
+	{
+		$this->assertSame('plain text with Ümläuts', logText('plain text with Ümläuts'));
+		$this->assertSame('a\\x0aW2: forged\\x0d\\x0ab', logText("a\nW2: forged\r\nb"));
+		$this->assertSame('tab\\x09nul\\x00esc\\x1bdel\\x7f', logText("tab\tnul\0esc\x1bdel\x7f"));
+		$this->assertSame('', logText(''));
+	}
+
+	public function testLogTextLimitsTheLength(): void
+	{
+		$this->assertSame(str_repeat('a', 2000) . '...', logText(str_repeat('a', 5000)));
+		$this->assertSame(str_repeat('a', 2000), logText(str_repeat('a', 2000)));
+	}
+
+	public static function renames(): array
+	{
+		return [
+			'same extension' => ['a.gif', 'b.gif', true],
+			'same extension in other case' => ['a.gif', 'b.GIF', true],
+			'jpg and jpeg' => ['a.jpg', 'b.jpeg', true],
+			'heic and heif' => ['a.heic', 'b.heif', true],
+			'image type changed' => ['a.gif', 'a.png', false],
+			'image to pdf' => ['a.png', 'a.pdf', false],
+			'image to svg' => ['a.png', 'a.svg', false],
+			'svg to image' => ['a.svg', 'a.png', false],
+			'svg to svg' => ['a.svg', 'b.svg', true],
+			'no extension' => ['a.gif', 'a', false],
+		];
+	}
+
+	#[DataProvider('renames')]
+	public function testRenamingUploadsKeepsTheirType(string $old, string $new, bool $allowed): void
+	{
+		$this->assertSame($allowed, renameKeepsFileType($old, $new));
+	}
 }

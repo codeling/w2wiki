@@ -14,6 +14,13 @@ if ( !isLoggedIn() )
 	exit;
 }
 
+if ( hasMalformedRequestData($_GET, $_POST, $_SERVER) )
+{
+	http_response_code(400);
+	echo json_encode(array('error' => 'invalid request'));
+	exit;
+}
+
 $task = $_REQUEST['task'] ?? '';
 
 if ($task == 'checkupload')

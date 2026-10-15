@@ -76,7 +76,8 @@ function getAllPageNames($path = "")
 	$dir = opendir(PAGES_PATH . "/$path" );
 	while ( $filename = readdir($dir) )
 	{
-		if ( $filename === "." || $filename === ".." )
+		// (hidden files and folders, like .git, never contain pages)
+		if ( str_starts_with($filename, ".") )
 		{
 			continue;
 		}
@@ -98,6 +99,57 @@ function getAllPageNames($path = "")
 	}
 	closedir($dir);
 	return $filenames;
+}
+
+/**
+ * The text for a log entry without control characters (like line breaks, which could be used to forge
+ * entries of the log) and limited in length; control characters are shown as \xNN
+ */
+function logText($text)
+{
+	$text = preg_replace_callback('/[\x00-\x1f\x7f]/', fn($m) => sprintf('\\x%02x', ord($m[0])), (string)$text);
+	return strlen($text) > 2000 ? substr($text, 0, 2000) . '...' : $text;
+}
+
+/**
+ * Write to the error log of the web server, with the prefix "W2: " (values from requests, file names and
+ * output of programs must be part of the message only via this function, so that they cannot add entries
+ * of their own)
+ */
+function w2Log($message)
+{
+	error_log('W2: ' . logText($message));
+}
+
+/**
+ * Whether the request contains data the wiki cannot handle: the parameters it reads are single text values
+ * (not arrays like "page[]=x") without null bytes (which file functions refuse with an error), the same
+ * holds for the page name in the URL, and an uploaded file is a single file.
+ *
+ * @param array $get $_GET
+ * @param array $post $_POST
+ * @param array $server $_SERVER
+ * @param array $files $_FILES
+ */
+function hasMalformedRequestData(array $get, array $post, array $server, array $files = array())
+{
+	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
+		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p');
+	foreach ( array($get, $post) as $values )
+	{
+		foreach ( $textParameters as $name )
+		{
+			if ( isset($values[$name]) && (!is_string($values[$name]) || str_contains($values[$name], "\0")) )
+			{
+				return true;
+			}
+		}
+	}
+	if ( str_contains((string)($server['PATH_INFO'] ?? ''), "\0") )
+	{
+		return true;
+	}
+	return isset($files['userfile']) && !is_string($files['userfile']['tmp_name'] ?? null);
 }
 
 function fileNameForPage($page)
@@ -149,7 +201,7 @@ function gitLock($wait)
 	$file = @fopen(gitSyncFile(), 'c+');
 	if ( $file === false )
 	{
-		error_log("W2: cannot use " . gitSyncFile() . " to serialize git commands");
+		w2Log("cannot use " . gitSyncFile() . " to serialize git commands");
 		return null;
 	}
 	if ( !flock($file, $wait ? LOCK_EX : LOCK_EX | LOCK_NB) )
@@ -199,7 +251,7 @@ function gitPullStart($action, $now)
 
 function isExistingPage($page)
 {
-	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));
+	return isValidPageName($page) && file_exists(fileNameForPage($page));
 }
 
 /**
@@ -335,7 +387,7 @@ function sanitizeUploadedSvg($tmpName)
 	libxml_use_internal_errors($previousLibxmlSetting);
 	if ( !is_string($clean) || trim($clean) === '' )
 	{
-		error_log("W2: SVG upload rejected: not a valid SVG file");
+		w2Log("SVG upload rejected: not a valid SVG file");
 		return false;
 	}
 	return $clean;
@@ -377,6 +429,23 @@ function imageMagickFormatPrefix($ext)
 	return ($ext === 'jpg' || $ext === 'jpeg') ? 'jpeg:' : $ext . ':';
 }
 
+/**
+ * Whether renaming an uploaded file keeps its type, i.e. the new extension is the same as the old one (or
+ * one that stands for the same content, like jpg and jpeg). The content was checked against the old
+ * extension when it was uploaded (an SVG was sanitized), so it must not get another one by renaming.
+ */
+function renameKeepsFileType($oldName, $newName)
+{
+	$oldExt = getFileExt($oldName);
+	$newExt = getFileExt($newName);
+	if ( $oldExt === $newExt )
+	{
+		return true;
+	}
+	$oldTypes = uploadTypesForExt($oldExt);
+	return $oldTypes !== null && $oldTypes === uploadTypesForExt($newExt);
+}
+
 function hasValidUploadExt($fileName)
 {
 	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), validUploadExts(), true);
@@ -392,6 +461,34 @@ function pageURL($page)
 function pageLink($page, $title, $attributes="")
 {
 	return "<a href=\"" . htmlspecialchars(pageURL($page), ENT_QUOTES) ."\"$attributes>$title</a>";
+}
+
+/**
+ * Replace the tags (with their attributes) and the code blocks and inline code in HTML from the Markdown
+ * parser by placeholders, so that the text between them can be searched and changed without damaging them.
+ * The placeholders contain a random value, so that text of a page cannot imitate one.
+ *
+ * return array	'html': the HTML with placeholders; 'restore': function which puts the original back
+ */
+function maskTagsAndCode($html)
+{
+	$nonce = bin2hex(random_bytes(8));
+	$originals = array();
+	$mask = function($m) use (&$originals, $nonce)
+	{
+		$originals[] = $m[0];
+		return "@@W2" . $nonce . (count($originals) - 1) . "@@";
+	};
+	// (all other "<" in the text are escaped by the parser; quotes of attribute values may contain ">")
+	$html = preg_replace_callback('/<(pre|code)\b.*?<\/\1>/s', $mask, $html);
+	$html = preg_replace_callback('/<(?:[^>"\']|"[^"]*"|\'[^\']*\')*>/', $mask, $html);
+	return array(
+		'html' => $html,
+		'restore' => function($text) use (&$originals, $nonce)
+		{
+			return preg_replace_callback('/@@W2' . preg_quote($nonce, '/') . '(\d+)@@/', fn($m) => $originals[(int)$m[1]], $text);
+		}
+	);
 }
 
 function toHTMLID($noid)
@@ -490,6 +587,9 @@ function toHTML($inText)
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';
 	$outHTML  = $parser->transform($inText);
+	// page links are looked for in the text only: not in tags (like the URL or title of a link) or in code
+	$masked = maskTagsAndCode($outHTML);
+	$outHTML = $masked['html'];
 	if ( AUTOLINK_PAGE_TITLES )
 	{
 		$pagenames = getAllPageNames();
@@ -513,11 +613,12 @@ function toHTML($inText)
 		$linkedPage = $linkTitleSplit[0];    // split away potential link text
 		$linkText = (count($linkTitleSplit) > 1) ? $linkTitleSplit[1] : $linkedPage;
 		$pagePart = explode('#', $linkedPage)[0];  // split away a potential anchor part
-		$linkedFilename = fileNameForPage(sanitizeFilename($pagePart));
-		$exists = file_exists($linkedFilename);
+		$exists = isExistingPage(sanitizeFilename($pagePart));
 		$outHTML = str_replace("[[$fullLinkText]]",
 			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
 	}
+
+	$outHTML = $masked['restore']($outHTML);
 
 	// add an anchor in all title tags (h1/2/3/4):
 	preg_match_all(

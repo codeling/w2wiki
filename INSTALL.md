@@ -231,6 +231,32 @@ GPL-2.0-or-later and therefore not bundled with W2. SVG files uploaded
 earlier (or placed in the uploads folder otherwise) are not modified; the
 web server rules above still protect against scripts in them.
 
+### Uploaded files
+
+Uploaded files are served directly by the web server (that is what the `images` link or alias is for), so
+neither the password nor the list of allowed IP addresses of W2 applies to them: everybody who knows
+or guesses the URL of an uploaded file can fetch it, even if the pages are protected. File names are not
+secret (they appear in the page sources and the list of uploads), so if uploads must be private,
+let the web server ask for credentials for them too. For example with Basic Authentication
+(create the file with `htpasswd -c /path/to/.htpasswd user`), in nginx:
+
+```
+location ^~ /images/ {
+    auth_basic "W2";
+    auth_basic_user_file /path/to/.htpasswd;
+    # ... and the rules shown above for this location
+}
+```
+
+and in Apache in `pages/images/.htaccess`, in place of the line `Require all granted` (several `Require` lines would be combined with "or"):
+
+```
+AuthType Basic
+AuthName "W2"
+AuthUserFile /path/to/.htpasswd
+Require valid-user
+```
+
 ### Password protection
 
 W2 has the ability to prompt for a password before allowing access to the

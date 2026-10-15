@@ -64,4 +64,43 @@ final class MarkdownToHtmlTest extends TestCase
 		$this->assertStringContainsString('href="https://example.com/?a=1&amp;b=2"', $html);
 		$this->assertStringContainsString('href="other.html"', $html);
 	}
+
+	public static function placesWithoutPageLinks(): array
+	{
+		return [
+			'url of a link' => ['[a](http://x/[[Home]])', '<a href="http://x/[[Home]]">a</a>'],
+			'title of a link' => ['[a](http://x "[[Home|text]]")', 'title="[[Home|text]]"'],
+			'alt of an image' => ['![[[Home]]](/images/a.gif)', 'alt="[[Home]]"'],
+			'inline code' => ['`[[Home]]`', '<code>[[Home]]</code>'],
+			'code block' => ["    [[Home]]\n", "<pre><code>[[Home]]\n</code></pre>"],
+			'fenced code block' => ["```\n[[Home|x]]\n```", "[[Home|x]]\n</code></pre>"],
+		];
+	}
+
+	#[DataProvider('placesWithoutPageLinks')]
+	public function testPageLinksAreOnlyMadeInText(string $markdown, string $expected): void
+	{
+		$html = toHTML($markdown);
+		$this->assertStringContainsString($expected, $html);
+		$this->assertStringNotContainsString('/index.php/Home', $html);
+		// (the markup stays as the parser made it: no tag inside a tag)
+		$this->assertDoesNotMatchRegularExpression('/<[^>]*<a /', $html);
+	}
+
+	public function testPageLinksWorkInTextAroundOtherMarkup(): void
+	{
+		$html = toHTML("See *[[Home]]* and [[Home|the *start*]], `[[Home]]`, [text](http://x) [[Missing]].");
+		$this->assertStringContainsString('<em><a href="/index.php/Home">Home</a></em>', $html);
+		$this->assertStringContainsString('<a href="/index.php/Home">the <em>start</em></a>', $html);
+		$this->assertStringContainsString('<code>[[Home]]</code>', $html);
+		$this->assertStringContainsString('<a href="/index.php/Missing" class="noexist">Missing</a>', $html);
+		$this->assertStringContainsString('<a href="http://x">text</a>', $html);
+	}
+
+	public function testPlaceholdersCannotBeForgedByPageText(): void
+	{
+		$html = toHTML('@@W2' . str_repeat('0', 16) . '0@@ and @@W20@@ and [[Home]]');
+		$this->assertStringContainsString('@@W2' . str_repeat('0', 16) . '0@@ and @@W20@@', $html);
+		$this->assertStringContainsString('<a href="/index.php/Home">Home</a>', $html);
+	}
 }
