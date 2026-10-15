@@ -89,6 +89,7 @@ $w2_word_set = array(
 	'Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.' => 'Das Einloggen ist gesperrt, solange das Standardpasswort eingestellt ist; bitte setze W2_PASSWORD_HASH (oder W2_PASSWORD) in config.php.',
 	'Invalid request: missing or wrong security token. Please go back, reload the page and try again.' => 'Ungültige Anfrage: Das Sicherheitstoken fehlt oder ist falsch. Bitte gehe zurück, lade die Seite neu und versuche es erneut.',
 	'Invalid access. Uploads are disabled in the configuration.' => 'Ungültiger Zugriff. Hochladen ist in der Konfiguration deaktiviert.',
+	"There were merge conflicts while pulling changes from the remote repository. The pull was cancelled and the wiki keeps its own version. Please resolve the conflicts in the pages repository (ask the wiki administrator)." => "Beim Übernehmen der Änderungen aus dem entfernten Repository gab es Merge-Konflikte. Das Übernehmen wurde abgebrochen, das Wiki behält seine eigene Version. Bitte die Konflikte im Pages-Repository auflösen (den Wiki-Administrator fragen).",
 	"Error executing git command (return value: %s); see the web server's error log for details." => "Fehler beim Ausführen des git-Befehls (Rückgabewert: %s); Details stehen im Fehlerprotokoll des Webservers.",
 	'Access from IP address %s is not allowed' => 'Zugriff von der IP-Adresse %s ist nicht erlaubt',
 	'%s already exists!' => '%s existiert bereits!',

@@ -17,7 +17,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 - Written in PHP for portability and hackability
 - Extremely compact (only a few .php files and a .css file)
 - Differences to [original w2wiki by panicsteve](https://github.com/panicsteve/w2wiki):
-    - Rudimentary, optional git integration to commit (and push) each page edit
+    - Rudimentary, optional git integration to commit (and push) each page edit, and to pull changes made elsewhere
     - Support for renaming and deleting pages
     - Markdown formatting syntax help on edit page
     - Localization support (en/de/ja/oc translations included)
