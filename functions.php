@@ -100,6 +100,25 @@ function getAllPageNames($path = "")
 	return $filenames;
 }
 
+/**
+ * The text for a log entry without control characters (like line breaks, which could be used to forge
+ * entries of the log) and limited in length; control characters are shown as \xNN
+ */
+function logText($text)
+{
+	$text = preg_replace_callback('/[\x00-\x1f\x7f]/', fn($m) => sprintf('\\x%02x', ord($m[0])), (string)$text);
+	return strlen($text) > 2000 ? substr($text, 0, 2000) . '...' : $text;
+}
+
+/**
+ * Write to the error log of the web server (values from requests, file names and output of programs must be
+ * part of the message only via this function, so that they cannot add entries of their own)
+ */
+function w2Log($message)
+{
+	error_log(logText($message));
+}
+
 function fileNameForPage($page)
 {
 	return PAGES_PATH . "/$page." . PAGES_EXT;
@@ -252,7 +271,7 @@ function sanitizeUploadedSvg($tmpName)
 	libxml_use_internal_errors($previousLibxmlSetting);
 	if ( !is_string($clean) || trim($clean) === '' )
 	{
-		error_log("W2: SVG upload rejected: not a valid SVG file");
+		w2Log("W2: SVG upload rejected: not a valid SVG file");
 		return false;
 	}
 	return $clean;
