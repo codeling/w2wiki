@@ -1,0 +1,2 @@
+# Locale files are loaded by index.php, never requested directly.
+Require all denied

@@ -1,6 +1,17 @@
 # Deny access to hidden files and folders such as .git (except .well-known)
 RedirectMatch 404 /\.(?!well-known/)
 
+# Only index.php and api.php are entry points; the other scripts are included by them and must not be
+# reachable (see also the .htaccess files in the folders which only have such files or nothing public)
+<FilesMatch "(?i)^(?!(index|api)\.php$).*\.(php[0-9]?|pht|phtml|phar)$">
+	Require all denied
+</FilesMatch>
+
+# Files which are of no use for visitors: dependency and test configuration, documentation, license
+<FilesMatch "(?i)^(composer\.(json|lock)|phpunit\.xml(\.dist)?|license|.*\.md)$">
+	Require all denied
+</FilesMatch>
+
 # Don't list the contents of folders (like the uploads) without index file
 Options -Indexes
 
@@ -9,5 +20,6 @@ Options -Indexes
 <IfModule mod_headers.c>
 	<FilesMatch "(?i)\.(js|css|svg|png)$">
 		Header set Cache-Control "max-age=31536000, immutable"
+		Header set X-Content-Type-Options "nosniff"
 	</FilesMatch>
 </IfModule>

@@ -1,0 +1,2 @@
+# The Markdown library is loaded by index.php, never requested directly.
+Require all denied
