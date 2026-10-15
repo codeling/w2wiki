@@ -1,4 +1,25 @@
-# Baseline of the findings that existed when PHPStan was added.
-# Regenerate with: composer analyse -- --generate-baseline
 parameters:
-    ignoreErrors: []
+	ignoreErrors:
+		-
+			message: '#^Variable \$allowedIPs might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: auth.php
+
+		-
+			message: '#^Instantiated class Michelf\\MarkdownExtra not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: functions.php
+
+		-
+			message: '#^Variable \$filename might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: index.php
+
+		-
+			message: '#^Variable \$page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 12
+			path: index.php
