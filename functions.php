@@ -112,12 +112,44 @@ function logText($text)
 }
 
 /**
- * Write to the error log of the web server (values from requests, file names and output of programs must be
- * part of the message only via this function, so that they cannot add entries of their own)
+ * Write to the error log of the web server, with the prefix "W2: " (values from requests, file names and
+ * output of programs must be part of the message only via this function, so that they cannot add entries
+ * of their own)
  */
 function w2Log($message)
 {
-	error_log(logText($message));
+	error_log('W2: ' . logText($message));
+}
+
+/**
+ * Whether the request contains data the wiki cannot handle: the parameters it reads are single text values
+ * (not arrays like "page[]=x") without null bytes (which file functions refuse with an error), the same
+ * holds for the page name in the URL, and an uploaded file is a single file.
+ *
+ * @param array $get $_GET
+ * @param array $post $_POST
+ * @param array $server $_SERVER
+ * @param array $files $_FILES
+ */
+function hasMalformedRequestData(array $get, array $post, array $server, array $files = array())
+{
+	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
+		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p');
+	foreach ( array($get, $post) as $values )
+	{
+		foreach ( $textParameters as $name )
+		{
+			if ( isset($values[$name]) && (!is_string($values[$name]) || str_contains($values[$name], "\0")) )
+			{
+				return true;
+			}
+		}
+	}
+	if ( str_contains((string)($server['PATH_INFO'] ?? ''), "\0") )
+	{
+		return true;
+	}
+	return isset($files['userfile']) && !is_string($files['userfile']['tmp_name'] ?? null);
 }
 
 function fileNameForPage($page)
@@ -272,7 +304,7 @@ function sanitizeUploadedSvg($tmpName)
 	libxml_use_internal_errors($previousLibxmlSetting);
 	if ( !is_string($clean) || trim($clean) === '' )
 	{
-		w2Log("W2: SVG upload rejected: not a valid SVG file");
+		w2Log("SVG upload rejected: not a valid SVG file");
 		return false;
 	}
 	return $clean;

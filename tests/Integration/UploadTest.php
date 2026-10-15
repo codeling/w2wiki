@@ -189,6 +189,13 @@ final class UploadTest extends AppTestCase
 		$this->assertSame(['a.gif'], $this->uploadedFiles());
 	}
 
+	public function testLogEntriesOfTheWikiHaveThePrefix(): void
+	{
+		$logSize = $this->server->logSize();
+		$this->upload('a.exe', 'MZ', 'application/octet-stream');
+		$this->assertStringContainsString('W2: Upload error: file name = a.exe', $this->server->logSince($logSize));
+	}
+
 	public function testRenamingNeverOverwritesAnotherImage(): void
 	{
 		$this->upload('a.gif', self::gif());

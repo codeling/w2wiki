@@ -118,13 +118,13 @@ if ( !isLoggedIn() )
 		{
 			if ( $wait < 0 )
 			{
-				w2Log("W2: cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
+				w2Log("cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
 				http_response_code(503);
 				$loginMessage = __('Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.');
 			}
 			else
 			{
-				w2Log("W2: login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
+				w2Log("login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
 				http_response_code(429);
 				header('Retry-After: ' . $wait);
 				$loginMessage = sprintf(__('Too many failed login attempts. Please try again in %s seconds.'), $wait);
@@ -140,7 +140,7 @@ if ( !isLoggedIn() )
 			if ( isLegacyPasswordHash() )
 			{
 				// (the user has just proven to know the password, so we can offer its new hash)
-				w2Log("W2: logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
+				w2Log("logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
 				$_SESSION['msg'] = __('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') .
 					' <code>' . h(password_hash($_POST['p'], PASSWORD_DEFAULT)) . '</code>';
 			}
@@ -148,7 +148,7 @@ if ( !isLoggedIn() )
 		else
 		{
 			$loginFailed = true;
-			w2Log("W2: failed login attempt from " . $clientKey);
+			w2Log("failed login attempt from " . $clientKey);
 		}
 	}
 	if ( empty($_SESSION['password']) )
@@ -211,7 +211,7 @@ function checkedExecute(&$msg, $cmd)
 	if ($returnValue != 0)
 	{
 		// details (command, output) may reveal server internals, so only log them
-		w2Log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
 		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
 	}
 	return ($returnValue == 0);
@@ -247,6 +247,11 @@ function destroy_session()
 
 // Main code
 
+if (hasMalformedRequestData($_GET, $_POST, $_SERVER, $_FILES))
+{
+	http_response_code(400);
+	die(__('Invalid request'));
+}
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && !$_POST && !$_FILES)
 {
@@ -351,7 +356,7 @@ if ( $action == 'save' )
 		if ( $success === FALSE)
 		{
 			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
-			w2Log("W2: error saving $filename");
+			w2Log("error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
 			$newPage = $page;
@@ -586,6 +591,10 @@ else if ( $action === 'uploaded' )
 		die(__('Invalid access. Uploads are disabled in the configuration.'));
 	}
 	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
+	if ( $uploadError === UPLOAD_ERR_NO_FILE )
+	{
+		redirectWithMessage(requireValidPreviousPage('prevpage'), __('Upload error').": ".__('No file selected!'));
+	}
 	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
 	{
 		$limit = ini_get('upload_max_filesize');
@@ -708,7 +717,7 @@ else if ( $action === 'uploaded' )
 				catch (ImagickException $e)
 				{
 					// e.g. a corrupt image with a valid header: don't leave the half-processed upload behind
-					w2Log('W2: processing the upload failed: '.$e->getMessage());
+					w2Log('processing the upload failed: '.$e->getMessage());
 					if (file_exists($path))
 					{
 						unlink($path);
@@ -730,7 +739,7 @@ else if ( $action === 'uploaded' )
 			if ( $error_code === 0 )
 			{
 				// Likely a permissions issue
-				w2Log("W2: can't write upload to $path");
+				w2Log("can't write upload to $path");
 				$msg .= __('Upload error') .": ".__("Can't write to the uploads folder")."<br/><br/>\n".
 					__('Check that your permissions are set correctly.');
 			}
@@ -755,7 +764,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 {
 	if ($action === 'imgDelete' || $action === 'imgRename' )
 	{
-		$page = sanitizeFilename($_REQUEST['imgName']);
+		$page = sanitizeFilename($_REQUEST['imgName'] ?? '');
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
 	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
@@ -779,8 +788,8 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 else if ( $action === 'renamed' || $action === 'deleted')
 {
 	// TODO: prevent relative filenames from being injected
-	$oldPageName = sanitizeFilename($_POST['oldPageName']);
-	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName']);
+	$oldPageName = sanitizeFilename($_POST['oldPageName'] ?? '');
+	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName'] ?? '');
 	$msg = '';
 	if ($action === 'deleted')
 	{
@@ -845,10 +854,10 @@ else if ( $action === 'renamed' || $action === 'deleted')
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
-	$oldImgName = basename(sanitizeFilename($_POST['oldPageName']));
+	$oldImgName = basename(sanitizeFilename($_POST['oldPageName'] ?? ''));
 	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
 	$oldImgPath = $imgPath . $oldImgName;
-	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'])));
+	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'] ?? '')));
 	if (isHiddenFile($oldImgName))
 	{
 		// never touch e.g. the .htaccess file protecting the uploads folder
@@ -962,7 +971,7 @@ else if ( $action === 'all' )
 else if ( $action === 'search' )
 {
 	$matches = 0;
-	$q = $_REQUEST['q'];
+	$q = $_REQUEST['q'] ?? '';
 	$html .= "    <h1>".__('Search').": ".h($q)."</h1>\n";
 
 	if ( trim($q) != "" )
