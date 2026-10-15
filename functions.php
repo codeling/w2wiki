@@ -311,6 +311,34 @@ function pageLink($page, $title, $attributes="")
 	return "<a href=\"" . htmlspecialchars(pageURL($page), ENT_QUOTES) ."\"$attributes>$title</a>";
 }
 
+/**
+ * Replace the tags (with their attributes) and the code blocks and inline code in HTML from the Markdown
+ * parser by placeholders, so that the text between them can be searched and changed without damaging them.
+ * The placeholders contain a random value, so that text of a page cannot imitate one.
+ *
+ * return array	'html': the HTML with placeholders; 'restore': function which puts the original back
+ */
+function maskTagsAndCode($html)
+{
+	$nonce = bin2hex(random_bytes(8));
+	$originals = array();
+	$mask = function($m) use (&$originals, $nonce)
+	{
+		$originals[] = $m[0];
+		return "@@W2" . $nonce . (count($originals) - 1) . "@@";
+	};
+	// (all other "<" in the text are escaped by the parser; quotes of attribute values may contain ">")
+	$html = preg_replace_callback('/<(pre|code)\b.*?<\/\1>/s', $mask, $html);
+	$html = preg_replace_callback('/<(?:[^>"\']|"[^"]*"|\'[^\']*\')*>/', $mask, $html);
+	return array(
+		'html' => $html,
+		'restore' => function($text) use (&$originals, $nonce)
+		{
+			return preg_replace_callback('/@@W2' . preg_quote($nonce, '/') . '(\d+)@@/', fn($m) => $originals[(int)$m[1]], $text);
+		}
+	);
+}
+
 function toHTMLID($noid)
 {	// in HTML5, only spaces aren't allowed
 	return h(str_replace(" ", "-", html_entity_decode(strip_tags($noid), ENT_QUOTES | ENT_HTML5, W2_CHARSET)));
@@ -407,6 +435,9 @@ function toHTML($inText)
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';
 	$outHTML  = $parser->transform($inText);
+	// page links are looked for in the text only: not in tags (like the URL or title of a link) or in code
+	$masked = maskTagsAndCode($outHTML);
+	$outHTML = $masked['html'];
 	if ( AUTOLINK_PAGE_TITLES )
 	{
 		$pagenames = getAllPageNames();
@@ -435,6 +466,8 @@ function toHTML($inText)
 		$outHTML = str_replace("[[$fullLinkText]]",
 			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
 	}
+
+	$outHTML = $masked['restore']($outHTML);
 
 	// add an anchor in all title tags (h1/2/3/4):
 	preg_match_all(
