@@ -155,6 +155,20 @@ final class AppServer
 		return $this->pagesDir() . '/' . $this->uploadFolder;
 	}
 
+	/** The file with the time of the last pull attempt, see gitSyncFile() in functions.php */
+	public function gitSyncFile(): string
+	{
+		// (PAGES_PATH is derived from the real path of config.php, unless it is overridden)
+		$pagesPath = $this->pagesFolder === 'pages' ? realpath($this->dir) . '/pages' : $this->pagesDir();
+		return rtrim(sys_get_temp_dir(), '/\\') . '/w2-git-' . substr(hash('sha256', $pagesPath), 0, 16);
+	}
+
+	/** Pretend that the last pull attempt was at this time (a pull is due if there is none) */
+	public function setLastPull(int $time): void
+	{
+		file_put_contents($this->gitSyncFile(), (string)$time);
+	}
+
 	public function logSize(): int
 	{
 		clearstatcache(true, $this->logFile);
@@ -176,6 +190,7 @@ final class AppServer
 		}
 		self::removeContents($this->pagesDir(), $keep);
 		$this->resetLoginThrottle();
+		@unlink($this->gitSyncFile());
 		foreach (glob($this->appRoot . '/pages/*.md') as $page) {
 			copy($page, $this->pagesDir() . '/' . basename($page));
 		}
@@ -240,6 +255,7 @@ final class AppServer
 			proc_terminate($this->process);
 			proc_close($this->process);
 		}
+		@unlink($this->gitSyncFile());
 		self::removeContents($this->dir, []);
 		@rmdir($this->dir);
 		$this->resetLoginThrottle();

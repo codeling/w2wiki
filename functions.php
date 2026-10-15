@@ -114,6 +114,89 @@ function isEditorAction($action)
 	return $action === 'edit' || $action === 'new';
 }
 
+/**
+ * The file used to serialize git commands in the pages folder, which also
+ * holds the time of the last pull attempt (in the system's temporary folder)
+ */
+function gitSyncFile()
+{
+	return rtrim(sys_get_temp_dir(), '/\\') . '/w2-git-' . substr(hash('sha256', PAGES_PATH), 0, 16);
+}
+
+/**
+ * Seconds which must pass after a pull attempt until the action may pull again:
+ * GIT_PULL_VIEW_INTERVAL for viewing, GIT_PULL_EDIT_INTERVAL (at most five
+ * minutes) for the editor
+ */
+function gitPullInterval($action)
+{
+	if ( isEditorAction($action) )
+	{
+		return max(0, min(5 * 60, (int)GIT_PULL_EDIT_INTERVAL));
+	}
+	return max(0, (int)GIT_PULL_VIEW_INTERVAL);
+}
+
+/**
+ * Wait for the lock for git commands in the pages folder (if $wait), or
+ * only take it if nobody else holds it.
+ *
+ * @return resource|null the lock to give to gitUnlock(), or null if it
+ *                       can't be taken (the caller then goes on without)
+ */
+function gitLock($wait)
+{
+	$file = @fopen(gitSyncFile(), 'c+');
+	if ( $file === false )
+	{
+		error_log("W2: cannot use " . gitSyncFile() . " to serialize git commands");
+		return null;
+	}
+	if ( !flock($file, $wait ? LOCK_EX : LOCK_EX | LOCK_NB) )
+	{
+		fclose($file);
+		return null;
+	}
+	return $file;
+}
+
+function gitUnlock($lock)
+{
+	if ( $lock !== null )
+	{
+		flock($lock, LOCK_UN);
+		fclose($lock);
+	}
+}
+
+/**
+ * Whether $action should pull now: takes the lock (see gitLock()) and returns
+ * it if the last attempt, remembered in the lock file, is old enough, and no
+ * other request is using git. The attempt is recorded right away, so a remote
+ * which does not answer costs one timeout per interval, not one per request.
+ *
+ * @return resource|null the lock to give to gitUnlock(), or null: don't pull
+ */
+function gitPullStart($action, $now)
+{
+	$lock = gitLock(false);
+	if ( $lock === null )
+	{
+		return null;
+	}
+	$last = (int)stream_get_contents($lock);
+	if ( $last > 0 && $last <= $now && $now - $last < gitPullInterval($action) )
+	{
+		gitUnlock($lock);
+		return null;
+	}
+	ftruncate($lock, 0);
+	rewind($lock);
+	fwrite($lock, (string)$now);
+	fflush($lock);
+	return $lock;
+}
+
 function isExistingPage($page)
 {
 	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));

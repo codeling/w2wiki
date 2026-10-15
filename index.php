@@ -203,7 +203,8 @@ function redirectWithMessage($page, $msg)
 	exit;
 }
 
-function checkedExecute(&$msg, $cmd)
+// $knownErrors: messages (HTML) for return values which have a meaning of their own, by return value
+function checkedExecute(&$msg, $cmd, $knownErrors = array())
 {
 	$returnValue = 0;
 	$output = '';
@@ -212,7 +213,8 @@ function checkedExecute(&$msg, $cmd)
 	{
 		// details (command, output) may reveal server internals, so only log them
 		error_log("W2: error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
-		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
+		$msg .= "<br/>".($knownErrors[$returnValue] ??
+			sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue)));
 	}
 	return ($returnValue == 0);
 }
@@ -223,13 +225,52 @@ function gitChangeHandler($commitmsg, &$msg)
 	{
 		return;
 	}
+	// (not while a pull is running)
+	$lock = gitLock(true);
 	if (checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
 	{
-		if (!GIT_PUSH_ENABLED)
+		if (GIT_PUSH_ENABLED)
 		{
-			return;
+			checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
 		}
-		checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
+	}
+	gitUnlock($lock);
+}
+
+// Return value of the pull command if the changes could not be merged
+const GIT_PULL_CONFLICT = 3;
+
+// Merges the changes from the remote repository into the pages (and pushes the result
+// if pushing is enabled), if GIT_PULL_ENABLED and the interval for the action has passed.
+// Merge conflicts are undone (so the pages never contain conflict markers) and reported.
+function gitPull($action, &$msg)
+{
+	if (!GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
+	{
+		return;
+	}
+	$lock = gitPullStart($action, time());
+	if ($lock === null)
+	{
+		return;
+	}
+	// (no password prompt, and no waiting forever for a remote which doesn't answer)
+	$pull = "cd ".escapeshellarg(PAGES_PATH)." && ".
+		"if command -v timeout >/dev/null 2>&1; then limit='timeout 20'; else limit=; fi; ".
+		"GIT_TERMINAL_PROMPT=0 \$limit git pull --no-rebase --no-edit; result=\$?; ".
+		"if [ \$result -ne 0 ] && git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then git merge --abort; exit ".GIT_PULL_CONFLICT."; fi; ".
+		"exit \$result";
+	$conflict = __('There were merge conflicts while pulling changes from the remote repository. The pull was cancelled and the wiki keeps its own version. Please resolve the conflicts in the pages repository (ask the wiki administrator).');
+	$pullMsg = '';
+	if (checkedExecute($pullMsg, $pull, array(GIT_PULL_CONFLICT => $conflict)) && GIT_PUSH_ENABLED)
+	{
+		// (also publishes the merge, and commits which could not be pushed earlier)
+		checkedExecute($pullMsg, "cd ".escapeshellarg(PAGES_PATH)." && GIT_TERMINAL_PROMPT=0 git push");
+	}
+	gitUnlock($lock);
+	if ($pullMsg !== '')
+	{
+		$msg .= (str_starts_with($pullMsg, "<br/>") && $msg === '') ? substr($pullMsg, 5) : $pullMsg;
 	}
 }
 
@@ -285,6 +326,17 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 		$page = DEFAULT_PAGE;
 	}
 	$filename = fileNameForPage($page);
+}
+if ($action === 'view' || $action === 'edit' || $action === 'new')
+{
+	// (before the page is read, so that the editor shows what the others have changed)
+	$pullMsg = '';
+	gitPull($action, $pullMsg);
+	if ($pullMsg !== '')
+	{
+		// (keeps the note of the action which has just redirected here)
+		$_SESSION['msg'] = ($_SESSION['msg'] ?? '') . (($_SESSION['msg'] ?? '') !== '' ? '<br/>' : '') . $pullMsg;
+	}
 }
 if ($action === 'view' || $action === 'edit')
 {

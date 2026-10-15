@@ -294,6 +294,29 @@ define('GIT_COMMIT_ENABLED', false);
 // Enable/Disable pushing changes in page folder to a remote git repository
 define('GIT_PUSH_ENABLED', false);
 
+// GIT_PULL_ENABLED
+//
+// Enable/Disable pulling changes made elsewhere from the remote git repository
+// into the page folder (merging them with the local changes). Needs
+// GIT_COMMIT_ENABLED and a remote tracking branch, see INSTALL.md. Pulling
+// happens when pages are viewed or edited, see the two intervals below.
+// If the changes cannot be merged, nothing is changed and a message is shown.
+define('GIT_PULL_ENABLED', false);
+
+// GIT_PULL_VIEW_INTERVAL
+//
+// Viewing a page pulls if the last pull attempt is older than this many
+// seconds (default: one hour). Use a long time, as a pull takes a moment.
+// 0 pulls whenever a page is viewed.
+define('GIT_PULL_VIEW_INTERVAL', 60 * 60);
+
+// GIT_PULL_EDIT_INTERVAL
+//
+// Starting to edit a page (or to create one) pulls if the last pull attempt is
+// older than this many seconds, so that the editor shows the latest text
+// (default and maximum: five minutes). 0 pulls whenever the editor is opened.
+define('GIT_PULL_EDIT_INTERVAL', 5 * 60);
+
 
 // -----------------------------
 // Locale and encoding settings

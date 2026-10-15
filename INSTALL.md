@@ -107,7 +107,7 @@ workflow are published as `ghcr.io/codeling/w2wiki`.)
   e.g. for `REQUIRE_PASSWORD` or `W2_PASSWORD_HASH`. Start from the one in this repository:
   the image sets `GIT_COMMIT_ENABLED` to true, and `PAGES_PATH` has to stay as it is.
   PHP settings (upload limits are 20 MB) can be overridden with a file in `/usr/local/etc/php/conf.d/`.
-  Pushing to a remote repository (`GIT_PUSH_ENABLED`) needs credentials which the image doesn't have.
+  Pushing to and pulling from a remote repository (`GIT_PUSH_ENABLED`, `GIT_PULL_ENABLED`) needs credentials which the image doesn't have.
 - **HTTPS**: the container speaks plain HTTP. Publish it only on localhost or a private network
   and put a reverse proxy with HTTPS (and, as recommended under "Security", authentication) in front.
   If W2 is served below a path, set `BASE_URI` and `SELF` in `config.php`.
@@ -348,4 +348,33 @@ to the steps above):
     - or set a remote branch as tracking branch:
       `$ sudo -u www-data git branch -u origin main`
 - Set `GIT_PUSH_ENABLED` to `true` in `config.php`.
+
+To also get changes which others have pushed to the remote repository into the
+wiki automatically (in addition to the steps above, with a remote tracking branch
+set):
+
+- Set `GIT_PULL_ENABLED` to `true` in `config.php` (needs `GIT_COMMIT_ENABLED`).
+  The web server user needs to be able to fetch from the remote without a
+  password prompt, like for pushing.
+- The wiki pulls (`git pull --no-rebase`, giving up after 20 seconds) when a
+  page is viewed or the editor is opened, but not more often than allowed by
+  two intervals, which share the time of the last attempt:
+    - `GIT_PULL_VIEW_INTERVAL`: viewing pages, default one hour. Use a long time
+      (up to a day), as most views don't need the latest changes.
+    - `GIT_PULL_EDIT_INTERVAL`: opening the editor or creating a page, default and
+      maximum five minutes, so that the editor starts with the latest text.
+  `0` pulls on every view or every start of an edit.
+- If a pull is possible without conflicts, the changes are merged, and
+  pushed if `GIT_PUSH_ENABLED` is on (this also pushes commits which a rejected
+  push left behind).
+- If the changes cannot be merged, the pull is cancelled (the pages never
+  contain conflict markers), and the wiki shows a message to resolve the
+  conflicts in the repository of `PAGES_PATH` (`$ sudo -u www-data git pull`,
+  fix the files, commit). It shows the message again at the next attempt, until
+  this is done. Other problems (like an unreachable remote) are shown as a
+  generic error and logged in the web server's error log.
+- If somebody edits a page in the wiki while the same page is changed
+  elsewhere, the editor has no way of knowing; the changes are merged
+  at the next pull (or reported as a conflict).
+- The time of the last attempt is kept in a file in the system's temporary folder.
 
