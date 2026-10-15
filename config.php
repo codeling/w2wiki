@@ -104,7 +104,7 @@ define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,webp');
 // Allow uploading SVG files. SVG files can contain scripts, which would run in
 // the context of the wiki when such a file is opened directly, so uploaded SVGs
 // are cleaned by the enshrined/svg-sanitize library, which is not bundled with
-// W2 (it is GPL licensed) and needs to be installed via Composer, see
+// W2 (it is GPL licensed) and is installed via Composer (`composer install --no-dev`), see
 // INSTALL.md. Without it, SVG uploads are refused even if this is set to true.
 define('SVG_UPLOADS_ENABLED', false);
 
