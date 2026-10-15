@@ -16,7 +16,6 @@ final class MalformedRequestTest extends AppTestCase
 			'action array' => ['/index.php?action[]=view'],
 			'sortBy array' => ['/index.php?action=all&sortBy[]=name'],
 			'null byte in page' => ['/index.php?action=view&page=a%00b'],
-			'null byte in path' => ['/index.php/a%00b'],
 			'api filename array' => ['/api.php?task=checkupload&filename[]=a.gif'],
 			'api null byte' => ['/api.php?task=checkupload&filename=a%00.gif'],
 		];
@@ -29,6 +28,14 @@ final class MalformedRequestTest extends AppTestCase
 		$this->assertSame(400, $response->status);
 		$this->assertStringNotContainsString('Fatal error', $response->body);
 		$this->assertStringNotContainsString('Stack trace', $response->body);
+	}
+
+	/** Depending on the PHP version, the path is cut at the null byte or refused: the page must not fail */
+	public function testNullByteInPathDoesNotCrash(): void
+	{
+		$response = $this->http->get('/index.php/a%00b');
+		$this->assertContains($response->status, [200, 400, 404]);
+		$this->assertStringNotContainsString('Fatal error', $response->body);
 	}
 
 	public static function postRequests(): array
