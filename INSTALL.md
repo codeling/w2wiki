@@ -177,8 +177,8 @@ them, install the [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sa
 library, which removes scripts, event handlers, `javascript:` links and remote
 references from uploaded SVG files, and enable the feature:
 
-- Run `composer require enshrined/svg-sanitize` in the W2 folder (requires the
-  PHP extensions `dom` and `libxml`).
+- Run `composer install --no-dev` in the W2 folder (requires the PHP extensions
+  `dom` and `libxml`); this installs the library, a regular dependency of W2.
 - Set `SVG_UPLOADS_ENABLED` to `true` in `config.php`.
 
 Files that are not valid SVG files, or larger than 1 MB, are rejected. As long
