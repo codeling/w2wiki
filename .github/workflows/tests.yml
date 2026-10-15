@@ -45,9 +45,11 @@ jobs:
           php-version: '8.4'
           extensions: dom, fileinfo, libxml, mbstring
           coverage: none
-          tools: phpstan:2
+          tools: composer:v2
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
       - name: Run PHPStan
-        run: phpstan analyse --memory-limit=512M
+        run: composer analyse
 
   unit:
     name: Unit tests (PHP ${{ matrix.php }})
