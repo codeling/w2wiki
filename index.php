@@ -296,7 +296,7 @@ if ($action === 'view' || $action === 'edit')
 	{
 		// links used to encode spaces in page names as '+'; keep them working
 		$plusPage = str_replace('+', ' ', $page);
-		if ( $action === 'view' && $plusPage !== $page && file_exists(fileNameForPage($plusPage)) )
+		if ( $action === 'view' && $plusPage !== $page && isExistingPage($plusPage) )
 		{
 			header("HTTP/1.1 301 Moved Permanently");
 			header("Location: " . pageURL($plusPage));

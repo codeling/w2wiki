@@ -76,7 +76,8 @@ function getAllPageNames($path = "")
 	$dir = opendir(PAGES_PATH . "/$path" );
 	while ( $filename = readdir($dir) )
 	{
-		if ( $filename === "." || $filename === ".." )
+		// (hidden files and folders, like .git, never contain pages)
+		if ( str_starts_with($filename, ".") )
 		{
 			continue;
 		}
@@ -116,7 +117,7 @@ function isEditorAction($action)
 
 function isExistingPage($page)
 {
-	return $page !== "" && !isInUploadFolder($page) && file_exists(fileNameForPage($page));
+	return isValidPageName($page) && file_exists(fileNameForPage($page));
 }
 
 /**
@@ -430,8 +431,7 @@ function toHTML($inText)
 		$linkedPage = $linkTitleSplit[0];    // split away potential link text
 		$linkText = (count($linkTitleSplit) > 1) ? $linkTitleSplit[1] : $linkedPage;
 		$pagePart = explode('#', $linkedPage)[0];  // split away a potential anchor part
-		$linkedFilename = fileNameForPage(sanitizeFilename($pagePart));
-		$exists = file_exists($linkedFilename);
+		$exists = isExistingPage(sanitizeFilename($pagePart));
 		$outHTML = str_replace("[[$fullLinkText]]",
 			pageLink($linkedPage, $linkText, ($exists? "" : " class=\"noexist\"")), $outHTML);
 	}
