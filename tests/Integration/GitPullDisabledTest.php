@@ -19,7 +19,9 @@ final class GitPullDisabledTest extends GitTestCase
 
 	public function testRemoteChangesAreNotPulled(): void
 	{
-		$clone = $this->server->rootDir() . '/clone';
+		// (this server is shared with other tests, so the clone must not stay behind)
+		$clone = $this->server->rootDir() . '/pull-disabled-clone';
+		shell_exec('rm -rf ' . escapeshellarg($clone));
 		$this->server->git('clone -q ' . escapeshellarg($this->server->remoteDir()) . ' ' . escapeshellarg($clone), $this->server->rootDir());
 		file_put_contents("$clone/Elsewhere.md", 'text');
 		$this->server->git('add -A', $clone);
@@ -30,5 +32,6 @@ final class GitPullDisabledTest extends GitTestCase
 		$this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home']);
 		$this->assertFileDoesNotExist($this->pageFile('Elsewhere'));
 		$this->assertFileDoesNotExist($this->server->gitSyncFile());
+		shell_exec('rm -rf ' . escapeshellarg($clone));
 	}
 }

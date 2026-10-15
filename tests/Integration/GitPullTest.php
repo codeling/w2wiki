@@ -27,7 +27,7 @@ final class GitPullTest extends GitTestCase
 	/** Commit a page in another clone of the remote repository, and push it */
 	private function pushFromElsewhere(string $page, string $text): string
 	{
-		$clone = $this->server->rootDir() . '/clone';
+		$clone = $this->server->rootDir() . '/pull-clone';
 		shell_exec('rm -rf ' . escapeshellarg($clone));
 		$this->server->git('clone -q ' . escapeshellarg($this->server->remoteDir()) . ' ' . escapeshellarg($clone), $this->server->rootDir());
 		file_put_contents("$clone/$page.md", $text);
@@ -68,7 +68,6 @@ final class GitPullTest extends GitTestCase
 		);
 		$this->server->reset();
 		$this->http = $this->newClient();
-		$this->logOffset = $this->server->logSize();
 	}
 
 	public function testEditorPullsAfterItsShortIntervalWhileViewingDoesNot(): void
