@@ -294,6 +294,23 @@ function imageMagickFormatPrefix($ext)
 	return ($ext === 'jpg' || $ext === 'jpeg') ? 'jpeg:' : $ext . ':';
 }
 
+/**
+ * Whether renaming an uploaded file keeps its type, i.e. the new extension is the same as the old one (or
+ * one that stands for the same content, like jpg and jpeg). The content was checked against the old
+ * extension when it was uploaded (an SVG was sanitized), so it must not get another one by renaming.
+ */
+function renameKeepsFileType($oldName, $newName)
+{
+	$oldExt = getFileExt($oldName);
+	$newExt = getFileExt($newName);
+	if ( $oldExt === $newExt )
+	{
+		return true;
+	}
+	$oldTypes = uploadTypesForExt($oldExt);
+	return $oldTypes !== null && $oldTypes === uploadTypesForExt($newExt);
+}
+
 function hasValidUploadExt($fileName)
 {
 	return !isHiddenFile($fileName) && in_array(getFileExt($fileName), validUploadExts(), true);
