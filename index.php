@@ -136,6 +136,13 @@ if ( !isLoggedIn() )
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;
 			$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+			if ( isLegacyPasswordHash() )
+			{
+				// (the user has just proven to know the password, so we can offer its new hash)
+				error_log("W2: logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
+				$_SESSION['msg'] = __('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') .
+					' <code>' . h(password_hash($_POST['p'], PASSWORD_DEFAULT)) . '</code>';
+			}
 		}
 		else
 		{

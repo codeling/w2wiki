@@ -63,7 +63,7 @@ function ipMatches($ip, $allowed)
 
 /**
  * Check the given password against W2_PASSWORD_HASH (created with PHP's
- * password_hash, or a legacy unsalted SHA-1 hash), or W2_PASSWORD
+ * password_hash, or a deprecated unsalted SHA-1 hash), or W2_PASSWORD
  */
 function isCorrectPassword($password, $passwordHash = null, $plainPassword = null)
 {
@@ -75,14 +75,26 @@ function isCorrectPassword($password, $passwordHash = null, $plainPassword = nul
 	}
 	if ( $passwordHash !== '' )
 	{
-		if ( password_get_info($passwordHash)['algoName'] !== 'unknown' )
+		if ( !isLegacyPasswordHash($passwordHash) )
 		{
 			return password_verify($password, $passwordHash);
 		}
+		// deprecated, see isLegacyPasswordHash()
 		return hash_equals(strtolower($passwordHash), sha1($password));
 	}
 	// refuse to work with the well-known default password
 	return $plainPassword !== '' && $plainPassword !== 'secret' && hash_equals($plainPassword, $password);
+}
+
+/**
+ * Whether the given W2_PASSWORD_HASH is a legacy unsalted SHA-1 hash (as
+ * opposed to a hash created with PHP's password_hash). Deprecated: support for
+ * these will be removed in a future version.
+ */
+function isLegacyPasswordHash($passwordHash = null)
+{
+	$passwordHash ??= defined('W2_PASSWORD_HASH') ? W2_PASSWORD_HASH : '';
+	return $passwordHash !== '' && password_get_info($passwordHash)['algoName'] === 'unknown';
 }
 
 /**

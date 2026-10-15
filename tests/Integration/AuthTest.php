@@ -91,6 +91,15 @@ final class AuthTest extends AppTestCase
 		$this->assertStringContainsString('Welcome to W2', $this->http->get('/index.php')->body);
 	}
 
+	public function testNoDeprecationNoteWithPasswordHash(): void
+	{
+		$logOffset = $this->server->logSize();
+		$body = $this->login('hunter2')->body;
+		$this->assertStringContainsString('Welcome to W2', $body);
+		$this->assertStringNotContainsString('SHA-1', $body);
+		$this->assertStringNotContainsString('SHA-1', $this->server->logSince($logOffset));
+	}
+
 	public function testSessionIsRegeneratedOnLogin(): void
 	{
 		$before = $this->http->get('/index.php');

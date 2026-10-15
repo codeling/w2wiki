@@ -170,7 +170,9 @@ define('AUTOLINK_PAGE_TITLES', false);
 
 // REQUIRE_PASSWORD
 //
-// Is a password required to access this wiki?
+// Is a password required to access this wiki? With the default (false), there
+// is no authentication at all: everybody who can reach the wiki can read and
+// edit it, and upload files. See "Security Notice" in README.md.
 define('REQUIRE_PASSWORD', false);
 
 // W2_PASSWORD
@@ -190,8 +192,10 @@ define('W2_PASSWORD', 'secret');
 // Note: since the hash contains '$' characters, use single quotes, e.g.:
 // define('W2_PASSWORD_HASH', '$2y$10$...');
 //
-// For backwards compatibility, an (unsalted, and therefore not recommended)
-// SHA-1 hash of the password is also still accepted.
+// DEPRECATED: for backwards compatibility, an unsalted SHA-1 hash of the
+// password is still accepted, but this will stop working in a future version.
+// If you still use one, logging in shows a hash to replace it with (and the
+// error log mentions it).
 define('W2_PASSWORD_HASH', '');
 
 // allowedIPs
