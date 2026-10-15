@@ -16,6 +16,14 @@ final class ApiTest extends AppTestCase
 		$this->assertSame('false', trim($this->http->get('/api.php', ['task' => 'checkupload', 'filename' => 'b.png'])->body));
 	}
 
+	public function testCheckUploadConsidersTheChosenName(): void
+	{
+		file_put_contents($this->imageFile('cat.png'), 'x');
+		$check = fn(array $q) => trim($this->http->get('/api.php', ['task' => 'checkupload'] + $q)->body);
+		$this->assertSame('true', $check(['filename' => 'IMG_1.png', 'newname' => 'cat']));
+		$this->assertSame('false', $check(['filename' => 'cat.png', 'newname' => 'dog']));
+	}
+
 	public static function traversalNames(): array
 	{
 		return [
