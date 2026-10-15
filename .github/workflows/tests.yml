@@ -50,6 +50,8 @@ jobs:
         run: composer install --no-interaction --no-progress --prefer-dist
       - name: Run PHPStan
         run: composer analyse
+      - name: Check the dependencies for known vulnerabilities
+        run: composer audit
 
   unit:
     name: Unit tests (PHP ${{ matrix.php }})
