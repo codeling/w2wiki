@@ -246,7 +246,10 @@ final class ServerConfigTest extends TestCase
 	{
 		$this->place('.git/config', "[core]\n\trepositoryformatversion = 0\n");
 		$this->place('.git/HEAD', 'ref: refs/heads/main');
-		$this->place('pages/.git/config', "[core]\n\trepositoryformatversion = 0\n");
+		// (the container image has a real repository there, owned by the web server user: use its config)
+		if (!file_exists("$this->root/pages/.git/config")) {
+			$this->place('pages/.git/config', "[core]\n\trepositoryformatversion = 0\n");
+		}
 		$this->assertNotServed($this->http->get('/.git/config'), 'repositoryformatversion');
 		$this->assertNotServed($this->http->get('/.git/HEAD'), 'refs/heads');
 		$this->assertNotServed($this->http->get('/pages/.git/config'), 'repositoryformatversion');

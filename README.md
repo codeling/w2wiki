@@ -40,7 +40,8 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 
 ## Installation & Configuration
 
-See [Installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md).
+See [Installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md),
+including [running W2 in a container](INSTALL.md#running-in-a-container-docker-and-podman) (Docker or Podman).
 
 
 ## Tests

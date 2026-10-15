@@ -1,0 +1,88 @@
+# Builds the container image (Containerfile) and smoke-tests it; the web server rules are tested
+# against it by the "server" job in tests.yml. On the main branch and for version tags, the image is
+# published to the GitHub Container Registry (no extra secrets: it uses the token of the workflow).
+name: Container image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build${{ github.event_name == 'pull_request' && '' || ' and publish' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write   # only used when publishing; pull requests from forks only get read access
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the image for this runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          load: true
+          tags: w2wiki:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: |
+          # as it should be run: not as root, nothing writable except the pages and /tmp
+          docker run -d --name w2 --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+            -p 127.0.0.1:8080:8080 -v w2-pages:/var/www/html/pages w2wiki:ci
+          for _ in $(seq 1 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' w2)" = healthy ] && break
+            sleep 2
+          done
+          docker inspect -f '{{.State.Health.Status}}' w2 | grep -qx healthy || { docker logs w2; exit 1; }
+          curl -fsS http://127.0.0.1:8080/index.php/Home | grep -q 'Home'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/pages/Home.md)" = 403
+          docker exec w2 sh -c 'cd pages && git log --oneline | grep -q "Initial pages"'
+
+      - name: Check the image of the pull request without publishing
+        if: github.event_name == 'pull_request'
+        run: docker image inspect w2wiki:ci --format 'user={{.Config.User}} size={{.Size}}'
+
+      - name: Log in to the GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-qemu-action@v3
+        if: github.event_name != 'pull_request'
+      - name: Image tags and labels
+        id: meta
+        if: github.event_name != 'pull_request'
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      - name: Publish (amd64 and arm64)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
