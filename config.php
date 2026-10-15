@@ -170,7 +170,9 @@ define('AUTOLINK_PAGE_TITLES', false);
 
 // REQUIRE_PASSWORD
 //
-// Is a password required to access this wiki?
+// Is a password required to access this wiki? With the default (false), there
+// is no authentication at all: everybody who can reach the wiki can read and
+// edit it, and upload files. See "Security Notice" in README.md.
 define('REQUIRE_PASSWORD', false);
 
 // W2_PASSWORD
@@ -190,8 +192,10 @@ define('W2_PASSWORD', 'secret');
 // Note: since the hash contains '$' characters, use single quotes, e.g.:
 // define('W2_PASSWORD_HASH', '$2y$10$...');
 //
-// For backwards compatibility, an (unsalted, and therefore not recommended)
-// SHA-1 hash of the password is also still accepted.
+// DEPRECATED: for backwards compatibility, an unsalted SHA-1 hash of the
+// password is still accepted, but this will stop working in a future version.
+// If you still use one, logging in shows a hash to replace it with (and the
+// error log mentions it).
 define('W2_PASSWORD_HASH', '');
 
 // allowedIPs
@@ -202,6 +206,59 @@ define('W2_PASSWORD_HASH', '');
 // (e.g. '192.168.1.0/24' or 'fd00::/8'), or address prefixes ending in
 // '.' or ':' (e.g. '192.168.1.').
 $allowedIPs = array();
+
+// Throttling of failed logins
+//
+// Failed logins are counted per client address (see $trustedProxies below), and
+// for all clients together. The records are kept in small files, no database
+// is needed. A client which is locked out gets the status 429 and a
+// Retry-After header, even for the correct password.
+//
+// LOGIN_MAX_FAILURES
+//
+// How many failed logins a client may make before it is locked out. After
+// that, the lockout starts at LOGIN_LOCKOUT_SECONDS and doubles with each
+// further failure, up to LOGIN_LOCKOUT_MAX_SECONDS. A successful login resets
+// the count, as does a quiet time as long as the longest lockout.
+// 0 turns the throttling off.
+define('LOGIN_MAX_FAILURES', 5);
+
+// LOGIN_LOCKOUT_SECONDS
+//
+// The first lockout (one minute)
+define('LOGIN_LOCKOUT_SECONDS', 60);
+
+// LOGIN_LOCKOUT_MAX_SECONDS
+//
+// The longest lockout (one hour)
+define('LOGIN_LOCKOUT_MAX_SECONDS', 3600);
+
+// LOGIN_MAX_FAILURES_PER_HOUR
+//
+// How many failed logins are accepted per hour in total, from all clients.
+// This stops attackers who use many addresses, but also means that nobody
+// (including you) can log in for the rest of the hour once the limit is
+// reached. 0 turns this off.
+define('LOGIN_MAX_FAILURES_PER_HOUR', 100);
+
+// LOGIN_THROTTLE_FOLDER
+//
+// The folder for the records of failed logins. It must be writable by the web
+// server, and must not be served by it. If empty, a folder in the system's
+// temporary folder is used (the throttling starts from scratch if it gets
+// cleaned). If the folder can't be used, logging in is refused until this is
+// fixed or LOGIN_MAX_FAILURES is set to 0; the error log says what's wrong.
+define('LOGIN_THROTTLE_FOLDER', '');
+
+// $trustedProxies
+//
+// Addresses of reverse proxies which are in front of the wiki, in the same
+// format as $allowedIPs. Without them, all requests seem to come from the
+// proxy, so one client's failed logins would lock out everybody. If the
+// request comes from such a proxy, the client's address is taken from the
+// X-Forwarded-For header. Leave it empty if there is no proxy: any client
+// could send that header.
+$trustedProxies = array();
 
 // W2_SESSION_LIFETIME
 // 

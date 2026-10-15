@@ -86,10 +86,14 @@ abstract class AppTestCase extends TestCase
 		return $client->post('/index.php', ['action' => $action, 'csrf_token' => $this->csrfToken($client)] + $fields);
 	}
 
-	/** Submit the login form */
-	protected function login(string $password, ?HttpClient $client = null): HttpResponse
+	/**
+	 * Submit the login form (with the CSRF token of the session, unless another token is given);
+	 * $headers are extra request headers, e.g. "X-Forwarded-For: 10.0.0.5"
+	 */
+	protected function login(string $password, ?HttpClient $client = null, ?string $csrfToken = null, array $headers = []): HttpResponse
 	{
-		return ($client ?? $this->http)->post('/index.php', ['p' => $password]);
+		$client ??= $this->http;
+		return $client->post('/index.php', ['p' => $password, 'csrf_token' => $csrfToken ?? $this->csrfToken($client)], [], $headers);
 	}
 
 	protected static function gif(): string

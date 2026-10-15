@@ -23,3 +23,9 @@ parameters:
 			identifier: variable.undefined
 			count: 15
 			path: index.php
+
+		-
+			message: '#^Variable \$trustedProxies might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: index.php

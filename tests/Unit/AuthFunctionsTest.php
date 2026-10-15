@@ -90,6 +90,24 @@ final class AuthFunctionsTest extends TestCase
 		$this->assertSame($expected, isCorrectPassword($password, $hash, $plain));
 	}
 
+	public static function hashes(): array
+	{
+		return [
+			'bcrypt' => [password_hash('x', PASSWORD_BCRYPT, ['cost' => 4]), false],
+			'default algorithm' => [password_hash('x', PASSWORD_DEFAULT), false],
+			'argon2id' => [defined('PASSWORD_ARGON2ID') ? password_hash('x', PASSWORD_ARGON2ID) : '$2y$04$' . str_repeat('a', 53), false],
+			'sha1' => [sha1('x'), true],
+			'sha1 in capitals' => [strtoupper(sha1('x')), true],
+			'no hash' => ['', false],
+		];
+	}
+
+	#[DataProvider('hashes')]
+	public function testLegacyPasswordHashesAreRecognized(string $hash, bool $legacy): void
+	{
+		$this->assertSame($legacy, isLegacyPasswordHash($hash));
+	}
+
 	public function testPasswordsWhichAreNotStringsAreRefused(): void
 	{
 		$this->assertFalse(isCorrectPassword(null, '', 'x'));

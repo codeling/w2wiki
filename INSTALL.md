@@ -242,12 +242,66 @@ define('W2\_PASSWORD', 'secret');
 
 Set `REQUIRE_PASSWORD` to true and set `W2_PASSWORD` to the password you'd like
 to use (logging in is refused while it is still set to the default `secret`).
-**Note:** This is a very rudimentary way of authorizing access. A more secure
-variant is to set `W2_PASSWORD_HASH` to a hash of your password created with
-PHP's `password_hash` function, e.g. via:
+
+**Note:** This is a very rudimentary way of authorizing access: there is one
+password for everybody, and no user accounts. A more secure variant is to set
+`W2_PASSWORD_HASH` to a hash of your password created with PHP's
+`password_hash` function, e.g. via:
 ```
 php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 ```
+Use single quotes for the value in `config.php`, since the hash contains `$`
+characters. The hash takes precedence over `W2_PASSWORD`, so you can then
+remove the password from `config.php`.
+
+**Deprecated: SHA-1 hashes.** Earlier versions also accepted an unsalted SHA-1
+hash (e.g. from `sha1sum`) as `W2_PASSWORD_HASH`. These are quick to
+guess for anybody who gets to see the hash, so this is deprecated and will be
+removed in a future version. While one is configured, the error log mentions
+it at every login, and the page shown after logging in contains the
+`password_hash` hash of the password you just entered: replace the value of
+`W2_PASSWORD_HASH` in `config.php` by that hash and the notice is gone.
+
+Uploaded files are served statically by the web server (see "Uploaded images"
+above) and are therefore **not** protected by the password. If that matters,
+use authentication of the web server instead (below).
+
+For several users, a login with a second factor (e.g. an identity provider with
+passkeys, such as Pocket ID), or protecting the uploaded files, let the web
+server or a reverse proxy handle the login: HTTP Basic Authentication over
+HTTPS, or an authenticating proxy such as oauth2-proxy in front of the wiki.
+W2 then doesn't need `REQUIRE_PASSWORD`.
+
+### Failed logins
+
+Failed logins are limited so that passwords can't be guessed by trying them
+one after the other (or in parallel, or with a new session for every attempt):
+
+- After 5 failed logins (`LOGIN_MAX_FAILURES`) from the same client address,
+  that client is locked out for a minute (`LOGIN_LOCKOUT_SECONDS`). Each
+  further failure doubles the lockout, up to an hour
+  (`LOGIN_LOCKOUT_MAX_SECONDS`). While a client is locked out, the wiki
+  answers with status 429 and a `Retry-After` header, even for the correct
+  password. A successful login resets the count.
+- Across all clients, 100 failed logins per hour are accepted
+  (`LOGIN_MAX_FAILURES_PER_HOUR`), which limits attackers with many
+  addresses. Once that is reached, nobody can log in for the rest of the
+  hour; set it to 0 if you prefer that over this.
+- IPv6 addresses count as one client per /64 network.
+- The records are small files in the system's temporary folder, or in
+  `LOGIN_THROTTLE_FOLDER` if you set it. That folder must be writable by the
+  web server and must not be served by it (a place outside the web root;
+  not the pages folder, which may be committed to git). If it can't be used,
+  logging in is refused (and the error log says why), because the protection
+  would be gone otherwise. `LOGIN_MAX_FAILURES = 0` turns the limit off.
+- Behind a reverse proxy, all requests come from the proxy's address, so
+  one client's failures would lock out everybody. List the proxy's address(es)
+  in `$trustedProxies` in `config.php`; the client address is then taken
+  from the `X-Forwarded-For` header, which is ignored for requests from any
+  other address. Don't list proxies you don't have: any client could send that
+  header.
+
+The login form also contains a CSRF token, like all other forms.
 
 ## Git Integration
 
