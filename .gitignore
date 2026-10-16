@@ -1,6 +1,9 @@
 vendor/*
 !vendor/.htaccess
 composer.lock
+
+# your settings, see config.sample.php
+/config.php
 .phpunit.cache/
 .phpunit.result.cache
 

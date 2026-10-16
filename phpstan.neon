@@ -14,7 +14,8 @@ parameters:
         - auth.php
         - auth_functions.php
         - functions.php
-        - config.php
+        - defaults.php
+        - config.sample.php
     excludePaths:
         - Michelf
         - vendor

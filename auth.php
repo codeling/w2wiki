@@ -3,7 +3,7 @@
  * W2
  *
  * Session handling, IP restriction and password checks, shared by all entry
- * points (index.php, api.php). Requires config.php to be loaded.
+ * points (index.php, api.php). Requires the settings (config.php, defaults.php) to be loaded.
  */
 
 require_once "auth_functions.php";
@@ -16,6 +16,13 @@ ini_set('session.use_strict_mode', 1);
 session_set_cookie_params(sessionCookieParams($_SERVER));
 session_name(W2_SESSION_NAME);
 session_start();
+
+// (once per session, not for every request)
+if ( !empty($w2ConfigMissing) && empty($_SESSION['config_missing_logged']) )
+{
+	w2Log('config.php not found: using the default settings; copy config.sample.php to config.php to change them');
+	$_SESSION['config_missing_logged'] = true;
+}
 
 foreach ( securityHeaders($_SERVER) as $name => $value )
 {

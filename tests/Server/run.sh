@@ -66,6 +66,7 @@ else
     # a copy of the wiki to be served (including files not committed yet, but without tests and git data)
     (cd "$repo" && git ls-files -co --exclude-standard -z | grep -zv '^tests/\|^\.github/' | tar --null --ignore-failed-read -T - -cf - 2> /dev/null) | tar -x -C "$root"
     ln -s pages/images "$root/images"     # see README.md: uploads are served statically from here
+    cp "$root/config.sample.php" "$root/config.php"     # the settings, which the tests change
 fi
 mkdir -p "$root/pages/images"
 chmod 755 "$root"

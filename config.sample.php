@@ -10,6 +10,13 @@
  *
  */
 
+// This file lists all settings with their default values. To change settings, copy it
+// to config.php (in this folder) and edit the copy, e.g. `cp config.sample.php config.php`.
+// config.php is not part of the repository, so updating W2 doesn't overwrite it. It needs only
+// contain the settings you change: those it leaves out (also new ones added by later
+// versions) have the defaults of defaults.php, which are the values below. Without
+// a config.php, all settings have their defaults.
+
 // --------------------
 // Site layout settings
 // --------------------
@@ -146,10 +153,9 @@ define('CONVERT_FORMAT', 'jpg');
 // The format to use when displaying page modification times.
 // See the manual for the PHP 'date()' function for the specification:
 // http://php.net/manual/en/function.date.php
-// Note that these settings are overridden by the
-// date_format/date_format_no_time in the used locale!
+// Note that this setting is overridden by the
+// date_format in the used locale!
 define('TITLE_DATE', 'j-M-Y g:i A');
-define('TITLE_DATE_NO_TIME', 'j-M-Y');
 
 // EDIT_ROWS
 //
