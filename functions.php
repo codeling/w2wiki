@@ -178,15 +178,15 @@ function gitSyncFile()
 /**
  * Seconds which must pass after a pull attempt until the action may pull again:
  * GIT_PULL_VIEW_INTERVAL for viewing, GIT_PULL_EDIT_INTERVAL (at most five
- * minutes) for the editor (both are optional in older config.php files)
+ * minutes) for the editor
  */
 function gitPullInterval($action)
 {
 	if ( isEditorAction($action) )
 	{
-		return max(0, min(5 * 60, (int)(defined('GIT_PULL_EDIT_INTERVAL') ? GIT_PULL_EDIT_INTERVAL : 5 * 60)));
+		return max(0, min(5 * 60, (int)GIT_PULL_EDIT_INTERVAL));
 	}
-	return max(0, (int)(defined('GIT_PULL_VIEW_INTERVAL') ? GIT_PULL_VIEW_INTERVAL : 60 * 60));
+	return max(0, (int)GIT_PULL_VIEW_INTERVAL);
 }
 
 /**
@@ -256,11 +256,10 @@ function isExistingPage($page)
 
 /**
  * URL prefix of uploaded files, including the trailing slash: BASE_URI/UPLOAD_URL/
- * (UPLOAD_URL is optional in older config.php files, and defaults to UPLOAD_FOLDER)
  */
 function uploadUrlPrefix()
 {
-	return BASE_URI . "/" . (defined('UPLOAD_URL') ? UPLOAD_URL : UPLOAD_FOLDER) . "/";
+	return BASE_URI . "/" . UPLOAD_URL . "/";
 }
 
 /**
@@ -347,7 +346,7 @@ function isHiddenFile($fileName)
  */
 function svgUploadsAvailable()
 {
-	return defined('SVG_UPLOADS_ENABLED') && SVG_UPLOADS_ENABLED && class_exists('enshrined\\svgSanitize\\Sanitizer');
+	return SVG_UPLOADS_ENABLED && class_exists('enshrined\\svgSanitize\\Sanitizer');
 }
 
 function validUploadTypes()
@@ -523,8 +522,8 @@ function filterURL($url)
  */
 function expandIncludes($text, array $stack = array(), &$budget = null)
 {
-	$budget ??= defined('INCLUDE_MAX_SIZE') ? INCLUDE_MAX_SIZE : 1048576;
-	$maxDepth = defined('INCLUDE_MAX_DEPTH') ? INCLUDE_MAX_DEPTH : 5;
+	$budget ??= INCLUDE_MAX_SIZE;
+	$maxDepth = INCLUDE_MAX_DEPTH;
 	$fence = null;
 	$lines = preg_split('/(\r\n|\n|\r)/', $text);
 	foreach ($lines as $i => $line)

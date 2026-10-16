@@ -8,9 +8,11 @@
 3. Make sure that the "pages" directory and its uploads folder ("images" by
    default, see `UPLOAD_FOLDER`) are writable by your web server process.
    
-4. You may or may not need to edit config.php. When you're ready, look in
-   there for many additional configuration options
-   (see below for more information).
+4. W2 works without any configuration. To change settings, copy
+   `config.sample.php` to `config.php` and edit the copy; the sample lists all
+   options with their defaults (see below for more information). `config.php`
+   needs to contain only the settings you change.
+
 
 You should now be ready to access your W2 installation.
 
@@ -104,8 +106,8 @@ workflow are published as `ghcr.io/codeling/w2wiki`.)
 - **Hardening**: `--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges`
   works (only the pages and `/tmp` are written to); `compose.yaml` has these.
 - **Settings**: mount your own `config.php` (`-v ./config.php:/var/www/html/config.php:ro`),
-  e.g. for `REQUIRE_PASSWORD` or `W2_PASSWORD_HASH`. Start from the one in this repository:
-  the image sets `GIT_COMMIT_ENABLED` to true, and `PAGES_PATH` has to stay as it is.
+  e.g. for `REQUIRE_PASSWORD` or `W2_PASSWORD_HASH`. Start from `config.sample.php` of this repository:
+  the image sets `GIT_COMMIT_ENABLED` to true (set it in your file too), and `PAGES_PATH` has to stay as it is.
   PHP settings (upload limits are 20 MB) can be overridden with a file in `/usr/local/etc/php/conf.d/`.
   Pushing to and pulling from a remote repository (`GIT_PUSH_ENABLED`, `GIT_PULL_ENABLED`) needs credentials which the image doesn't have.
 - **HTTPS**: the container speaks plain HTTP. Publish it only on localhost or a private network
@@ -118,7 +120,19 @@ workflow are published as `ghcr.io/codeling/w2wiki`.)
 
 # Configuration
 
-The file config.php contains many options for you to customize your W2 setup.
+The file config.sample.php lists the many options to customize your W2 setup, with
+their default values and explanations. To change some, copy it to `config.php`
+(`cp config.sample.php config.php`) and edit the copy. You can delete the options
+you don't change from your `config.php`: every option it doesn't define has its default value
+(from `defaults.php`, which you shouldn't edit), so a `config.php` from an older version
+keeps working when new options are added. Without a `config.php`, all options have their
+defaults (a message in the web server's error log tells so, once per session).
+`config.php` is not part of the repository, so updating W2 doesn't overwrite it.
+
+**Upgrading from a version where `config.php` was part of the repository:** if you
+update with `git pull`, git refuses to continue (or removes your file, if you didn't
+change it) because the file is no longer tracked. Copy your `config.php` somewhere
+safe first, update, and put it back; it keeps working as it is.
 
 A few examples:
 
@@ -170,7 +184,8 @@ location ^~ /pages/ { deny all; }
 location ^~ /tests/ { deny all; }
 location ^~ /locales/ { deny all; }
 location ^~ /Michelf/ { deny all; }
-location ^~ /config.php { deny all; }
+location ^~ /config. { deny all; }
+location ^~ /defaults.php { deny all; }
 location ^~ /functions.php { deny all; }
 location ^~ /auth.php { deny all; }
 location ^~ /auth_functions.php { deny all; }

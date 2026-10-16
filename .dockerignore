@@ -5,7 +5,8 @@
 !api.php
 !auth.php
 !auth_functions.php
-!config.php
+!config.sample.php
+!defaults.php
 !functions.php
 !index.css
 !wiki.js

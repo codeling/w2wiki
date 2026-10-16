@@ -16,8 +16,16 @@ define('W2APP', true);
 // Helper functions (and optional libraries installed via Composer):
 require_once "functions.php";
 
-// User configurable options:
-require_once "config.php";
+// User configurable options (config.php is optional; defaults.php provides the settings it doesn't define):
+if ( is_file(__DIR__ . '/config.php') )
+{
+	require_once __DIR__ . '/config.php';
+}
+else
+{
+	$w2ConfigMissing = true;
+}
+require_once __DIR__ . '/defaults.php';
 
 // Load configured localization:
 require_once 'locales/' . W2_LOCALE . '.php';
@@ -163,7 +171,7 @@ if ( !isLoggedIn() )
 		{
 			print "    <p class=\"note\">" . $loginMessage . "</p>\n";
 		}
-		if ( (!defined('W2_PASSWORD_HASH') || W2_PASSWORD_HASH === '') && defined('W2_PASSWORD') && W2_PASSWORD === 'secret' )
+		if ( W2_PASSWORD_HASH === '' && W2_PASSWORD === 'secret' )
 		{
 			print "    <p class=\"note\">" . __('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.') . "</p>\n";
 		}
@@ -245,8 +253,7 @@ const GIT_PULL_CONFLICT = 3;
 // Merge conflicts are undone (so the pages never contain conflict markers) and reported.
 function gitPull($action, &$msg)
 {
-	// (GIT_PULL_ENABLED is optional in older config.php files)
-	if (!defined('GIT_PULL_ENABLED') || !GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
+	if (!GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
 	{
 		return;
 	}
