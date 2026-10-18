@@ -58,6 +58,7 @@ RUN set -eux; \
 	mv container/entrypoint.sh /usr/local/bin/w2-entrypoint; \
 	rm -r container; \
 	# git history of the pages, no PHP file to be rewritten at runtime
+	cp config.sample.php config.php; \
 	sed -i "s/'GIT_COMMIT_ENABLED', false/'GIT_COMMIT_ENABLED', true/" config.php; \
 	grep -q "'GIT_COMMIT_ENABLED', true" config.php
 

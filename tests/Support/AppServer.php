@@ -11,7 +11,7 @@ namespace W2\Tests\Support;
  */
 final class AppServer
 {
-	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'config.php', 'index.css', 'wiki.js'];
+	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
 	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons'];
 
 	/** @var array<string, AppServer> running servers by configuration */
@@ -32,11 +32,13 @@ final class AppServer
 	/**
 	 * Get the server for a configuration, starting it if necessary.
 	 *
-	 * @param array<string, mixed> $overrides values for constants defined in config.php (by name),
-	 *                                        or for the variable $allowedIPs
+	 * @param array<string, mixed> $overrides values for constants defined in config.sample.php (by name),
+	 *                                        or for the variables $allowedIPs and $trustedProxies
 	 * @param array<string, mixed> $options   "svgSanitizer": make the enshrined/svg-sanitize library
 	 *                                        (see svgSanitizerDir()) available to the app;
 	 *                                        "port": use this port instead of a free one;
+	 *                                        "config": PHP code to use as config.php instead of the sample with the
+	 *                                        overrides (e.g. only a few settings), or false for no config.php at all;
 	 *                                        "git": make the pages folder a git repository (with user.name and
 	 *                                        user.email), see initGit(); "gitRemote": also create a local bare
 	 *                                        repository as "origin" (implies "git");
@@ -266,7 +268,18 @@ final class AppServer
 	/** @param array<string, mixed> $overrides */
 	private function writeConfig(array $overrides): void
 	{
-		$config = (string)file_get_contents("$this->appRoot/config.php");
+		if (array_key_exists('config', $this->options)) {
+			if ($overrides !== []) {
+				throw new \RuntimeException("The option 'config' can't be combined with overrides");
+			}
+			if ($this->options['config'] !== false) {
+				file_put_contents("$this->dir/config.php", "<?php if (!defined('W2APP')){ die('No direct access.'); }\n" . $this->options['config']);
+			}
+			return;
+		}
+		// (versions without config.sample.php, see W2_APP_ROOT, have their settings in config.php)
+		$sample = is_file("$this->appRoot/config.sample.php") ? 'config.sample.php' : 'config.php';
+		$config = (string)file_get_contents("$this->appRoot/$sample");
 		foreach ($overrides as $name => $value) {
 			$literal = var_export($value, true);
 			if (str_starts_with($name, '$')) {
@@ -278,7 +291,7 @@ final class AppServer
 			}
 			$config = preg_replace_callback($pattern, fn() => $replacement, $config, -1, $count);
 			if ($count !== 1) {
-				throw new \RuntimeException("Can't override $name: found $count definitions in config.php");
+				throw new \RuntimeException("Can't override $name: found $count definitions in $sample");
 			}
 		}
 		file_put_contents("$this->dir/config.php", $config);

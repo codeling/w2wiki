@@ -1,7 +1,7 @@
 # Tests
 
 The tests start a private copy of the wiki (with an individual `config.php`
-per test class) on PHP's built-in web server, and talk to it over HTTP. They
+per test class, made from `config.sample.php`) on PHP's built-in web server, and talk to it over HTTP. They
 need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`. `ImageProcessingTest` (resizing,
 rotating and converting images) also needs `imagick`, and is skipped without it; the HEIC tests are skipped
 if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder).
@@ -29,7 +29,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   redirects), `AppTestCase` (base class with helpers such as `savePage()`, `upload()`,
   `assertNoActiveContent()`); `ThrottleTestCase` is the base class of the tests of login throttling.
 - `tests/Unit`: tests of functions from `functions.php` and `auth_functions.php` (loaded by
-  `tests/bootstrap.php` with the default `config.php`, without session or output).
+  `tests/bootstrap.php` with the default settings from `defaults.php`, without session or output).
+  `ConfigDefaultsTest` makes sure that `config.sample.php` and `defaults.php` have the same values, and that every
+  setting used by the code has a default.
   `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
@@ -39,7 +41,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
 - `tests/Integration`: the tests. `LocaleTest` runs the main views with every locale file (the data set name is
   the locale, set with `W2_LOCALE`); `LocaleEscapingTest` uses a generated locale with markup in its texts. To test with another configuration, override
   `configOverrides()` in the test class; it returns values for the constants defined in
-  `config.php` (or `$allowedIPs`).
+  `config.sample.php` (or `$allowedIPs`); `serverOptions()` can give the code of a `config.php` with only a few
+  settings, or no `config.php` (`config` option, see `AppServer::get()`).
 
 The git integration is tested with the server options `git` and `gitRemote` (see `AppServer::get()`):
 they make the pages folder of the test copy a git repository (with a local bare repository as `origin`),

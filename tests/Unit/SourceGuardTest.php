@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class SourceGuardTest extends TestCase
 {
-	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'config.php'];
+	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php'];
 
 	/** Functions which run code or commands, or are otherwise dangerous with user input */
 	private const FORBIDDEN_FUNCTIONS = [

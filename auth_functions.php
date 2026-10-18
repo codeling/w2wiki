@@ -67,8 +67,8 @@ function ipMatches($ip, $allowed)
  */
 function isCorrectPassword($password, $passwordHash = null, $plainPassword = null)
 {
-	$passwordHash ??= defined('W2_PASSWORD_HASH') ? W2_PASSWORD_HASH : '';
-	$plainPassword ??= defined('W2_PASSWORD') ? W2_PASSWORD : '';
+	$passwordHash ??= W2_PASSWORD_HASH;
+	$plainPassword ??= W2_PASSWORD;
 	if ( !is_string($password) || $password === '' )
 	{
 		return false;
@@ -93,7 +93,7 @@ function isCorrectPassword($password, $passwordHash = null, $plainPassword = nul
  */
 function isLegacyPasswordHash($passwordHash = null)
 {
-	$passwordHash ??= defined('W2_PASSWORD_HASH') ? W2_PASSWORD_HASH : '';
+	$passwordHash ??= W2_PASSWORD_HASH;
 	return $passwordHash !== '' && password_get_info($passwordHash)['algoName'] === 'unknown';
 }
 

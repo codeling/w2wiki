@@ -2,7 +2,16 @@
 define('W2APP', true);
 
 require_once "functions.php";
-require_once "config.php";
+// User configurable options (see index.php):
+if ( is_file(__DIR__ . '/config.php') )
+{
+	require_once __DIR__ . '/config.php';
+}
+else
+{
+	$w2ConfigMissing = true;
+}
+require_once __DIR__ . '/defaults.php';
 require_once "auth.php";
 
 header('Content-Type: application/json');
