@@ -158,6 +158,48 @@ function fileNameForPage($page)
 }
 
 /**
+ * Replace the content of a file (a page) in one step: the text is written to a temporary file in the same folder,
+ * which then takes the place of the file. Readers (and a git command running at the same time) see either the old
+ * or the new text, never half of a write, and a write which fails (e.g. a full disk) keeps the old text.
+ * The permissions of an existing file are kept; if the file is a symbolic link, the file it points to is replaced.
+ *
+ * return bool	whether the file was written
+ */
+function writeFileAtomically($filename, $text)
+{
+	if ( is_link($filename) )
+	{
+		$target = realpath($filename);
+		if ( $target === false )
+		{
+			return false;
+		}
+		$filename = $target;
+	}
+	// (a hidden name: never a page, and not listed or found while it exists)
+	$temp = @tempnam(dirname($filename), '.w2-write-');
+	if ( $temp === false )
+	{
+		return false;
+	}
+	$mode = is_file($filename) ? (fileperms($filename) & 0777) : (0666 & ~umask());
+	if ( file_put_contents($temp, $text) !== strlen($text) || !chmod($temp, $mode) || !rename($temp, $filename) )
+	{
+		@unlink($temp);
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Save the text of a page (see writeFileAtomically()); the folder of the page has to exist
+ */
+function writePage($page, $text)
+{
+	return writeFileAtomically(fileNameForPage($page), $text);
+}
+
+/**
  * Whether the page of this action contains the editor (text area, save button
  * and formatting help), and needs its script wiki.js
  */
