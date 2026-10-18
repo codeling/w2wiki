@@ -41,11 +41,43 @@ final class RegressionTest extends AppTestCase
 		$this->assertStringContainsString('</html>', $response->body);
 	}
 
-	public function testSidebarIsShownOnAllPages(): void
+	public static function viewsWithSidebar(): array
 	{
-		$body = $this->http->get('/index.php/MarkdownSyntax')->body;
+		return [
+			'page' => ['/index.php/MarkdownSyntax'],
+			'all pages' => ['/index.php?action=all'],
+			'search' => ['/index.php?action=search&q=home'],
+		];
+	}
+
+	#[DataProvider('viewsWithSidebar')]
+	public function testSidebarIsShownWhenReadingAndBrowsing(string $url): void
+	{
+		$body = $this->http->get($url)->body;
 		$this->assertStringContainsString('<div class="sidebar">', $body);
 		$this->assertStringContainsString('href="/index.php/Home"', $body);
+	}
+
+	public static function viewsWithoutSidebar(): array
+	{
+		return [
+			'edit' => ['/index.php?action=edit&page=Home'],
+			'new page' => ['/index.php?action=new'],
+			'missing page (editor)' => ['/index.php/Nonexistent'],
+			'upload' => ['/index.php?action=upload'],
+			'rename' => ['/index.php?action=rename&page=Home'],
+			'delete' => ['/index.php?action=delete&page=Home'],
+			'image rename' => ['/index.php?action=imgRename&imgName=a.gif&prevpage=Home'],
+			'image delete' => ['/index.php?action=imgDelete&imgName=a.gif&prevpage=Home'],
+		];
+	}
+
+	#[DataProvider('viewsWithoutSidebar')]
+	public function testSidebarIsNotShownInEditorsAndForms(string $url): void
+	{
+		$body = $this->http->get($url)->body;
+		$this->assertStringContainsString('<div class="main">', $body);
+		$this->assertStringNotContainsString('<div class="sidebar">', $body);
 	}
 
 	public function testMarkdownIsRendered(): void

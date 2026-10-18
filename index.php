@@ -1139,7 +1139,7 @@ if (isEditorAction($action))
 	printDrawer();
 }
 print "    </div>\n";
-if (SIDEBAR_PAGE != '')
+if (SIDEBAR_PAGE != '' && showsSidebar($action))
 {
 	print "    <div class=\"sidebar\">\n\n";
 	$sidebarFile = fileNameForPage(SIDEBAR_PAGE);

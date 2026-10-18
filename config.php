@@ -78,7 +78,8 @@ define('CSS_FILE', 'index.css');
 
 // SIDEBAR_FILE
 //
-// The name of the page to be shown as sidebar (leave empty to disable sidebar feature)
+// The name of the page to be shown as sidebar (leave empty to disable sidebar feature);
+// it is shown when viewing pages, in the page list and in search results, not in the editor or other forms
 define ('SIDEBAR_PAGE', '_sidebar');
 
 // PAGE_TITLE
