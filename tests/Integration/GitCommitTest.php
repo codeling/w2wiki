@@ -32,6 +32,14 @@ final class GitCommitTest extends GitTestCase
 		$this->assertSame("M\tHome.md", $this->lastCommitChanges());
 	}
 
+	public function testSavingWithoutChangesCreatesNoCommitAndNoError(): void
+	{
+		$this->noteAfter($this->savePage('Home', 'changed text', false));
+		$note = $this->noteAfter($this->savePage('Home', 'changed text', false));
+		$this->assertStringNotContainsString('git', $note);
+		$this->assertSame(2, $this->commitCount());
+	}
+
 	public function testMessageOfEditorIsPartOfTheCommitMessage(): void
 	{
 		$this->savePageWithMessage('Home', 'changed text', 'fixed a typo', false);
