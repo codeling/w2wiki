@@ -54,7 +54,7 @@ Automated tests (PHPUnit, run against a private copy of the wiki) are described 
 
 In its current form, W2 wiki is not security-hardened; it's recommended to only run on an additionally secured server (e.g. in a small, private network for one user only; and secured behind a VPN and/or HTTPS with basic authentication).
 
-**By default, there is no authentication at all** (`REQUIRE_PASSWORD` is `false` in `config.php`): everybody who can reach the wiki can read and edit all pages, and upload and delete files. This is meant for a wiki on a private computer or network. Recommended setups if the wiki can be reached by others:
+**By default, there is no authentication at all** (`REQUIRE_PASSWORD` defaults to `false`, see `config.sample.php`): everybody who can reach the wiki can read and edit all pages, and upload and delete files. This is meant for a wiki on a private computer or network. Recommended setups if the wiki can be reached by others:
 
 - Always serve it over HTTPS.
 - Either set `REQUIRE_PASSWORD` to `true` and store a hash of your password (created with `password_hash`) in `W2_PASSWORD_HASH`, see the [installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md). There is only this one password for everybody. Failed logins are limited (lockouts that grow with every failure, and a limit over all clients). Unsalted SHA-1 password hashes are deprecated and will stop working in a future version.
