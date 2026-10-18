@@ -235,14 +235,36 @@ function gitChangeHandler($commitmsg, &$msg)
 	}
 	// (not while a pull is running)
 	$lock = gitLock(true);
-	if (checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git add -A && git commit -m ".escapeshellarg($commitmsg)))
+	$cd = "cd ".escapeshellarg(PAGES_PATH)." && ";
+	if (checkedExecute($msg, $cd."git add -A") && gitHasStagedChanges($msg)
+		&& checkedExecute($msg, $cd."git commit -m ".escapeshellarg($commitmsg)))
 	{
 		if (GIT_PUSH_ENABLED)
 		{
-			checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
+			checkedExecute($msg, $cd."git push");
 		}
 	}
 	gitUnlock($lock);
+}
+
+// Whether there is anything to commit (nothing, e.g., if a page was saved without changes).
+// Reports an error in $msg if that could not be determined.
+function gitHasStagedChanges(&$msg)
+{
+	$cmd = "cd ".escapeshellarg(PAGES_PATH)." && git diff --cached --quiet";
+	$returnValue = 0;
+	$output = array();
+	exec($cmd, $output, $returnValue);
+	if ($returnValue == 1)
+	{
+		return true;
+	}
+	if ($returnValue != 0)
+	{
+		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
+	}
+	return false;
 }
 
 // Return value of the pull command if the changes could not be merged
