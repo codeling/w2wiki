@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 const { expect } = require('@playwright/test');
 
 const svgBase = () => process.env.W2_SVG_URL || 'http://127.0.0.1:8091';

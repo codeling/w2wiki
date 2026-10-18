@@ -1,6 +1,8 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 
 /**
+ * SPDX-License-Identifier: MIT
+ *
  * Locale set
  *
  * Do not change variable name $w2_word_set.

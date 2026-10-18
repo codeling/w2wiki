@@ -35,6 +35,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
+  `FileHeaderTest` makes sure that every source file has an `SPDX-License-Identifier` (see "License" in `README.md`).
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
   `locales/en.php` only has entries that differ from their key (`__()` returns the key for texts without entry).
   Texts of the code (`__()` calls) missing in the other languages are only reported as "incomplete".

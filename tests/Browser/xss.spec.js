@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Attempts to run scripts through page content, page names, search and uploaded file names
 const { execFileSync } = require('child_process');
 const path = require('path');

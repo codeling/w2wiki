@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * W2
+ *
+ * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
+ * (local drafts, warning about unsaved changes).
+ */
 
 function toggleDrawer()
 {

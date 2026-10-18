@@ -1,4 +1,5 @@
 <?php
+// SPDX-License-Identifier: MIT
 
 // Makes the wiki's functions available to unit tests (in the same way as index.php does, but
 // without any session handling or output), using the default settings (defaults.php)

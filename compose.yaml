@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 # Docker Compose / Podman Compose: `docker compose up -d` (or `podman compose up -d`)
 # then open http://localhost:8080 . See "Running in a container" in INSTALL.md.
 services:

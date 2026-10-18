@@ -1,12 +1,14 @@
 <?php
 define('W2APP', true);
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * Copyright (C) 2007-2011 Steven Frank <http://stevenf.com/>
  *
  * Code may be re-used as long as the above copyright notice is retained.
- * See README.txt for full details.
+ * See README.md for full details.
  *
  * Written with Coda: <http://panic.com/coda/>
  *

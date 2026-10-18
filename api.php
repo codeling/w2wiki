@@ -1,5 +1,13 @@
 <?php
 define('W2APP', true);
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * W2
+ *
+ * JSON interface for the scripts of the wiki's own pages (index.php is the other entry point):
+ * answers whether an upload with a given name already exists.
+ */
 
 require_once "functions.php";
 // User configurable options (see index.php):

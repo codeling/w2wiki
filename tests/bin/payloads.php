@@ -1,4 +1,5 @@
 <?php
+// SPDX-License-Identifier: MIT
 
 // Prints the Markdown texts trying to inject scripts (from the PHP tests) as JSON, for the browser tests
 

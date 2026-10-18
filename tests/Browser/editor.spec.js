@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Leaving the editor with changes which were not saved must not lose them silently
 const { test, expect } = require('@playwright/test');
 const { savePage } = require('./helpers');

@@ -1,5 +1,7 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * Copyright (C) 2007-2009 Steven Frank <http://stevenf.com/>

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 # Builds the container image (Containerfile) and smoke-tests it; the web server rules are tested
 # against it by the "server" job in tests.yml. On the main branch and for version tags, the image is
 # published to the GitHub Container Registry (no extra secrets: it uses the token of the workflow).

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // SVG files which were uploaded before sanitizing existed (or put in the uploads folder otherwise) can contain
 // scripts. The web server rules make browsers ignore them; this needs the wiki to be served by Apache or nginx:
 //   W2_BROWSER=1 tests/Server/run.sh apache

@@ -1,5 +1,7 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * Session handling, IP restriction and password checks, shared by all entry
