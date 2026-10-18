@@ -167,6 +167,16 @@ function isEditorAction($action)
 }
 
 /**
+ * Whether the sidebar is shown on the page of this action: only where the
+ * wiki is read or browsed, not where a task is done in a form (editing,
+ * creating, uploading, renaming or deleting), which needs the whole width
+ */
+function showsSidebar($action)
+{
+	return $action === 'view' || $action === 'all' || $action === 'search';
+}
+
+/**
  * The file used to serialize git commands in the pages folder, which also
  * holds the time of the last pull attempt (in the system's temporary folder)
  */
