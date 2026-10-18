@@ -43,7 +43,8 @@ function printHeader($title, $action, $bodyclass="")
 	print "    <meta charset=\"" . W2_CHARSET . "\">\n";
 	print "    <link rel=\"apple-touch-icon\" href=\"" . assetURL("w2-icons/w2-icon.png") . "\"/>\n";
 	print "    <link rel=\"icon\" href=\"" . assetURL("w2-icons/w2-icon.png") . "\"/>\n";
-	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n";
+	// (in the editor, the page shrinks to the space above the on-screen keyboard, to keep Save in reach)
+	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1" . (isEditorAction($action) ? ", interactive-widget=resizes-content" : "") . "\" />\n";
 	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . assetURL(CSS_FILE) ."\" />\n";
 	print "    <title>".PAGE_TITLE."$title</title>\n";
 	if (isEditorAction($action))
@@ -482,7 +483,7 @@ if ( isEditorAction($action) )
 
 	}
 
-	$html .= "<p><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
+	$html .= "<p class=\"editorbox\"><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
 	if (GIT_COMMIT_ENABLED)
 	{
 		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
@@ -1122,7 +1123,7 @@ else
 // Disable caching on the client (the iPhone is pretty agressive about this
 // and it can cause problems with the editing function)
 header("Cache-Control: no-store");
-printHeader($title, $action);
+printHeader($title, $action, isEditorAction($action) ? "editor" : "");
 print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
 if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
 {
