@@ -1,5 +1,7 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * Functions for access control: CSRF tokens, IP allowlist, passwords and the

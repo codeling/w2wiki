@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Browser tests: attempts to inject scripts, which must never run (see tests/README.md).
 //
 // The wiki is served by tests/bin/serve-app.php (twice: with and without SVG uploads), unless

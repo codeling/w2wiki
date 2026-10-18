@@ -68,6 +68,24 @@ SVG uploads are disabled by default, since SVG files can contain scripts; they c
 
 W2 is licensed under the [MIT license](https://github.com/codeling/w2wiki/blob/master/LICENSE).
 
+Every source file (PHP, JavaScript, CSS, shell scripts, workflows and the `Containerfile`) names its license
+with an [SPDX](https://spdx.dev/learn/handling-license-info/) identifier in the first lines:
+
+```php
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * W2
+ *
+ * What the file is for, in a sentence or two.
+ */
+```
+
+Files which only have a comment line start with `// SPDX-License-Identifier: MIT` (`# ...` in shell scripts, YAML
+and the `Containerfile`). Copyright notices of earlier authors stay in the files they were in. The bundled
+`Michelf/` files are [PHP Markdown](https://michelf.ca/projects/php-markdown/) and keep their own notices.
+`tests/Unit/FileHeaderTest.php` fails for a source file without the identifier.
+
 
 ## Acknowledgements
 

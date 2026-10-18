@@ -1,5 +1,7 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * Helper functions without side effects (nothing happens when this file is

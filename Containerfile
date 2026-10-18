@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 # W2 wiki on Apache with PHP. Build with Docker or Podman, from the root of the repository:
 #   docker build -f Containerfile -t w2wiki .      (podman finds the Containerfile by itself)
 # See "Running in a container" in INSTALL.md.

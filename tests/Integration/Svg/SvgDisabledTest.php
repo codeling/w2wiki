@@ -1,4 +1,5 @@
 <?php
+// SPDX-License-Identifier: MIT
 
 namespace W2\Tests\Integration\Svg;
 

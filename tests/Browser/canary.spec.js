@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Makes sure the helpers of the other tests really notice scripts: if the browser or the helpers were
 // broken, the other tests would pass without testing anything.
 const { test, expect } = require('@playwright/test');

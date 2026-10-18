@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
+
 # Prepares the pages volume, then starts the web server (or the given command).
 set -eu
 # files in the pages folder get 644/755 by default; W2_UMASK=002 or 000 is for folders shared with other users

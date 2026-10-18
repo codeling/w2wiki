@@ -1,5 +1,7 @@
 <?php if (!defined('W2APP')){ die('No direct access.'); }
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * W2
  *
  * The default value of every setting, used for the ones which config.php does

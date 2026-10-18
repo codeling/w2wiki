@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+
 # Runs the tests in tests/Server against the wiki served by a real web server in containers.
 #
 #   tests/Server/run.sh apache      # php:apache with the .htaccess files of W2

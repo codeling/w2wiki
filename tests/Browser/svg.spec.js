@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Uploaded SVG files are opened directly in the browser, where scripts in them would run in the origin of the wiki
 const fs = require('fs');
 const path = require('path');

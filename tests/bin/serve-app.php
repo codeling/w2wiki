@@ -1,4 +1,5 @@
 <?php
+// SPDX-License-Identifier: MIT
 
 // Serves a fresh copy of the wiki (with the test configuration) until the process is terminated.
 //

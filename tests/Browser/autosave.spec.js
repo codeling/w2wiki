@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Text typed into the editor is kept as a local draft, so it is not lost when the browser unloads the tab
 const { test, expect } = require('@playwright/test');
 const { csrfToken, savePage } = require('./helpers');
