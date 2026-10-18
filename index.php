@@ -240,7 +240,7 @@ function gitChangeHandler($commitmsg, &$msg)
 	{
 		return;
 	}
-	// (not while a pull is running)
+	// (not while a pull is running; the lock was usually taken before the change was made)
 	$lock = gitLock(true);
 	// (nothing to commit, e.g., if a page was saved without changes, is no error, and nothing to push)
 	$commit = "cd ".escapeshellarg(PAGES_PATH)." && git add -A && { ".
@@ -325,6 +325,11 @@ if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRename
 {
 	http_response_code(403);
 	die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
+}
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true))
+{
+	// (before anything is changed: a pull must not run between a change and its commit)
+	gitLockForChange();
 }
 if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 {

@@ -244,14 +244,37 @@ function gitPullInterval($action)
 }
 
 /**
+ * The lock held by this request and how often it was taken (see gitLock())
+ *
+ * @return array{0: resource|null, 1: int}
+ */
+function &gitLockState()
+{
+	static $state = array(null, 0);
+	return $state;
+}
+
+/**
  * Wait for the lock for git commands in the pages folder (if $wait), or
- * only take it if nobody else holds it.
+ * only take it if nobody else holds it. The lock is also held while pages
+ * and uploads are changed (see gitLockForChange()), so that a pull can't
+ * overwrite or conflict with a change which is not yet committed.
+ *
+ * A request can take the lock again while it holds it (e.g. to commit the
+ * changes it has made); it is released when gitUnlock() has been called for
+ * each time it was taken, or when the request ends.
  *
  * @return resource|null the lock to give to gitUnlock(), or null if it
  *                       can't be taken (the caller then goes on without)
  */
 function gitLock($wait)
 {
+	$state = &gitLockState();
+	if ( $state[0] !== null )
+	{
+		$state[1]++;
+		return $state[0];
+	}
 	$file = @fopen(gitSyncFile(), 'c+');
 	if ( $file === false )
 	{
@@ -263,16 +286,39 @@ function gitLock($wait)
 		fclose($file);
 		return null;
 	}
+	$state = array($file, 1);
 	return $file;
 }
 
+/**
+ * Release a lock from gitLock() (it is held until this has been called as often as the lock was taken)
+ */
 function gitUnlock($lock)
 {
-	if ( $lock !== null )
+	$state = &gitLockState();
+	if ( $lock === null || $lock !== $state[0] )
 	{
-		flock($lock, LOCK_UN);
-		fclose($lock);
+		return;
 	}
+	if ( --$state[1] > 0 )
+	{
+		return;
+	}
+	flock($lock, LOCK_UN);
+	fclose($lock);
+	$state = array(null, 0);
+}
+
+/**
+ * Take the lock before pages or uploads are changed, if changes are committed to git: a pull
+ * running at the same time could otherwise overwrite the change, or fail because of it. The lock
+ * is held until the request ends (the changes are committed before that, see gitChangeHandler()).
+ *
+ * @return resource|null
+ */
+function gitLockForChange()
+{
+	return GIT_COMMIT_ENABLED ? gitLock(true) : null;
 }
 
 /**
