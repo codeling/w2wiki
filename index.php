@@ -423,8 +423,8 @@ if ( $action == 'save' )
 		{
 			mkdir(dirname($filename), 0755, true);
 		}
-		$success = file_put_contents($filename, $newText);
-		if ( $success === FALSE)
+		$success = writeFileAtomically($filename, $newText);
+		if ( !$success )
 		{
 			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
 			w2Log("error saving $filename");
@@ -897,8 +897,14 @@ else if ( $action === 'renamed' || $action === 'deleted')
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
-				file_put_contents(fileNameForPage($replacePage), $newContent);
+				if ( writePage($replacePage, $newContent) )
+				{
+					$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+				}
+				else
+				{
+					w2Log("error updating links in " . fileNameForPage($replacePage));
+				}
 			}
 		}
 		if (count($changedPages) > 0)
@@ -971,9 +977,15 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 				$content, -1, $count);
 			if ($count > 0) // if something changed
 			{
-				$changedPages[] = h($replacePage)." ($count ".__('matches').")";
-				$changedPageNames[] = $replacePage;
-				file_put_contents(fileNameForPage($replacePage), $newContent);
+				if ( writePage($replacePage, $newContent) )
+				{
+					$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+					$changedPageNames[] = $replacePage;
+				}
+				else
+				{
+					w2Log("error updating links in " . fileNameForPage($replacePage));
+				}
 			}
 		}
 		if (count($changedPages) > 0)
