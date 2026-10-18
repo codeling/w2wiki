@@ -149,6 +149,14 @@ textarea {
 	padding: 2px;
 }
 
+/* keep Save and Cancel within reach, also on small screens where the form can be taller than the visible area */
+.editactions {
+	position: sticky;
+	bottom: 0;
+	padding: .5em 0;
+	background-color: #eeeeee;
+}
+
 input#gitmsg {
 	width: 60%;
 }

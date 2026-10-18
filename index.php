@@ -473,7 +473,7 @@ if ( isEditorAction($action) )
 		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
 	}
 
-	$html .= "<p><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
+	$html .= "<p class=\"editactions\"><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
 	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
 	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
 	$html .= '<input id="cancel" type="button" onclick="'.HANDLER_GO_BACK.'" value="'. __('Cancel') .'" />'."\n";
