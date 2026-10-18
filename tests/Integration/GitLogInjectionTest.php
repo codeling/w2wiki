@@ -15,11 +15,11 @@ final class GitLogInjectionTest extends GitTestCase
 	public function testLineBreaksInCommitMessagesCannotForgeLogEntries(): void
 	{
 		$logSize = $this->server->logSize();
-		// nothing changed, so "git commit" fails, and the failing command (with the message) is logged
-		$response = $this->postAction('save', [
-			'page' => 'Home', 'isNew' => '', 'newText' => $this->pageText('Home'),
+		// "git commit" fails, and the failing command (with the message) is logged
+		$response = $this->whileCommitsFail(fn() => $this->postAction('save', [
+			'page' => 'Home', 'isNew' => '', 'newText' => 'changed text',
 			'gitmsg' => "first\nW2: forged log entry\r\nsecond",
-		]);
+		]));
 		$this->assertSame(303, $response->status);
 
 		$log = $this->server->logSince($logSize);

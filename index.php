@@ -212,12 +212,13 @@ function redirectWithMessage($page, $msg)
 }
 
 // $knownErrors: messages (HTML) for return values which have a meaning of their own, by return value
-function checkedExecute(&$msg, $cmd, $knownErrors = array())
+// $silentReturnValues: return values which are no error, but still mean the command did not succeed
+function checkedExecute(&$msg, $cmd, $knownErrors = array(), $silentReturnValues = array())
 {
 	$returnValue = 0;
 	$output = '';
 	exec($cmd, $output, $returnValue);
-	if ($returnValue != 0)
+	if ($returnValue != 0 && !in_array($returnValue, $silentReturnValues))
 	{
 		// details (command, output) may reveal server internals, so only log them
 		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
@@ -227,6 +228,9 @@ function checkedExecute(&$msg, $cmd, $knownErrors = array())
 	return ($returnValue == 0);
 }
 
+// Return value of the commit command if there is nothing to commit
+const GIT_NOTHING_TO_COMMIT = 4;
+
 function gitChangeHandler($commitmsg, &$msg)
 {
 	if (!GIT_COMMIT_ENABLED)
@@ -235,36 +239,18 @@ function gitChangeHandler($commitmsg, &$msg)
 	}
 	// (not while a pull is running)
 	$lock = gitLock(true);
-	$cd = "cd ".escapeshellarg(PAGES_PATH)." && ";
-	if (checkedExecute($msg, $cd."git add -A") && gitHasStagedChanges($msg)
-		&& checkedExecute($msg, $cd."git commit -m ".escapeshellarg($commitmsg)))
+	// (nothing to commit, e.g., if a page was saved without changes, is no error, and nothing to push)
+	$commit = "cd ".escapeshellarg(PAGES_PATH)." && git add -A && { ".
+		"if git diff --cached --quiet; then exit ".GIT_NOTHING_TO_COMMIT."; fi; ".
+		"git commit -m ".escapeshellarg($commitmsg)."; }";
+	if (checkedExecute($msg, $commit, array(), array(GIT_NOTHING_TO_COMMIT)))
 	{
 		if (GIT_PUSH_ENABLED)
 		{
-			checkedExecute($msg, $cd."git push");
+			checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
 		}
 	}
 	gitUnlock($lock);
-}
-
-// Whether there is anything to commit (nothing, e.g., if a page was saved without changes).
-// Reports an error in $msg if that could not be determined.
-function gitHasStagedChanges(&$msg)
-{
-	$cmd = "cd ".escapeshellarg(PAGES_PATH)." && git diff --cached --quiet";
-	$returnValue = 0;
-	$output = array();
-	exec($cmd, $output, $returnValue);
-	if ($returnValue == 1)
-	{
-		return true;
-	}
-	if ($returnValue != 0)
-	{
-		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
-		$msg .= "<br/>".sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue));
-	}
-	return false;
 }
 
 // Return value of the pull command if the changes could not be merged

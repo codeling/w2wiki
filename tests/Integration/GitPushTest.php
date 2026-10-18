@@ -42,8 +42,7 @@ final class GitPushTest extends GitTestCase
 
 	public function testNothingIsPushedWhenTheCommitFails(): void
 	{
-		// nothing changed, therefore "git commit" fails
-		$note = $this->noteAfter($this->savePage('Home', file_get_contents($this->pageFile('Home')), false));
+		$note = $this->whileCommitsFail(fn() => $this->noteAfter($this->savePage('Home', 'changed text', false)));
 		$this->assertStringContainsString('Error executing git command (return value: 1)', $note);
 		$this->assertSame(1, $this->commitCount());
 	}

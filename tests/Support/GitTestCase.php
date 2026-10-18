@@ -35,6 +35,19 @@ abstract class GitTestCase extends AppTestCase
 		return $this->postAction('deleted', ['oldPageName' => $name]);
 	}
 
+	/** Runs $action while "git commit" fails, although there is something to commit (a hook rejects it) */
+	protected function whileCommitsFail(callable $action): mixed
+	{
+		$hook = $this->server->pagesDir() . '/.git/hooks/pre-commit';
+		file_put_contents($hook, "#!/bin/sh\nexit 1\n");
+		chmod($hook, 0755);
+		try {
+			return $action();
+		} finally {
+			unlink($hook);
+		}
+	}
+
 	protected function commitCount(): int
 	{
 		return (int)$this->server->git('rev-list --count HEAD');
