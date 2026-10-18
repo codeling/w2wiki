@@ -149,6 +149,49 @@ textarea {
 	padding: 2px;
 }
 
+/*
+ * The editor uses the whole window: the text area takes all the space which the other elements leave,
+ * so there is a single scrollbar (the one of the text area) unless the window is really tiny.
+ */
+body.editor {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	height: 100dvh;
+}
+body.editor > * {
+	flex: none;
+}
+body.editor > .main {
+	flex: 1 1 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+body.editor form#edit {
+	flex: 1 1 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+body.editor form#edit > * {
+	flex: none;
+}
+body.editor form#edit > .editorbox {
+	flex: 1 1 0;
+	min-height: 8em;
+	display: flex;
+}
+body.editor .editorbox textarea {
+	flex: 1;
+	width: auto;
+	min-width: 0;
+	resize: none;
+}
+body.editor .note {
+	width: auto;
+}
+
 /* keep Save and Cancel within reach, also on small screens where the form can be taller than the visible area */
 .editactions {
 	position: sticky;

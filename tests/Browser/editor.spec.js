@@ -85,3 +85,21 @@ test('existing page: the formatting help still works', async ({ page }) => {
   await page.click('#drawer-control');
   await expect(page.locator('#drawer')).not.toHaveClass(/inactive/);
 });
+
+for (const [label, size] of [['desktop', { width: 1280, height: 800 }], ['phone', { width: 390, height: 700 }]]) {
+  test(`${label}: the text area fills the window, with a single scrollbar inside of it`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/index.php?action=new');
+    await page.fill('#text', Array.from({ length: 300 }, (_, i) => 'line ' + i).join('\n'));
+    const box = await page.locator('#text').boundingBox();
+    const save = await page.locator('#save').boundingBox();
+    expect(box.x + box.width).toBeGreaterThan(size.width - 30);
+    expect(save.y + save.height).toBeLessThanOrEqual(size.height);
+    expect(box.y + box.height).toBeLessThanOrEqual(save.y);
+    expect(save.y - (box.y + box.height)).toBeLessThan(40);
+    const overflow = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+    expect(overflow).toBeLessThanOrEqual(0);
+    const textarea = await page.evaluate(() => { const t = document.getElementById('text'); return t.scrollHeight > t.clientHeight; });
+    expect(textarea).toBe(true);
+  });
+}
