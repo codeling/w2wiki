@@ -227,6 +227,14 @@ own, which apply first and are not detected by W2: `client_max_body_size` in
 nginx (default 1 MB) and `LimitRequestBody` in Apache. Raise them together, e.g.
 `client_max_body_size 20m;` for `upload_max_filesize = 16M` and `post_max_size = 20M`.
 
+### Image processing
+
+Shrinking uploaded images, applying their EXIF rotation and converting formats
+(`IMAGE_EXTS_TO_CONVERT`, by default HEIC/HEIF to JPEG) need the PHP extension
+`imagick`. Without it, W2 stores images as they are and the upload form has no
+shrink option; images which have to be converted (HEIC/HEIF by default) are
+refused with a message.
+
 ### SVG uploads
 
 SVG files can contain scripts, which would run in the context of the wiki when

@@ -529,10 +529,12 @@ else if ( $action === 'upload' )
 			'<input id="file" type="file" name="userfile" />'."\n".
 			'<label for="newname">'.__('Save as').'</label> '.
 			'<input id="newname" type="text" name="newname" placeholder="'.h(__('Keep file name')).'" />'."\n".
-			'<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
-			'<label for="resize">'.__('Shrink if larger than ').'</label>'.
-			'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
-			'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>'.
+			(imageProcessingAvailable()
+				? ('<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
+					'<label for="resize">'.__('Shrink if larger than ').'</label>'.
+					'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
+					'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>')
+				: '').
 			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
 			"\n</p></form>\n";
 		$html .= '<script type="application/javascript" nonce="'.cspNonce().'">'."\n".
@@ -704,13 +706,28 @@ else if ( $action === 'uploaded' )
 		$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
 		// never let ImageMagick parse SVG files (external references, delegates)
 		$doProcess = in_array($fileExt, ImageExtensions) && $fileExt !== 'svg' && ($doConvert || $doResize);
+		// (without the imagick extension, images are stored as they are, unless they have to be converted)
+		$resizeSkipped = false;
+		$conversionImpossible = false;
+		if ($doProcess && !imageProcessingAvailable())
+		{
+			$conversionImpossible = $doConvert;
+			$resizeSkipped = !$doConvert;
+			$doProcess = false;
+			$doResize = false;
+		}
 		$pathNoExt = substr($path, 0, strlen($path)-strlen($fileExt)-1);
 		$finalPath = ($doProcess && $doConvert) ? ($pathNoExt.".".CONVERT_FORMAT) : $path;
 		if ($doProcess)
 		{
 			$path = $pathNoExt . "-tmp-process." . $fileExt;
 		}
-		if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
+		if ( $conversionImpossible )
+		{
+			w2Log("can't convert the upload $dstName: the PHP extension imagick is not installed");
+			$msg .= __('Upload error').": ".sprintf(__('%s needs to be converted to %s, which requires the PHP extension imagick; it is not installed on this server.'), h($dstName), h(CONVERT_FORMAT));
+		}
+		else if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
 		{
 			$msg .= __('Upload error').": ".sprintf(__('%s already exists!'), h(basename($finalPath)));
 		}
@@ -719,6 +736,10 @@ else if ( $action === 'uploaded' )
 			$commitMsg = "File '$dstName' uploaded!";
 			$msg .= sprintf(__("File '%s' uploaded!"), h($dstName))." ";
 			$processFailed = false;
+			if ($resizeSkipped)
+			{
+				$msg .= __('The image was not shrunk or rotated: the PHP extension imagick is not installed on this server.')." ";
+			}
 			if ($doProcess)
 			{
 				try

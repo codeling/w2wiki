@@ -520,6 +520,15 @@ function uploadTypeMatchesExt($type, $ext)
 }
 
 /**
+ * Whether uploaded images can be shrunk, rotated and converted: needs the PHP extension imagick
+ * (which not every installation has). Without it, such uploads are stored as they are.
+ */
+function imageProcessingAvailable()
+{
+	return extension_loaded('imagick') && class_exists('Imagick');
+}
+
+/**
  * Prefix for the file name given to ImageMagick, which forces the format instead of guessing it from
  * the content of the file ("png:/path/file.png")
  */
