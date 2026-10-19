@@ -480,10 +480,34 @@ function sanitizeUploadedSvg($tmpName)
 	$sanitizer = new enshrined\svgSanitize\Sanitizer();
 	$sanitizer->removeRemoteReferences(true);
 	$sanitizer->minify(true);
+	return sanitizeSvgText((string)file_get_contents($tmpName), $sanitizer);
+}
+
+/**
+ * Run the SVG sanitizer on the text of an SVG file. Whatever goes wrong inside the library (it doesn't
+ * only return false for broken files: version 1.1.0 throws a ValueError for some of them), the file is
+ * refused, never stored, and the request goes on.
+ *
+ * @param object $sanitizer	an enshrined\svgSanitize\Sanitizer, set up for the wiki
+ * return String|false		cleaned up SVG, or false if the text isn't a valid SVG file
+ */
+function sanitizeSvgText($svg, $sanitizer)
+{
 	$previousLibxmlSetting = libxml_use_internal_errors(true);
-	$clean = $sanitizer->sanitize(file_get_contents($tmpName));
-	libxml_clear_errors();
-	libxml_use_internal_errors($previousLibxmlSetting);
+	try
+	{
+		$clean = $sanitizer->sanitize($svg);
+	}
+	catch ( \Throwable $e )
+	{
+		w2Log("SVG upload rejected: the SVG sanitizer failed: " . get_class($e) . ": " . $e->getMessage());
+		return false;
+	}
+	finally
+	{
+		libxml_clear_errors();
+		libxml_use_internal_errors($previousLibxmlSetting);
+	}
 	if ( !is_string($clean) || trim($clean) === '' )
 	{
 		w2Log("SVG upload rejected: not a valid SVG file");
