@@ -1188,7 +1188,10 @@ if ( REQUIRE_PASSWORD )
 {
 	print "      <a href=\"" . SELF . "?action=logout&amp;csrf_token=" . urlencode(csrfToken()) . "\">". __('Log out') . "</a>";
 }
-print "      <form method=\"post\" action=\"" . SELF . "?action=search\">\n";
+// (a GET request: the address of the results can be bookmarked and shared, and reloading them doesn't ask
+// to send the form again; the action is a field of the form, as a query in "action" would be dropped)
+print "      <form method=\"get\" action=\"" . SELF . "\">\n";
+print "        <input type=\"hidden\" name=\"action\" value=\"search\" />\n";
 print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
 if (isEditorAction($action))
 {
