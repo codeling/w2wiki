@@ -102,6 +102,8 @@ What the container tests found out (and the Containerfile does, see "Running in 
 browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP tests use), uploaded
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
+The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`)
+and the search box of the toolbar (`search.spec.js`).
 
 ```
 cd tests/Browser
