@@ -30,6 +30,7 @@ defined('VALID_UPLOAD_TYPES') || define('VALID_UPLOAD_TYPES', 'application/pdf,i
 defined('VALID_UPLOAD_EXTS') || define('VALID_UPLOAD_EXTS', 'bmp,gif,heic,heif,jpg,jpeg,pdf,png,webp');
 defined('SVG_UPLOADS_ENABLED') || define('SVG_UPLOADS_ENABLED', false);
 defined('SHOW_PAGES_WHERE_FILE_USED') || define('SHOW_PAGES_WHERE_FILE_USED', true);
+defined('IMAGE_PROCESSING_ENABLED') || define('IMAGE_PROCESSING_ENABLED', true);
 defined('IMAGE_EXTS_TO_CONVERT') || define('IMAGE_EXTS_TO_CONVERT', 'heic,heif');
 defined('MAX_IMAGE_PIXELS') || define('MAX_IMAGE_PIXELS', 100000000);
 defined('CONVERT_FORMAT') || define('CONVERT_FORMAT', 'jpg');

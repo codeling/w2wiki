@@ -6,19 +6,15 @@ namespace W2\Tests\Integration;
 use W2\Tests\Support\AppTestCase;
 
 /**
- * Uploads on a server without the Imagick extension (simulated with disable_classes, as the extension may be installed):
- * images are stored as they are, unless they have to be converted, which is refused with a message, not a fatal error.
+ * Uploads on a server without image processing: images are stored as they are, unless they have to be converted,
+ * which is refused with a message, not a fatal error. IMAGE_PROCESSING_ENABLED = false has the same effect as a
+ * missing Imagick extension (which can't be removed from a server which has it, and "disable_classes" leaves the class).
  */
 final class NoImagickTest extends AppTestCase
 {
 	protected function configOverrides(): array
 	{
-		return ['IMAGE_EXTS_TO_CONVERT' => 'heic,heif,gif'];
-	}
-
-	protected function serverOptions(): array
-	{
-		return ['phpIni' => ['disable_classes' => 'Imagick']];
+		return ['IMAGE_EXTS_TO_CONVERT' => 'heic,heif,gif', 'IMAGE_PROCESSING_ENABLED' => false];
 	}
 
 	public function testUploadFormOffersNoShrinkingWithoutImagick(): void

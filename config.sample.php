@@ -133,6 +133,13 @@ define('SVG_UPLOADS_ENABLED', false);
 // With many pages and image files, this can take some time to determine and therefore slow down loading the list of uploads!
 define('SHOW_PAGES_WHERE_FILE_USED', true);
 
+// IMAGE_PROCESSING_ENABLED
+//
+// Shrink, rotate (by their EXIF data) and convert uploaded images with ImageMagick (PHP extension imagick).
+// Without the extension, or if this is false, images are stored as they are, and images which need
+// to be converted (see IMAGE_EXTS_TO_CONVERT) are refused.
+define('IMAGE_PROCESSING_ENABLED', true);
+
 // IMAGE_EXTS_TO_CONVERT
 // uploaded images with these extensions need to be converted to another format (see also CONVERT_FORMAT)
 define('IMAGE_EXTS_TO_CONVERT', 'heic,heif');

@@ -724,8 +724,8 @@ else if ( $action === 'uploaded' )
 		}
 		if ( $conversionImpossible )
 		{
-			w2Log("can't convert the upload $dstName: the PHP extension imagick is not installed");
-			$msg .= __('Upload error').": ".sprintf(__('%s needs to be converted to %s, which requires the PHP extension imagick; it is not installed on this server.'), h($dstName), h(CONVERT_FORMAT));
+			w2Log("can't convert the upload $dstName: image processing is not available");
+			$msg .= __('Upload error').": ".sprintf(__('%s needs to be converted to %s, but image processing (the PHP extension imagick) is not available on this server.'), h($dstName), h(CONVERT_FORMAT));
 		}
 		else if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
 		{
@@ -738,7 +738,7 @@ else if ( $action === 'uploaded' )
 			$processFailed = false;
 			if ($resizeSkipped)
 			{
-				$msg .= __('The image was not shrunk or rotated: the PHP extension imagick is not installed on this server.')." ";
+				$msg .= __('The image was not shrunk or rotated: image processing (the PHP extension imagick) is not available on this server.')." ";
 			}
 			if ($doProcess)
 			{
