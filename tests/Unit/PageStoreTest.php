@@ -111,9 +111,16 @@ final class PageStoreTest extends TestCase
 		$this->put('uploads/image.md');
 		$this->put('sub/uploads/Kept.md');
 		mkdir("$this->root/empty");
-		$names = $this->store->names();
-		sort($names);
-		$this->assertSame(['Home', 'Other page', 'sub/Page', 'sub/deeper/Leaf', 'sub/uploads/Kept'], $names);
+		$this->assertSame(['Home', 'Other page', 'sub/deeper/Leaf', 'sub/Page', 'sub/uploads/Kept'], $this->store->names());
+	}
+
+	public function testNamesAreInNaturalOrderWithoutRegardToCase(): void
+	{
+		// (created in an order which is neither alphabetical nor reversed)
+		foreach (['Page 10', 'b', 'Page 9', 'a/z', 'B', 'A', 'a', 'page 2'] as $name) {
+			$this->put("$name.md");
+		}
+		$this->assertSame(['A', 'a', 'a/z', 'B', 'b', 'page 2', 'Page 9', 'Page 10'], $this->store->names());
 	}
 
 	public function testNamesOfAnEmptyOrMissingFolder(): void

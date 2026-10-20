@@ -115,13 +115,16 @@ final class PageStore
 	}
 
 	/**
-	 * The names of all pages, including those in subfolders (in the order of the file system)
+	 * The names of all pages, including those in subfolders, in natural order without regard to case ("page 2"
+	 * before "Page 10"). The order doesn't depend on the file system, which lists files in any order.
 	 *
 	 * @return string[]
 	 */
 	public function names(): array
 	{
-		return $this->namesIn('');
+		$names = $this->namesIn('');
+		usort($names, fn(string $a, string $b) => strnatcasecmp($a, $b) ?: strcmp($a, $b));
+		return $names;
 	}
 
 	/** @return string[] names of the pages in a folder (given relative to the pages folder, "" for the pages folder) and below */
