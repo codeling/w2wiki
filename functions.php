@@ -18,8 +18,11 @@ if ( is_file(__DIR__ . '/vendor/autoload.php') )
 
 // Install PSR-4-compatible class autoloader
 spl_autoload_register(function($class){
+	// the classes of W2 (namespace W2) are in the folder src; others (like Michelf\Markdown) in the folder of their namespace
+	$class = ltrim($class, '\\');
+	$path = str_starts_with($class, 'W2\\') ? 'src' . DIRECTORY_SEPARATOR . substr($class, 3) : $class;
+	$file = __DIR__ . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $path) . '.php';
 	// don't fail fatally for unknown classes, so class_exists() can be used to probe for optional ones
-	$file = __DIR__ . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, ltrim($class, '\\')) . '.php';
 	if ( is_file($file) )
 	{
 		require $file;
@@ -72,35 +75,18 @@ function descLengthSort($val_1, $val_2)
 		-1 : ( ( $firstVal < $secondVal ) ? 1 : 0);
 }
 
-function getAllPageNames($path = "")
+/**
+ * The pages of the wiki (see W2\PageStore, which does the work)
+ */
+function pageStore()
 {
-	$filenames = array();
-	$dir = opendir(PAGES_PATH . "/$path" );
-	while ( $filename = readdir($dir) )
-	{
-		// (hidden files and folders, like .git, never contain pages)
-		if ( str_starts_with($filename, ".") )
-		{
-			continue;
-		}
-		if ( is_dir( PAGES_PATH . "/$path/$filename" ) )
-		{
-			if ( $path === "" && $filename === UPLOAD_FOLDER )
-			{
-				continue;
-			}
-			array_push($filenames, ...getAllPageNames( "$path/$filename" ) );
-			continue;
-		}
-		if ( !str_ends_with($filename, "." . PAGES_EXT) )
-		{
-			continue;
-		}
-		$filename = substr($filename, 0, -(strlen(PAGES_EXT)+1) );
-		$filenames[] = substr("$path/$filename", 1);
-	}
-	closedir($dir);
-	return $filenames;
+	static $store = null;
+	return $store ??= new W2\PageStore(PAGES_PATH, PAGES_EXT, UPLOAD_FOLDER);
+}
+
+function getAllPageNames()
+{
+	return pageStore()->names();
 }
 
 /**
@@ -156,7 +142,7 @@ function hasMalformedRequestData(array $get, array $post, array $server, array $
 
 function fileNameForPage($page)
 {
-	return PAGES_PATH . "/$page." . PAGES_EXT;
+	return pageStore()->path($page);
 }
 
 /**
@@ -194,11 +180,11 @@ function writeFileAtomically($filename, $text)
 }
 
 /**
- * Save the text of a page (see writeFileAtomically()); the folder of the page has to exist
+ * Save the text of a page (see W2\PageStore::write())
  */
 function writePage($page, $text)
 {
-	return writeFileAtomically(fileNameForPage($page), $text);
+	return pageStore()->write($page, $text);
 }
 
 /**
@@ -351,7 +337,7 @@ function gitPullStart($action, $now)
 
 function isExistingPage($page)
 {
-	return isValidPageName($page) && file_exists(fileNameForPage($page));
+	return pageStore()->exists($page);
 }
 
 /**
@@ -394,15 +380,7 @@ function pregReplacementQuote($str)
  */
 function isValidPageName($page)
 {
-	$segments = explode('/', $page);
-	foreach ($segments as $segment)
-	{
-		if ($segment === '' || str_starts_with($segment, '.'))
-		{
-			return false;
-		}
-	}
-	return !isInUploadFolder($page);
+	return pageStore()->isValidName($page);
 }
 
 function getFileExt($fileName)
@@ -694,7 +672,7 @@ function expandIncludes($text, array $stack = array(), &$budget = null)
 		}
 		else
 		{
-			$included = (string)file_get_contents(fileNameForPage($page));
+			$included = (string)pageStore()->read($page);
 			$budget -= strlen($included);
 			if ( $budget < 0 )
 			{

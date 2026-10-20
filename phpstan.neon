@@ -16,6 +16,7 @@ parameters:
         - functions.php
         - defaults.php
         - config.sample.php
+        - src
     excludePaths:
         - Michelf
         - vendor
