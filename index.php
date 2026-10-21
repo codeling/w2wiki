@@ -371,7 +371,7 @@ if ($action === 'view' || $action === 'edit')
 {
 	if ( isExistingPage($page) )
 	{
-		$text = file_get_contents($filename);
+		$text = pageStore()->read($page) ?? '';
 	}
 	else
 	{
@@ -408,9 +408,9 @@ if ( $action == 'save' )
 		$filename = fileNameForPage($page);
 	}
 	// (the name is checked when saving existing pages too: the client decides whether a page is new)
-	if (($isNew && file_exists($filename)) || !isValidPageName($page))
+	if (($isNew && isExistingPage($page)) || !isValidPageName($page))
 	{
-		$msg .= ($isNew && file_exists($filename))
+		$msg .= ($isNew && isExistingPage($page))
 			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
 			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
 		$action = $isNew ? 'new' : 'edit';
@@ -424,11 +424,7 @@ if ( $action == 'save' )
 	}
 	else
 	{
-		if ( !file_exists( dirname($filename) ) )
-		{
-			mkdir(dirname($filename), 0755, true);
-		}
-		$success = writeFileAtomically($filename, $newText);
+		$success = writePage($page, $newText);
 		if ( !$success )
 		{
 			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
@@ -594,7 +590,7 @@ else if ( $action === 'upload' )
 		$pagenames = getAllPageNames();
 		foreach($pagenames as $searchPage)
 		{
-			$text = file_get_contents(fileNameForPage($searchPage));
+			$text = pageStore()->read($searchPage) ?? '';
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
@@ -890,20 +886,11 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$msg = '';
 	if ($action === 'deleted')
 	{
-		$success = isExistingPage($oldPageName) && unlink(fileNameForPage($oldPageName));
-	}
-	else if (!isExistingPage($oldPageName) || !isValidPageName($newPageName) || file_exists(fileNameForPage($newPageName)))
-	{
-		$success = false;
+		$success = pageStore()->delete($oldPageName);
 	}
 	else
 	{
-		$folderName = dirname(fileNameForPage($newPageName));
-		if ( !file_exists($folderName) )
-		{
-			mkdir($folderName, 0755, true);
-		}
-		$success = rename(fileNameForPage($oldPageName), fileNameForPage($newPageName));
+		$success = pageStore()->rename($oldPageName, $newPageName);
 	}
 	if ($success)
 	{
@@ -916,7 +903,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 		$changedPages = array();
 		foreach ($pagenames as $replacePage)
 		{
-			$content = file_get_contents(fileNameForPage($replacePage));
+			$content = pageStore()->read($replacePage) ?? '';
 			$count = 0;
 			$newContent = preg_replace("/\[\[".preg_quote($oldPageName, '/')."([|#].*?\]\]|\]\])/",
 				(($action === 'deleted') ? "" : "[[".pregReplacementQuote($newPageName)."\\1"),
@@ -995,7 +982,7 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		$changedPages = array();
 		foreach ($pagenames as $replacePage)
 		{
-			$content = file_get_contents(fileNameForPage($replacePage));
+			$content = pageStore()->read($replacePage) ?? '';
 			$count = 0;
 			// matches /<UPLOAD_URL>/name, optionally prefixed with BASE_URI and followed by a "title"
 			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?".preg_quote(substr(uploadUrlPrefix(), strlen(BASE_URI)), '/').")".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
@@ -1045,8 +1032,8 @@ else if ( $action === 'all' )
 	{
 		$fileItem = new StdClass();
 		$fileItem->name = $page;
-		$fileItem->recent = filemtime(fileNameForPage($page));
-		$fileItem->size = filesize(fileNameForPage($page));
+		$fileItem->recent = pageStore()->modified($page) ?? 0;
+		$fileItem->size = pageStore()->size($page) ?? 0;
 		$filelist[] = $fileItem;
 	}
 	$sortFun = function($a, $b) use ($sortBy)
@@ -1102,7 +1089,7 @@ else if ( $action === 'search' )
 			}
 			else
 			{
-				$text = file_get_contents(fileNameForPage($searchPage));
+				$text = pageStore()->read($searchPage) ?? '';
 				if ( stripos($text, $q) !== false )
 				{
 					$matchingPages[] = $searchPage;
@@ -1152,7 +1139,7 @@ else if (isset($filename) && $filename != '')
 	$date_format = __('date_format', TITLE_DATE);
 	if ( $date_format )
 	{
-		$datetime = "<span class=\"titledate\">" . date($date_format, @filemtime($filename)) . "</span>";
+		$datetime = "<span class=\"titledate\">" . date($date_format, pageStore()->modified($page) ?? 0) . "</span>";
 	}
 }
 else
@@ -1201,15 +1188,7 @@ print "    </div>\n";
 if (SIDEBAR_PAGE != '' && showsSidebar($action))
 {
 	print "    <div class=\"sidebar\">\n\n";
-	$sidebarFile = fileNameForPage(SIDEBAR_PAGE);
-	if (file_exists($sidebarFile))
-	{
-		$text = file_get_contents($sidebarFile);
-	}
-	else
-	{
-		$text = __('Sidebar file could not be found')." (".SIDEBAR_PAGE.")";
-	}
+	$text = pageStore()->read(SIDEBAR_PAGE) ?? (__('Sidebar file could not be found')." (".SIDEBAR_PAGE.")");
 	print toHTML($text);
 	print "    </div>\n";
 }
@@ -1219,7 +1198,7 @@ if ($action === 'view' && isset($_GET['linkshere']))
 	$pagenames = getAllPageNames();
 	foreach($pagenames as $searchPage)
 	{
-		$text = file_get_contents(fileNameForPage($searchPage));
+		$text = pageStore()->read($searchPage) ?? '';
 		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", $text) )
 		{
 			$link = pageLink($searchPage, h($searchPage), "");

@@ -174,7 +174,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function sourceFiles(): array
 	{
-		return [['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/auth.php'], ['/auth_functions.php'], ['/functions.php'], ['/locales/en.php']];
+		return [['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/auth.php'], ['/auth_functions.php'], ['/functions.php'], ['/locales/en.php'], ['/src/PageStore.php']];
 	}
 
 	#[DataProvider('unneededFiles')]
@@ -188,7 +188,7 @@ final class ServerConfigTest extends TestCase
 	{
 		return [
 			['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/functions.php'], ['/auth.php'], ['/auth_functions.php'],
-			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'],
+			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'], ['/src/PageStore.php'],
 			['/tests/README.md'], ['/tests/bootstrap.php'], ['/composer.json'], ['/phpunit.xml.dist'],
 			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'],
 		];
@@ -240,7 +240,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function folders(): array
 	{
-		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/locales/'], ['/w2-icons/']];
+		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/src/'], ['/locales/'], ['/w2-icons/']];
 	}
 
 	public function testHiddenFilesAndFoldersAreNotServed(): void
