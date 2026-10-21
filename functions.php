@@ -90,6 +90,15 @@ function getAllPageNames()
 }
 
 /**
+ * The references to uploaded files in the text of pages (see W2\UploadReferences)
+ */
+function uploadReferences()
+{
+	static $references = null;
+	return $references ??= new W2\UploadReferences(BASE_URI, UPLOAD_URL);
+}
+
+/**
  * The text for a log entry without control characters (like line breaks, which could be used to forge
  * entries of the log) and limited in length; control characters are shown as \xNN
  */
