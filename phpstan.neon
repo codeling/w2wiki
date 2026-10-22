@@ -18,6 +18,7 @@ parameters:
         - config.sample.php
         - src
     excludePaths:
+        - src/templates
         - Michelf
         - vendor
         - tests
