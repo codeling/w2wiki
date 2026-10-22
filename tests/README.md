@@ -30,6 +30,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `assertNoActiveContent()`); `ThrottleTestCase` is the base class of the tests of login throttling.
 - `tests/Unit`: tests of functions from `functions.php` and `auth_functions.php` (loaded by
   `tests/bootstrap.php` with the default settings from `defaults.php`, without session or output).
+  The unit suite also runs the tests of the shared library in `webauth/tests` (see "Tests" in `README.md`).
   `ConfigDefaultsTest` makes sure that `config.sample.php` and `defaults.php` have the same values, and that every
   setting used by the code has a default.
   `SourceGuardTest` looks at the tokens of the PHP files and fails on dangerous constructs: functions running code or
@@ -43,7 +44,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   the locale, set with `W2_LOCALE`); `LocaleEscapingTest` uses a generated locale with markup in its texts. To test with another configuration, override
   `configOverrides()` in the test class; it returns values for the constants defined in
   `config.sample.php` (or `$allowedIPs`); `serverOptions()` can give the code of a `config.php` with only a few
-  settings, or no `config.php` (`config` option, see `AppServer::get()`).
+  settings, or no `config.php` (`config` option, see `AppServer::get()`). The `router` option runs code before every
+  request, e.g. to set `REMOTE_USER` and `HTTPS` like a web server would (`WebServerAuthTest`).
 
 The git integration is tested with the server options `git` and `gitRemote` (see `AppServer::get()`):
 they make the pages folder of the test copy a git repository (with a local bare repository as `origin`),

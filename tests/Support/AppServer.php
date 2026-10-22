@@ -13,7 +13,7 @@ namespace W2\Tests\Support;
 final class AppServer
 {
 	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
-	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons'];
+	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons', 'webauth'];
 
 	/** @var array<string, AppServer> running servers by configuration */
 	private static array $instances = [];
@@ -22,6 +22,7 @@ final class AppServer
 	private string $appRoot;
 	private string $dir;
 	private string $logFile;
+	private string $routerFile;
 	private string $pagesFolder;
 	private string $uploadFolder;
 	private int $port;
@@ -45,7 +46,10 @@ final class AppServer
 	 *                                        repository as "origin" (implies "git");
 	 *                                        "pagesFolder": name of the pages folder (default "pages"), e.g. with
 	 *                                        spaces and quotes, which is set as PAGES_PATH;
-	 *                                        "phpIni": PHP ini values for the server, e.g. ['post_max_size' => '100K']
+	 *                                        "phpIni": PHP ini values for the server, e.g. ['post_max_size' => '100K'];
+	 *                                        "router": PHP code run before every request (a router script of
+	 *                                        the built-in server, which then serves the request as usual),
+	 *                                        e.g. to set $_SERVER values like a web server would
 	 */
 	public static function get(array $overrides = [], array $options = []): self
 	{
@@ -90,6 +94,7 @@ final class AppServer
 		$this->appRoot = rtrim(getenv('W2_APP_ROOT') ?: dirname(__DIR__, 2), '/');
 		$this->dir = sys_get_temp_dir() . '/w2test-' . bin2hex(random_bytes(6));
 		$this->logFile = $this->dir . '.log';
+		$this->routerFile = $this->dir . '-router.php';
 		$this->pagesFolder = (string)($options['pagesFolder'] ?? 'pages');
 		$this->uploadFolder = (string)($overrides['UPLOAD_FOLDER'] ?? 'images');
 		mkdir($this->dir . '/sessions', 0777, true);
@@ -264,6 +269,7 @@ final class AppServer
 		$this->resetLoginThrottle();
 		@rmdir(sys_get_temp_dir() . '/w2-login-' . substr(hash('sha256', $this->dir), 0, 16));
 		@unlink($this->logFile);
+		@unlink($this->routerFile);
 	}
 
 	/** @param array<string, mixed> $overrides */
@@ -334,6 +340,10 @@ PHP);
 		];
 		foreach ($this->options['phpIni'] ?? [] as $name => $value) {
 			array_push($command, '-d', "$name=$value");
+		}
+		if (isset($this->options['router'])) {
+			file_put_contents($this->routerFile, "<?php\n" . $this->options['router'] . "\nreturn false;\n");
+			$command[] = $this->routerFile;
 		}
 		$this->process = proc_open(
 			$command,

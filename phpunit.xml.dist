@@ -9,6 +9,8 @@
     <testsuites>
         <testsuite name="unit">
             <directory>tests/Unit</directory>
+            <!-- the tests of the shared library (see INSTALL.md) -->
+            <directory>webauth/tests</directory>
         </testsuite>
         <testsuite name="integration">
             <directory>tests/Integration</directory>

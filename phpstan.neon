@@ -16,6 +16,8 @@ parameters:
         - functions.php
         - defaults.php
         - config.sample.php
+        - webauth/webauth.php
+        - webauth/src
     excludePaths:
         - Michelf
         - vendor

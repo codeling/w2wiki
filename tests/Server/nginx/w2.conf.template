@@ -18,6 +18,7 @@ server {
     location ^~ /functions.php { deny all; }
     location ^~ /auth.php { deny all; }
     location ^~ /auth_functions.php { deny all; }
+    location ^~ /webauth/ { deny all; }
     location ^~ /composer. { deny all; }
     location ^~ /phpunit.xml { deny all; }
     location ^~ /LICENSE { deny all; }
