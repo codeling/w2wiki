@@ -79,7 +79,7 @@ the same is possible in Apache with `mod_expires`/`mod_headers`.
 
 # Running in a container (Docker and Podman)
 
-The `Containerfile` builds an image with Apache, PHP 8.3, Imagick (with HEIC
+The `Containerfile` builds an image with Apache, PHP 8.5, Imagick (with HEIC
 support) and git. Use `docker` or `podman`, whichever you have:
 
 ```
@@ -184,6 +184,7 @@ location ^~ /pages/ { deny all; }
 location ^~ /tests/ { deny all; }
 location ^~ /locales/ { deny all; }
 location ^~ /Michelf/ { deny all; }
+location ^~ /src/ { deny all; }
 location ^~ /config. { deny all; }
 location ^~ /defaults.php { deny all; }
 location ^~ /functions.php { deny all; }
@@ -217,7 +218,7 @@ scripts and styles from the wiki itself and forbids framing, `X-Content-Type-Opt
 `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` for requests over HTTPS). Don't add
 headers of the same names in the web server, they would apply to the same responses twice. The rules above
 additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`
-and `api.php`, the `tests`, `locales` and `Michelf` folders, `composer.json`, the documentation and so on).
+and `api.php`, the `tests`, `locales`, `Michelf` and `src` folders, `composer.json`, the documentation and so on).
 
 ### Upload size limits
 

@@ -7,7 +7,7 @@ parameters:
     level: 1
     phpVersion:
         min: 80100
-        max: 80499
+        max: 80599
     paths:
         - index.php
         - api.php
@@ -16,6 +16,7 @@ parameters:
         - functions.php
         - defaults.php
         - config.sample.php
+        - src
         - webauth/webauth.php
         - webauth/src
     excludePaths:

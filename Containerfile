@@ -3,7 +3,7 @@
 # W2 wiki on Apache with PHP. Build with Docker or Podman, from the root of the repository:
 #   docker build -f Containerfile -t w2wiki .      (podman finds the Containerfile by itself)
 # See "Running in a container" in INSTALL.md.
-ARG PHP_VERSION=8.3
+ARG PHP_VERSION=8.5
 # Debian release of the base image: the package names of ImageMagick and libheif below are for bookworm
 ARG DEBIAN_RELEASE=bookworm
 FROM php:${PHP_VERSION}-apache-${DEBIAN_RELEASE}

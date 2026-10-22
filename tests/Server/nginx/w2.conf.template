@@ -13,6 +13,7 @@ server {
     location ^~ /tests/ { deny all; }
     location ^~ /locales/ { deny all; }
     location ^~ /Michelf/ { deny all; }
+    location ^~ /src/ { deny all; }
     location ^~ /config. { deny all; }
     location ^~ /defaults.php { deny all; }
     location ^~ /functions.php { deny all; }

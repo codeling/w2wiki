@@ -4,7 +4,7 @@ The tests start a private copy of the wiki (with an individual `config.php`
 per test class, made from `config.sample.php`) on PHP's built-in web server, and talk to it over HTTP. They
 need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`. `ImageProcessingTest` (resizing,
 rotating and converting images) also needs `imagick`, and is skipped without it; the HEIC tests are skipped
-if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder). `NoImagickTest` simulates a server without the extension (with PHP's `disable_classes`), so it runs everywhere.
+if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder). `NoImagickTest` simulates a server without the extension (with `IMAGE_PROCESSING_ENABLED = false`, which has the same effect), so it runs everywhere.
 
 ```
 composer install
@@ -37,6 +37,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
   `FileHeaderTest` makes sure that every source file has an `SPDX-License-Identifier` (see "License" in `README.md`).
+  `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
   `locales/en.php` only has entries that differ from their key (`__()` returns the key for texts without entry).
   Texts of the code (`__()` calls) missing in the other languages are only reported as "incomplete".
@@ -104,6 +105,8 @@ What the container tests found out (and the Containerfile does, see "Running in 
 browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP tests use), uploaded
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
+The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`)
+and the search box of the toolbar (`search.spec.js`).
 
 ```
 cd tests/Browser

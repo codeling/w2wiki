@@ -1,0 +1,2 @@
+# The classes of W2 are loaded by the scripts of the wiki, never requested directly.
+Require all denied

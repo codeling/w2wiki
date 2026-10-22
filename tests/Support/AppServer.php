@@ -13,7 +13,7 @@ namespace W2\Tests\Support;
 final class AppServer
 {
 	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
-	private const APP_DIRS = ['Michelf', 'locales', 'w2-icons', 'webauth'];
+	private const APP_DIRS = ['Michelf', 'locales', 'src', 'w2-icons', 'webauth'];
 
 	/** @var array<string, AppServer> running servers by configuration */
 	private static array $instances = [];
