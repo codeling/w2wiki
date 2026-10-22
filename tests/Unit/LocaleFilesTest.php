@@ -35,7 +35,7 @@ final class LocaleFilesTest extends TestCase
 		})();
 	}
 
-	/** @return string[] keys of literal __() calls in the code (dynamic calls such as __($action) can't be known) */
+	/** @return string[] keys of literal __() and translate() calls in the code (dynamic calls such as __($action) can't be known) */
 	private static function usedKeys(): array
 	{
 		$keys = [];
@@ -46,7 +46,7 @@ final class LocaleFilesTest extends TestCase
 			));
 			foreach ($tokens as $i => $token) {
 				$previous = $tokens[$i - 1] ?? '';
-				if (is_array($token) && $token[0] === T_STRING && in_array($token[1], ['__', '__js'], true) && ($tokens[$i + 1] ?? '') === '('
+				if (is_array($token) && $token[0] === T_STRING && in_array($token[1], ['__', '__js', 'translate'], true) && ($tokens[$i + 1] ?? '') === '('
 					&& !(is_array($previous) && $previous[0] === T_FUNCTION)
 					&& is_array($tokens[$i + 2] ?? null) && $tokens[$i + 2][0] === T_CONSTANT_ENCAPSED_STRING) {
 					$keys[] = eval('return ' . $tokens[$i + 2][1] . ';');

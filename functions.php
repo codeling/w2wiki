@@ -40,7 +40,25 @@ function h($str)
 }
 
 /**
- * Get translated word
+ * Get translated word, as plain text (not escaped: for text which is escaped later, like the parts of a
+ * W2\Flash message; use __() for text which is put in HTML as it is)
+ *
+ * String	$label		Key for locale word
+ * String	$alt_word	Alternative word
+ * return	String
+ */
+function translate( $label, $alt_word = null )
+{
+	global $w2_word_set;
+	if( empty($w2_word_set[$label]) )
+	{
+		return is_null($alt_word) ? $label : $alt_word;
+	}
+	return $w2_word_set[$label];
+}
+
+/**
+ * Get translated word, escaped for use in HTML
  *
  * String	$label		Key for locale word
  * String	$alt_word	Alternative word
@@ -48,12 +66,7 @@ function h($str)
  */
 function __( $label, $alt_word = null )
 {
-	global $w2_word_set;
-	if( empty($w2_word_set[$label]) )
-	{
-		return h(is_null($alt_word) ? $label : $alt_word);
-	}
-	return h($w2_word_set[$label]);
+	return h(translate($label, $alt_word));
 }
 
 /**

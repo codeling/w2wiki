@@ -36,6 +36,7 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
   `FileHeaderTest` makes sure that every source file has an `SPDX-License-Identifier` (see "License" in `README.md`).
+  `FlashTest` tests `W2\Flash`, the message after an action (plain text in, escaped HTML out).
   `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
   `locales/en.php` only has entries that differ from their key (`__()` returns the key for texts without entry).
