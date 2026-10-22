@@ -87,12 +87,9 @@ final class HttpClient
 		$body = curl_exec($curl);
 		$seconds = microtime(true) - $start;
 		if ($body === false) {
-			$error = curl_error($curl);
-			curl_close($curl);
-			throw new \RuntimeException("Request $method $url failed: $error");
+			throw new \RuntimeException("Request $method $url failed: " . curl_error($curl));
 		}
 		$status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-		curl_close($curl);
 		return new HttpResponse($status, $headers, (string)$body, $seconds);
 	}
 }

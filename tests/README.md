@@ -4,7 +4,7 @@ The tests start a private copy of the wiki (with an individual `config.php`
 per test class, made from `config.sample.php`) on PHP's built-in web server, and talk to it over HTTP. They
 need PHP 8.1+ with the extensions `curl`, `dom`, `fileinfo` and `libxml`. `ImageProcessingTest` (resizing,
 rotating and converting images) also needs `imagick`, and is skipped without it; the HEIC tests are skipped
-if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder). `NoImagickTest` simulates a server without the extension (with PHP's `disable_classes`), so it runs everywhere.
+if ImageMagick can't read HEIC files (needs libheif with an HEVC decoder). `NoImagickTest` simulates a server without the extension (with `IMAGE_PROCESSING_ENABLED = false`, which has the same effect), so it runs everywhere.
 
 ```
 composer install

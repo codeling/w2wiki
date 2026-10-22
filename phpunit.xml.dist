@@ -4,6 +4,8 @@
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".phpunit.cache"
          colors="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
          failOnRisky="true"
          failOnWarning="true">
     <testsuites>
