@@ -521,7 +521,8 @@ function uploadTypesForExt($ext)
 		'png' => array('image/png'),
 		'webp' => array('image/webp'),
 	);
-	return $types[$ext] ?? null;
+	// (no extension: null, which can't be an array key)
+	return $ext === null ? null : ($types[$ext] ?? null);
 }
 
 function uploadTypeMatchesExt($type, $ext)

@@ -79,7 +79,7 @@ the same is possible in Apache with `mod_expires`/`mod_headers`.
 
 # Running in a container (Docker and Podman)
 
-The `Containerfile` builds an image with Apache, PHP 8.3, Imagick (with HEIC
+The `Containerfile` builds an image with Apache, PHP 8.5, Imagick (with HEIC
 support) and git. Use `docker` or `podman`, whichever you have:
 
 ```

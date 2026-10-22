@@ -7,7 +7,7 @@ parameters:
     level: 1
     phpVersion:
         min: 80100
-        max: 80499
+        max: 80599
     paths:
         - index.php
         - api.php
