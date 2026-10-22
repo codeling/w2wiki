@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Apache: HTTP Basic authentication over HTTPS only, for the directory of the app.
 # Copy to the app's .htaccess (requires AllowOverride AuthConfig Limit, mod_authz_core).
-# WebAuth\ServerAuth::require() is the safety net behind it, in case this file is ignored.
+# WebAuth\ServerAuth::guard() is the safety net behind it, in case this file is ignored.
 
 AuthType Basic
 AuthName "Restricted"

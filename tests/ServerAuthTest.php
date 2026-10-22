@@ -34,13 +34,13 @@ PHP);
 		file_put_contents(self::$dir . '/app.php', <<<PHP
 <?php
 require_once $library;
-\$user = WebAuth\ServerAuth::require(isset(\$_GET['trust']) ? ['trust_forwarded_proto' => true] : []);
+\$user = WebAuth\ServerAuth::guard(isset(\$_GET['trust']) ? ['trust_forwarded_proto' => true] : []);
 echo 'hello ' . \$user;
 PHP);
 		file_put_contents(self::$dir . '/custom.php', <<<PHP
 <?php
 require_once $library;
-\$user = WebAuth\ServerAuth::require(['require_https' => isset(\$_GET['https']), 'require_auth' => isset(\$_GET['auth']),
+\$user = WebAuth\ServerAuth::guard(['require_https' => isset(\$_GET['https']), 'require_auth' => isset(\$_GET['auth']),
 	'messages' => ['https' => 'nur HTTPS', 'auth' => 'nicht angemeldet']]);
 echo 'hello ' . var_export(\$user, true);
 PHP);
@@ -174,9 +174,9 @@ PHP);
 		$this->assertNull(ServerAuth::user(['PHP_AUTH_USER' => 'alice', 'HTTP_REMOTE_USER' => 'alice']));
 	}
 
-	public function testRequireReturnsTheUserWhenTheRequirementsAreMet(): void
+	public function testGuardReturnsTheUserWhenTheRequirementsAreMet(): void
 	{
-		$this->assertSame('alice', ServerAuth::require(['hsts' => false], ['HTTPS' => 'on', 'REMOTE_USER' => 'alice']));
-		$this->assertNull(ServerAuth::require(['require_https' => false, 'require_auth' => false], []));
+		$this->assertSame('alice', ServerAuth::guard(['hsts' => false], ['HTTPS' => 'on', 'REMOTE_USER' => 'alice']));
+		$this->assertNull(ServerAuth::guard(['require_https' => false, 'require_auth' => false], []));
 	}
 }
