@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # nginx: HTTP Basic authentication over HTTPS only, for an app served from /app/.
-# WebAuth\ServerAuth::require() is the safety net behind it: it rejects requests which did not
+# WebAuth\ServerAuth::guard() is the safety net behind it: it rejects requests which did not
 # arrive over HTTPS or were not authenticated (REMOTE_USER below).
 location /app/ {
     # only HTTPS, so that the password is never sent in cleartext
@@ -25,7 +25,7 @@ location /app/ {
     location ~ \.php$ {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $request_filename;
-        # WebAuth\ServerAuth::require() rejects requests without an authenticated user
+        # WebAuth\ServerAuth::guard() rejects requests without an authenticated user
         fastcgi_param REMOTE_USER $remote_user;
         fastcgi_pass unix:/run/php/php-fpm.sock;
     }

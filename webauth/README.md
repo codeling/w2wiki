@@ -49,13 +49,13 @@ The app has no login of its own (or an optional one) and relies on the web serve
    `samples/htaccess.sample` (Apache) or `samples/nginx.conf.sample` (nginx). Instead of Basic
    authentication, a reverse proxy with single sign-on (e.g. Authelia, authentik, oauth2-proxy) can
    authenticate the user, as long as the web server in front of PHP turns that into `REMOTE_USER`.
-2. **`ServerAuth::require()`** is the safety net behind it. Call it at the top of **every** PHP file
+2. **`ServerAuth::guard()`** is the safety net behind it. Call it at the top of **every** PHP file
    that can be requested directly. It stops every request which did not arrive over HTTPS or which
    the web server did not authenticate. So a missing or ignored web server setting (a disabled
    `AllowOverride`, a copied config without the auth lines, ...) does not leave the app open.
 
 ```php
-$user = WebAuth\ServerAuth::require();   // stops with 403 unless HTTPS and authenticated
+$user = WebAuth\ServerAuth::guard();   // stops with 403 unless HTTPS and authenticated
 ```
 
 `$user` is the name of the authenticated user, in case the app wants to use it.

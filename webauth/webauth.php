@@ -7,7 +7,7 @@
  * happens when it is loaded):
  *
  *     require_once __DIR__ . '/webauth/webauth.php';
- *     $user = WebAuth\ServerAuth::require();   // stops with 403 unless HTTPS and authenticated
+ *     $user = WebAuth\ServerAuth::guard();   // stops with 403 unless HTTPS and authenticated
  *
  * See README.md for all parts. With Composer, the classes are autoloaded instead.
  */

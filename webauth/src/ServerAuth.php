@@ -58,7 +58,7 @@ final class ServerAuth
 	 *                       like DEFAULT_MESSAGES, to translate or adapt them
 	 * @param array|null $server $_SERVER if not given
 	 */
-	public static function require(array $options = [], ?array $server = null): ?string
+	public static function guard(array $options = [], ?array $server = null): ?string
 	{
 		$server ??= $_SERVER;
 		$o = array_merge(self::DEFAULT_OPTIONS, $options);
