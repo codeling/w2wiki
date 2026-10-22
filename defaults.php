@@ -45,6 +45,8 @@ defined('INCLUDE_MAX_SIZE') || define('INCLUDE_MAX_SIZE', 1048576);
 // Security and session settings (no authentication unless configured; the default password
 // 'secret' is refused, so logging in is impossible until a password is set)
 defined('REQUIRE_PASSWORD') || define('REQUIRE_PASSWORD', false);
+defined('REQUIRE_WEB_SERVER_AUTH') || define('REQUIRE_WEB_SERVER_AUTH', false);
+defined('WEB_SERVER_AUTH_REQUIRE_HTTPS') || define('WEB_SERVER_AUTH_REQUIRE_HTTPS', true);
 defined('W2_PASSWORD') || define('W2_PASSWORD', 'secret');
 defined('W2_PASSWORD_HASH') || define('W2_PASSWORD_HASH', '');
 $allowedIPs ??= array();

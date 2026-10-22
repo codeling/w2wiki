@@ -191,6 +191,8 @@ final class ServerConfigTest extends TestCase
 			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'], ['/src/PageStore.php'],
 			['/tests/README.md'], ['/tests/bootstrap.php'], ['/composer.json'], ['/phpunit.xml.dist'],
 			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'],
+			['/webauth/webauth.php'], ['/webauth/src/ServerAuth.php'], ['/webauth/README.md'], ['/webauth/composer.json'],
+			['/webauth/samples/htaccess.sample'],
 		];
 	}
 
@@ -240,7 +242,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function folders(): array
 	{
-		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/src/'], ['/locales/'], ['/w2-icons/']];
+		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/src/'], ['/locales/'], ['/w2-icons/'], ['/webauth/']];
 	}
 
 	public function testHiddenFilesAndFoldersAreNotServed(): void
