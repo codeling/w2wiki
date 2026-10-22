@@ -5,10 +5,10 @@ namespace W2\Tests\Integration;
 
 use W2\Tests\Support\GitTestCase;
 
-/** The message after an action is built from plain text and escaped when it is shown (W2\Flash) */
-final class FlashMessagesTest extends GitTestCase
+/** The note after an action is built from plain text and escaped when it is shown (W2\Note) */
+final class ActionNotesTest extends GitTestCase
 {
-	/** The HTML of the message in the page which follows a redirect */
+	/** The HTML of the note in the page which follows a redirect */
 	private function noteHtml(\W2\Tests\Support\HttpResponse $redirect): string
 	{
 		$this->assertSame(303, $redirect->status);

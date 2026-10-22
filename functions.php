@@ -41,7 +41,7 @@ function h($str)
 
 /**
  * Get translated word, as plain text (not escaped: for text which is escaped later, like the parts of a
- * W2\Flash message; use __() for text which is put in HTML as it is)
+ * W2\Note; use __() for text which is put in HTML as it is)
  *
  * String	$label		Key for locale word
  * String	$alt_word	Alternative word

@@ -4,7 +4,7 @@
  *
  * W2
  *
- * The message which tells the user what has happened.
+ * The note which tells the user what has happened.
  */
 
 namespace W2;
@@ -12,17 +12,18 @@ namespace W2;
 if (!defined('W2APP')){ die('No direct access.'); }
 
 /**
- * A message for the user ("Saved", with the result of git commands, a list of updated pages, ...), which is
+ * A note for the user ("Saved", with the result of git commands, a list of updated pages, ...), which is
  * shown on the next page, or on the page which is shown in response to the request.
+ * (It is the `<div class="note">` at the top of a page.)
  *
- * Everything which is added is plain text, not HTML: it is escaped when the message is shown, so that a page
+ * Everything which is added is plain text, not HTML: it is escaped when the note is shown, so that a page
  * name, a file name or anything else from a request can't add markup to it, and no caller has to remember
  * to escape. The only markup is what the methods make of the parts, like links and lists.
  *
- * The parts are plain arrays of strings (toArray(), fromArray()), so that the message can be kept in the
+ * The parts are plain arrays of strings (toArray(), fromArray()), so that the note can be kept in the
  * session until it is shown.
  */
-final class Flash
+final class Note
 {
 	/** Addresses which links may have: within the wiki ("/page", "?action=edit"; not "//host"), or of a web site */
 	private const ADDRESS = '~^(?:/(?![/\\\\])|\?|https?://)~';
@@ -108,8 +109,8 @@ final class Flash
 	}
 
 	/**
-	 * Add what another message says after this one, separated from it by a line break (if this one says
-	 * anything); line breaks at the start of the other message are not needed then, and left out
+	 * Add what another note says after this one, separated from it by a line break (if this one says
+	 * anything); line breaks at the start of the other note are not needed then, and left out
 	 */
 	public function append(self $other): self
 	{
@@ -138,19 +139,19 @@ final class Flash
 	}
 
 	/**
-	 * The message as it has been kept (see toArray()); anything which isn't a valid part is ignored
+	 * The note as it has been kept (see toArray()); anything which isn't a valid part is ignored
 	 *
 	 * @param mixed $parts
 	 */
 	public static function fromArray(mixed $parts): self
 	{
-		$flash = new self();
+		$note = new self();
 		foreach (is_array($parts) ? $parts : [] as $part) {
 			if (self::isValidPart($part)) {
-				$flash->parts[] = $part;
+				$note->parts[] = $part;
 			}
 		}
-		return $flash;
+		return $note;
 	}
 
 	private static function isValidPart(mixed $part): bool
@@ -185,7 +186,7 @@ final class Flash
 	}
 
 	/**
-	 * The message as HTML (to be put in an element, no other markup is needed). Line breaks at the start are
+	 * The note as HTML (to be put in an element, no other markup is needed). Line breaks at the start are
 	 * left out, as there is nothing to separate from.
 	 */
 	public function render(): string

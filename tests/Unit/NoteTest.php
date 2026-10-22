@@ -5,58 +5,58 @@ namespace W2\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use W2\Flash;
+use W2\Note;
 
-/** The message for the user (W2\Flash): plain text in, escaped HTML out */
-final class FlashTest extends TestCase
+/** The note for the user (W2\Note): plain text in, escaped HTML out */
+final class NoteTest extends TestCase
 {
 	private const HOSTILE = '<script>alert("1")</script> & \'quote\' <img src=x onerror=alert(1)>';
 	private const HOSTILE_ESCAPED = '&lt;script&gt;alert(&quot;1&quot;)&lt;/script&gt; &amp; &#039;quote&#039; &lt;img src=x onerror=alert(1)&gt;';
 
 	public function testEmptyMessage(): void
 	{
-		$flash = new Flash();
-		$this->assertTrue($flash->isEmpty());
-		$this->assertSame('', $flash->render());
-		$this->assertSame([], $flash->toArray());
-		$this->assertTrue((new Flash())->text('')->isEmpty(), 'empty text adds nothing');
+		$note = new Note();
+		$this->assertTrue($note->isEmpty());
+		$this->assertSame('', $note->render());
+		$this->assertSame([], $note->toArray());
+		$this->assertTrue((new Note())->text('')->isEmpty(), 'empty text adds nothing');
 	}
 
 	public function testTextIsEscapedAndWrittenAsItIs(): void
 	{
-		$flash = (new Flash())->text('Saved ')->text(self::HOSTILE)->text(" \n end");
-		$this->assertSame('Saved ' . self::HOSTILE_ESCAPED . " \n end", $flash->render());
-		$this->assertFalse($flash->isEmpty());
+		$note = (new Note())->text('Saved ')->text(self::HOSTILE)->text(" \n end");
+		$this->assertSame('Saved ' . self::HOSTILE_ESCAPED . " \n end", $note->render());
+		$this->assertFalse($note->isEmpty());
 	}
 
 	public function testFormatReplacesEachPlaceByTheNextValueEscaped(): void
 	{
-		$flash = (new Flash())->format("Renamed %s to %s (<%s>)", [self::HOSTILE, 5, 'b']);
-		$this->assertSame('Renamed ' . self::HOSTILE_ESCAPED . ' to 5 (&lt;b&gt;)', $flash->render());
+		$note = (new Note())->format("Renamed %s to %s (<%s>)", [self::HOSTILE, 5, 'b']);
+		$this->assertSame('Renamed ' . self::HOSTILE_ESCAPED . ' to 5 (&lt;b&gt;)', $note->render());
 	}
 
 	public function testFormatTextIsEscapedToo(): void
 	{
-		$this->assertSame('a &lt;b&gt; c', (new Flash())->format('a <b> %s', ['c'])->render());
+		$this->assertSame('a &lt;b&gt; c', (new Note())->format('a <b> %s', ['c'])->render());
 	}
 
 	public function testFormatWithTooFewOrTooManyValues(): void
 	{
-		$this->assertSame('x  y ', (new Flash())->format('x %s y %s', [])->render());
-		$this->assertSame('x 1 y', (new Flash())->format('x %s y', ['1', '2'])->render());
-		$this->assertSame('no places', (new Flash())->format('no places', ['unused'])->render());
+		$this->assertSame('x  y ', (new Note())->format('x %s y %s', [])->render());
+		$this->assertSame('x 1 y', (new Note())->format('x %s y', ['1', '2'])->render());
+		$this->assertSame('no places', (new Note())->format('no places', ['unused'])->render());
 	}
 
 	public function testFormatWithALink(): void
 	{
-		$flash = (new Flash())->format('Please %s the page, or %s.', [
-			Flash::link('edit <it>', '?action=edit&page=' . urlencode('A & "B"')),
-			Flash::link('read', 'https://example.com/a?b=c&d="e"'),
+		$note = (new Note())->format('Please %s the page, or %s.', [
+			Note::link('edit <it>', '?action=edit&page=' . urlencode('A & "B"')),
+			Note::link('read', 'https://example.com/a?b=c&d="e"'),
 		]);
 		$this->assertSame(
 			'Please <a href="?action=edit&amp;page=A+%26+%22B%22">edit &lt;it&gt;</a> the page, or '
 			. '<a href="https://example.com/a?b=c&amp;d=&quot;e&quot;">read</a>.',
-			$flash->render()
+			$note->render()
 		);
 	}
 
@@ -78,54 +78,54 @@ final class FlashTest extends TestCase
 		if (!$accepted) {
 			$this->expectException(\InvalidArgumentException::class);
 		}
-		$this->assertSame(['link', 'text', $address], Flash::link('text', $address));
+		$this->assertSame(['link', 'text', $address], Note::link('text', $address));
 	}
 
 	public function testFormatWithABlock(): void
 	{
-		$flash = (new Flash())->format('Use %s to refer to it!', [Flash::block('![Image](/images/a<b>.gif)')]);
-		$this->assertSame('Use <pre>![Image](/images/a&lt;b&gt;.gif)</pre> to refer to it!', $flash->render());
+		$note = (new Note())->format('Use %s to refer to it!', [Note::block('![Image](/images/a<b>.gif)')]);
+		$this->assertSame('Use <pre>![Image](/images/a&lt;b&gt;.gif)</pre> to refer to it!', $note->render());
 	}
 
 	public function testLineBreaksCodeAndPreformattedText(): void
 	{
-		$flash = (new Flash())->text('a')->br()->text('b')->br(2)->code('<hash>')->text(' ')->preformatted('x & y');
-		$this->assertSame('a<br/>b<br/><br/><code>&lt;hash&gt;</code> <pre>x &amp; y</pre>', $flash->render());
+		$note = (new Note())->text('a')->br()->text('b')->br(2)->code('<hash>')->text(' ')->preformatted('x & y');
+		$this->assertSame('a<br/>b<br/><br/><code>&lt;hash&gt;</code> <pre>x &amp; y</pre>', $note->render());
 	}
 
 	public function testLineBreaksAtTheStartAreLeftOut(): void
 	{
-		$this->assertSame('error', (new Flash())->br()->br(2)->text('error')->render());
-		$this->assertSame('', (new Flash())->br()->render());
+		$this->assertSame('error', (new Note())->br()->br(2)->text('error')->render());
+		$this->assertSame('', (new Note())->br()->render());
 	}
 
 	public function testItemsAreAHeadingAndAListWithEscapedTexts(): void
 	{
-		$flash = (new Flash())->text('Renamed')->items('Updated <links>:', ['A & B (2 matches)', self::HOSTILE]);
+		$note = (new Note())->text('Renamed')->items('Updated <links>:', ['A & B (2 matches)', self::HOSTILE]);
 		$this->assertSame(
 			"Renamed<br/>\nUpdated &lt;links&gt;:\n<ul><li>A &amp; B (2 matches)</li><li>" . self::HOSTILE_ESCAPED . '</li></ul>',
-			$flash->render()
+			$note->render()
 		);
-		$this->assertSame("Updated:\n<ul><li>a</li></ul>", (new Flash())->items('Updated:', ['a'])->render(), 'no line break at the start');
+		$this->assertSame("Updated:\n<ul><li>a</li></ul>", (new Note())->items('Updated:', ['a'])->render(), 'no line break at the start');
 	}
 
 	public function testAppendSeparatesWithOneLineBreak(): void
 	{
-		$pull = (new Flash())->br()->text('pull failed');
-		$this->assertSame('Saved<br/>pull failed', (new Flash())->text('Saved')->append($pull)->render());
-		$this->assertSame('pull failed', (new Flash())->append($pull)->render(), 'nothing to separate from');
-		$this->assertSame('Saved', (new Flash())->text('Saved')->append(new Flash())->render());
-		$this->assertSame('Saved', (new Flash())->text('Saved')->append((new Flash())->br())->render(), 'only line breaks add nothing');
-		$this->assertTrue((new Flash())->append(new Flash())->isEmpty());
+		$pull = (new Note())->br()->text('pull failed');
+		$this->assertSame('Saved<br/>pull failed', (new Note())->text('Saved')->append($pull)->render());
+		$this->assertSame('pull failed', (new Note())->append($pull)->render(), 'nothing to separate from');
+		$this->assertSame('Saved', (new Note())->text('Saved')->append(new Note())->render());
+		$this->assertSame('Saved', (new Note())->text('Saved')->append((new Note())->br())->render(), 'only line breaks add nothing');
+		$this->assertTrue((new Note())->append(new Note())->isEmpty());
 	}
 
 	public function testPartsSurviveTheSession(): void
 	{
-		$flash = (new Flash())->text('a')->br(2)->format('%s and %s', ['x', Flash::link('l', '/p')])->code('c')
-			->preformatted('p')->items('h', ['i', 'j'])->format('%s', [Flash::block('b')]);
-		$kept = unserialize(serialize($flash->toArray()));
-		$this->assertSame($flash->render(), Flash::fromArray($kept)->render());
-		$this->assertSame($flash->toArray(), Flash::fromArray(json_decode(json_encode($flash->toArray()), true))->toArray());
+		$note = (new Note())->text('a')->br(2)->format('%s and %s', ['x', Note::link('l', '/p')])->code('c')
+			->preformatted('p')->items('h', ['i', 'j'])->format('%s', [Note::block('b')]);
+		$kept = unserialize(serialize($note->toArray()));
+		$this->assertSame($note->render(), Note::fromArray($kept)->render());
+		$this->assertSame($note->toArray(), Note::fromArray(json_decode(json_encode($note->toArray()), true))->toArray());
 	}
 
 	public static function invalidParts(): array
@@ -148,14 +148,14 @@ final class FlashTest extends TestCase
 	#[DataProvider('invalidParts')]
 	public function testAnythingWhichIsNoValidPartIsIgnored(mixed $parts): void
 	{
-		$flash = Flash::fromArray($parts);
-		$this->assertTrue($flash->isEmpty());
-		$this->assertSame('', $flash->render());
+		$note = Note::fromArray($parts);
+		$this->assertTrue($note->isEmpty());
+		$this->assertSame('', $note->render());
 	}
 
 	public function testValidPartsAreKeptNextToInvalidOnes(): void
 	{
-		$flash = Flash::fromArray([['text', 'a'], ['html', '<b>'], ['code', 'c'], 'junk']);
-		$this->assertSame('a<code>c</code>', $flash->render());
+		$note = Note::fromArray([['text', 'a'], ['html', '<b>'], ['code', 'c'], 'junk']);
+		$this->assertSame('a<code>c</code>', $note->render());
 	}
 }
