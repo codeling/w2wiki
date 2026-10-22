@@ -594,7 +594,7 @@ else if ( $action === 'upload' )
 			foreach ($imgNames as $imgName)
 			{
 				$baseImgName = basename($imgName);
-				if ( preg_match("@\(".preg_quote(uploadUrlPrefix().$baseImgName, '@')."[)\s]@i", $text) )
+				if ( uploadReferences()->count($text, $baseImgName) > 0 )
 				{
 					if (array_key_exists($imgName, $imgPages))
 					{
@@ -983,11 +983,9 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		foreach ($pagenames as $replacePage)
 		{
 			$content = pageStore()->read($replacePage) ?? '';
-			$count = 0;
-			// matches /<UPLOAD_URL>/name, optionally prefixed with BASE_URI and followed by a "title"
-			$newContent = preg_replace("/!\[(.*?)\]\(((?:".preg_quote(BASE_URI, '/').")?".preg_quote(substr(uploadUrlPrefix(), strlen(BASE_URI)), '/').")".preg_quote($oldImgName, '/')."(\s+\"[^\"]*\")?\)/",
-				(($action === 'imgDeleted') ? "" : "![\\1](\\2".pregReplacementQuote($newImgName)."\\3)"),
-				$content, -1, $count);
+			list($newContent, $count) = ($action === 'imgDeleted')
+				? uploadReferences()->removeImages($content, $oldImgName)
+				: uploadReferences()->rename($content, $oldImgName, $newImgName);
 			if ($count > 0) // if something changed
 			{
 				if ( writePage($replacePage, $newContent) )

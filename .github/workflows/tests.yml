@@ -101,7 +101,8 @@ jobs:
 
   server:
     name: Web server rules (${{ matrix.server }})
-    runs-on: ubuntu-latest
+    # (not ubuntu-latest: that is Ubuntu 26.04 now, for which Playwright cannot install a browser)
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -139,7 +140,8 @@ jobs:
 
   browser:
     name: Browser tests
-    runs-on: ubuntu-latest
+    # (not ubuntu-latest: that is Ubuntu 26.04 now, for which Playwright cannot install a browser)
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
