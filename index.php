@@ -152,8 +152,10 @@ if ( !isLoggedIn() )
 			{
 				// (the user has just proven to know the password, so we can offer its new hash)
 				w2Log("logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
-				$_SESSION['msg'] = __('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') .
-					' <code>' . h(password_hash($_POST['p'], PASSWORD_DEFAULT)) . '</code>';
+				$_SESSION['note'] = (new \W2\Note())
+					->text(translate('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') . ' ')
+					->code(password_hash($_POST['p'], PASSWORD_DEFAULT))
+					->toArray();
 			}
 		}
 		else
@@ -206,17 +208,17 @@ function requireValidPreviousPage($paramName)
 	return $page;
 }
 
-function redirectWithMessage($page, $msg)
+function redirectWithNote($page, \W2\Note $note)
 {
-	$_SESSION["msg"] = $msg;
+	$_SESSION['note'] = $note->toArray();
 	header("HTTP/1.1 303 See Other");
 	header("Location: " . pageURL($page) );
 	exit;
 }
 
-// $knownErrors: messages (HTML) for return values which have a meaning of their own, by return value
+// $knownErrors: messages (plain text) for return values which have a meaning of their own, by return value
 // $silentReturnValues: return values which are no error, but still mean the command did not succeed
-function checkedExecute(&$msg, $cmd, $knownErrors = array(), $silentReturnValues = array())
+function checkedExecute(\W2\Note $note, $cmd, $knownErrors = array(), $silentReturnValues = array())
 {
 	$returnValue = 0;
 	$output = '';
@@ -225,8 +227,15 @@ function checkedExecute(&$msg, $cmd, $knownErrors = array(), $silentReturnValues
 	{
 		// details (command, output) may reveal server internals, so only log them
 		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
-		$msg .= "<br/>".($knownErrors[$returnValue] ??
-			sprintf(__("Error executing git command (return value: %s); see the web server's error log for details."), h($returnValue)));
+		$note->br();
+		if (isset($knownErrors[$returnValue]))
+		{
+			$note->text($knownErrors[$returnValue]);
+		}
+		else
+		{
+			$note->format(translate("Error executing git command (return value: %s); see the web server's error log for details."), array($returnValue));
+		}
 	}
 	return ($returnValue == 0);
 }
@@ -234,7 +243,7 @@ function checkedExecute(&$msg, $cmd, $knownErrors = array(), $silentReturnValues
 // Return value of the commit command if there is nothing to commit
 const GIT_NOTHING_TO_COMMIT = 4;
 
-function gitChangeHandler($commitmsg, &$msg)
+function gitChangeHandler($commitmsg, \W2\Note $note)
 {
 	if (!GIT_COMMIT_ENABLED)
 	{
@@ -246,11 +255,11 @@ function gitChangeHandler($commitmsg, &$msg)
 	$commit = "cd ".escapeshellarg(PAGES_PATH)." && git add -A && { ".
 		"if git diff --cached --quiet; then exit ".GIT_NOTHING_TO_COMMIT."; fi; ".
 		"git commit -m ".escapeshellarg($commitmsg)."; }";
-	if (checkedExecute($msg, $commit, array(), array(GIT_NOTHING_TO_COMMIT)))
+	if (checkedExecute($note, $commit, array(), array(GIT_NOTHING_TO_COMMIT)))
 	{
 		if (GIT_PUSH_ENABLED)
 		{
-			checkedExecute($msg, "cd ".escapeshellarg(PAGES_PATH)." && git push");
+			checkedExecute($note, "cd ".escapeshellarg(PAGES_PATH)." && git push");
 		}
 	}
 	gitUnlock($lock);
@@ -262,7 +271,7 @@ const GIT_PULL_CONFLICT = 3;
 // Merges the changes from the remote repository into the pages (and pushes the result
 // if pushing is enabled), if GIT_PULL_ENABLED and the interval for the action has passed.
 // Merge conflicts are undone (so the pages never contain conflict markers) and reported.
-function gitPull($action, &$msg)
+function gitPull($action, \W2\Note $note)
 {
 	if (!GIT_PULL_ENABLED || !GIT_COMMIT_ENABLED)
 	{
@@ -279,18 +288,15 @@ function gitPull($action, &$msg)
 		"GIT_TERMINAL_PROMPT=0 \$limit git pull --no-rebase --no-edit; result=\$?; ".
 		"if [ \$result -ne 0 ] && git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then git merge --abort; exit ".GIT_PULL_CONFLICT."; fi; ".
 		"exit \$result";
-	$conflict = __('There were merge conflicts while pulling changes from the remote repository. The pull was cancelled and the wiki keeps its own version. Please resolve the conflicts in the pages repository (ask the wiki administrator).');
-	$pullMsg = '';
-	if (checkedExecute($pullMsg, $pull, array(GIT_PULL_CONFLICT => $conflict)) && GIT_PUSH_ENABLED)
+	$conflict = translate('There were merge conflicts while pulling changes from the remote repository. The pull was cancelled and the wiki keeps its own version. Please resolve the conflicts in the pages repository (ask the wiki administrator).');
+	$pullNote = new \W2\Note();
+	if (checkedExecute($pullNote, $pull, array(GIT_PULL_CONFLICT => $conflict)) && GIT_PUSH_ENABLED)
 	{
 		// (also publishes the merge, and commits which could not be pushed earlier)
-		checkedExecute($pullMsg, "cd ".escapeshellarg(PAGES_PATH)." && GIT_TERMINAL_PROMPT=0 git push");
+		checkedExecute($pullNote, "cd ".escapeshellarg(PAGES_PATH)." && GIT_TERMINAL_PROMPT=0 git push");
 	}
 	gitUnlock($lock);
-	if ($pullMsg !== '')
-	{
-		$msg .= (str_starts_with($pullMsg, "<br/>") && $msg === '') ? substr($pullMsg, 5) : $pullMsg;
-	}
+	$note->append($pullNote);
 }
 
 function destroy_session()
@@ -359,12 +365,12 @@ if ($action === 'view' || $action === 'edit' || $action === 'save' || $action ==
 if ($action === 'view' || $action === 'edit' || $action === 'new')
 {
 	// (before the page is read, so that the editor shows what the others have changed)
-	$pullMsg = '';
-	gitPull($action, $pullMsg);
-	if ($pullMsg !== '')
+	$pullNote = new \W2\Note();
+	gitPull($action, $pullNote);
+	if (!$pullNote->isEmpty())
 	{
 		// (keeps the note of the action which has just redirected here)
-		$_SESSION['msg'] = ($_SESSION['msg'] ?? '') . (($_SESSION['msg'] ?? '') !== '' ? '<br/>' : '') . $pullMsg;
+		$_SESSION['note'] = \W2\Note::fromArray($_SESSION['note'] ?? null)->append($pullNote)->toArray();
 	}
 }
 if ($action === 'view' || $action === 'edit')
@@ -388,7 +394,7 @@ if ($action === 'view' || $action === 'edit')
 		{
 			$basePage = basename($p);
 			if ($basePage == $page) {
-				redirectWithMessage($p, sprintf(__("Page %s does not exist, redirected instead to first page in a subfolder with matching filename (%s)"), h($page), h($p)));
+				redirectWithNote($p, (new \W2\Note())->format(translate("Page %s does not exist, redirected instead to first page in a subfolder with matching filename (%s)"), array($page, $p)));
 			}
 		}
 		$newPage = $page;
@@ -399,7 +405,7 @@ $oldgitmsg = "";
 $triedSave = false;
 if ( $action == 'save' )
 {
-	$msg = '';
+	$note = new \W2\Note();
 	$newText = $_POST['newText'] ?? '';
 	$isNew = $_POST['isNew'] ?? '';
 	if ($isNew)
@@ -410,9 +416,16 @@ if ( $action == 'save' )
 	// (the name is checked when saving existing pages too: the client decides whether a page is new)
 	if (($isNew && isExistingPage($page)) || !isValidPageName($page))
 	{
-		$msg .= ($isNew && isExistingPage($page))
-			? sprintf(__("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"), h($page), "<a href=\"?action=edit&amp;page=".urlencode($page)."\">".__('edit')."</a>")."\n"
-			: sprintf(__("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."), h($page), h(UPLOAD_FOLDER))."\n";
+		if ($isNew && isExistingPage($page))
+		{
+			$note->format(translate("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"),
+				array($page, \W2\Note::link(translate('edit'), "?action=edit&page=".urlencode($page))));
+		}
+		else
+		{
+			$note->format(translate("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."),
+				array($page, UPLOAD_FOLDER));
+		}
 		$action = $isNew ? 'new' : 'edit';
 		$text = $newText;
 		$newPage = $page;
@@ -427,7 +440,7 @@ if ( $action == 'save' )
 		$success = writePage($page, $newText);
 		if ( !$success )
 		{
-			$msg .= __('Error saving changes! Make sure your web server has write access to the pages folder.')."\n";
+			$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
 			w2Log("error saving $filename");
 			$action = ($isNew ? 'new' : 'edit');
 			$text = $newText;
@@ -440,16 +453,16 @@ if ( $action == 'save' )
 		}
 		else
 		{
-			$msg .= ($isNew ? __('Created'): __('Saved'));
+			$note->text($isNew ? translate('Created') : translate('Saved'));
 			$usermsg = $_POST['gitmsg'] ?? '';
 			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
-			gitChangeHandler($commitmsg, $msg);
-			redirectWithMessage($page, $msg);
+			gitChangeHandler($commitmsg, $note);
+			redirectWithNote($page, $note);
 		}
 	}
 	// saving failed: show the editor again (with the entered title, text and message)
 	// instead of redirecting, so that nothing typed is lost
-	$_SESSION["msg"] = $msg;
+	$_SESSION['note'] = $note->toArray();
 }
 
 if ( isEditorAction($action) )
@@ -667,20 +680,20 @@ else if ( $action === 'uploaded' )
 	$uploadError = $_FILES['userfile']['error'] ?? UPLOAD_ERR_NO_FILE;
 	if ( $uploadError === UPLOAD_ERR_NO_FILE )
 	{
-		redirectWithMessage(requireValidPreviousPage('prevpage'), __('Upload error').": ".__('No file selected!'));
+		redirectWithNote(requireValidPreviousPage('prevpage'), (new \W2\Note())->text(translate('Upload error').": ".translate('No file selected!')));
 	}
 	if ( $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE )
 	{
 		$limit = ini_get('upload_max_filesize');
-		redirectWithMessage(requireValidPreviousPage('prevpage'), sprintf(
-			__('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), h($limit)));
+		redirectWithNote(requireValidPreviousPage('prevpage'), (new \W2\Note())->format(
+			translate('Upload error: the file is larger than the allowed %s (upload_max_filesize).'), array($limit)));
 	}
 	$tmpName = $_FILES['userfile']['tmp_name'];
 	$dstName = uploadTargetName($_FILES['userfile']['name'], $_POST['newname'] ?? '');
 	// $fileType = $_FILES['userfile']['type']; // as noted in https://www.php.net/manual/en/reserved.variables.files.php, the type specified here is client-specified and thus shouldn't be trusted
 	$fileType = mime_content_type($tmpName);
 	$fileExt = getFileExt($dstName);
-	$msg = '';
+	$note = new \W2\Note();
 	$typeAllowed = in_array($fileType, validUploadTypes(), true);
 	$svgData = null;
 	if ( $fileExt === 'svg' )
@@ -721,20 +734,22 @@ else if ( $action === 'uploaded' )
 		if ( $conversionImpossible )
 		{
 			w2Log("can't convert the upload $dstName: image processing is not available");
-			$msg .= __('Upload error').": ".sprintf(__('%s needs to be converted to %s, but image processing (the PHP extension imagick) is not available on this server.'), h($dstName), h(CONVERT_FORMAT));
+			$note->text(translate('Upload error').": ")
+				->format(translate('%s needs to be converted to %s, but image processing (the PHP extension imagick) is not available on this server.'), array($dstName, CONVERT_FORMAT));
 		}
 		else if ( file_exists($finalPath) && ($_POST['overwrite'] ?? '') !== 'true' )
 		{
-			$msg .= __('Upload error').": ".sprintf(__('%s already exists!'), h(basename($finalPath)));
+			$note->text(translate('Upload error').": ")
+				->format(translate('%s already exists!'), array(basename($finalPath)));
 		}
 		else if ( ($svgData !== null) ? (file_put_contents($path, $svgData) !== false) : (move_uploaded_file($tmpName, $path) === true) )
 		{
 			$commitMsg = "File '$dstName' uploaded!";
-			$msg .= sprintf(__("File '%s' uploaded!"), h($dstName))." ";
+			$note->format(translate("File '%s' uploaded!"), array($dstName))->text(" ");
 			$processFailed = false;
 			if ($resizeSkipped)
 			{
-				$msg .= __('The image was not shrunk or rotated: image processing (the PHP extension imagick) is not available on this server.')." ";
+				$note->text(translate('The image was not shrunk or rotated: image processing (the PHP extension imagick) is not available on this server.')." ");
 			}
 			if ($doProcess)
 			{
@@ -767,11 +782,11 @@ else if ( $action === 'uploaded' )
 						try
 						{
 							$img->resizeImage($newSize[0], $newSize[1], imagick::FILTER_LANCZOS, 1);
-							$msg .= sprintf(__('Original size was %s, resized to %s.'), "$size[0]x$size[1]", "$newSize[0]x$newSize[1]")." ";
+							$note->format(translate('Original size was %s, resized to %s.'), array("$size[0]x$size[1]", "$newSize[0]x$newSize[1]"))->text(" ");
 						}
 						catch (ImagickException $e)
 						{
-							$msg .= __('Resizing file failed!')." ";
+							$note->text(translate('Resizing file failed!')." ");
 						}
 					}
 					$ori = $img->getImageOrientation();
@@ -780,19 +795,19 @@ else if ( $action === 'uploaded' )
 						switch($ori)
 						{
 						case imagick::ORIENTATION_RIGHTTOP:
-							$msg .= sprintf(__('Image rotated by %s°.'), '+90')." ";
+							$note->format(translate('Image rotated by %s°.'), array('+90'))->text(" ");
 							$img->rotateImage('#000',90);
 							break;
 						case imagick::ORIENTATION_BOTTOMRIGHT:
-							$msg .= sprintf(__('Image rotated by %s°.'), '180')." ";
+							$note->format(translate('Image rotated by %s°.'), array('180'))->text(" ");
 							$img->rotateImage('#000',180);
 							break;
 						case imagick:: ORIENTATION_LEFTBOTTOM:
-							$msg .= sprintf(__('Image rotated by %s°.'), '-90')." ";
+							$note->format(translate('Image rotated by %s°.'), array('-90'))->text(" ");
 							$img->rotateImage('#000',-90);
 							break;
 //						default:
-//							$msg .= "Unknown EXIF orientation specification: ".$ori.". ";
+//							$note->text("Unknown EXIF orientation specification: ".$ori.". ");
 //							break;
 						}
 						$img->setImageOrientation(imagick::ORIENTATION_TOPLEFT);
@@ -801,7 +816,7 @@ else if ( $action === 'uploaded' )
 					{
 						$dstName = substr($dstName, 0, strlen($dstName)-strlen($fileExt)).CONVERT_FORMAT;
 						$img->setImageFormat(CONVERT_FORMAT);
-						$msg .= sprintf(__('Converted to format %s.'), h(CONVERT_FORMAT))." ";
+						$note->format(translate('Converted to format %s.'), array(CONVERT_FORMAT))->text(" ");
 					}
 					$img->writeImage($finalPath);
 					unlink($path);
@@ -816,14 +831,15 @@ else if ( $action === 'uploaded' )
 						unlink($path);
 					}
 					$processFailed = true;
-					$msg = __('Upload error').": ".sprintf(__('%s could not be processed (is it a valid image?)'), h($dstName));
+					$note = (new \W2\Note())->text(translate('Upload error').": ")
+						->format(translate('%s could not be processed (is it a valid image?)'), array($dstName));
 				}
 			}
 
 			if (!$processFailed)
 			{
-				gitChangeHandler($commitMsg, $msg);
-				$msg .= sprintf(__('Use %s to refer to it!'), "<pre>".h(imageLinkText($dstName))."</pre>");
+				gitChangeHandler($commitMsg, $note);
+				$note->format(translate('Use %s to refer to it!'), array(\W2\Note::block(imageLinkText($dstName))));
 			}
 		}
 		else
@@ -833,25 +849,25 @@ else if ( $action === 'uploaded' )
 			{
 				// Likely a permissions issue
 				w2Log("can't write upload to $path");
-				$msg .= __('Upload error') .": ".__("Can't write to the uploads folder")."<br/><br/>\n".
-					__('Check that your permissions are set correctly.');
+				$note->text(translate('Upload error') .": ".translate("Can't write to the uploads folder"))->br(2)
+					->text(translate('Check that your permissions are set correctly.'));
 			}
 			else
 			{
 				// Give generic error message
-				$msg .= __('Upload error').", error #".$error_code."<br/><br/>\n".
-					sprintf(__('Please see %s for more information.'), "<a href=\"https://www.php.net/manual/en/features.file-upload.errors.php\">".__('here')."</a>")."<br/><br/>\n".
-					sprintf(__('If you see this message, please %s'), "<a href=\"https://github.com/codeling/w2wiki/issues\">".__('file a bug to improve w2wiki')."</a>");
+				$note->text(translate('Upload error').", error #".$error_code)->br(2)
+					->format(translate('Please see %s for more information.'), array(\W2\Note::link(translate('here'), 'https://www.php.net/manual/en/features.file-upload.errors.php')))->br(2)
+					->format(translate('If you see this message, please %s'), array(\W2\Note::link(translate('file a bug to improve w2wiki'), 'https://github.com/codeling/w2wiki/issues')));
 			}
 		}
 	}
 	else
 	{
-		$msg .= __('Upload error: invalid file type');
+		$note->text(translate('Upload error: invalid file type'));
 		w2Log("Upload error: file name = $dstName, invalid file type $fileType");
 	}
 	$prevpage = requireValidPreviousPage('prevpage');
-	redirectWithMessage($prevpage, $msg);
+	redirectWithNote($prevpage, $note);
 }
 else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete' || $action === 'imgRename')
 {
@@ -883,7 +899,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	// TODO: prevent relative filenames from being injected
 	$oldPageName = sanitizeFilename($_POST['oldPageName'] ?? '');
 	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName'] ?? '');
-	$msg = '';
+	$note = new \W2\Note();
 	if ($action === 'deleted')
 	{
 		$success = pageStore()->delete($oldPageName);
@@ -894,10 +910,11 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	}
 	if ($success)
 	{
+		// (plain text, which is also the message of the commit)
 		$message = ($action === 'deleted')
-			? (__('Removed')." ".h($oldPageName))
-			: (__('Renamed')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
-		$msg .= $message;
+			? (translate('Removed')." ".$oldPageName)
+			: (translate('Renamed')." ".$oldPageName." ".translate('to')." ".$newPageName);
+		$note->text($message);
 		// Change links in all pages to point to new page
 		$pagenames = getAllPageNames();
 		$changedPages = array();
@@ -912,7 +929,7 @@ else if ( $action === 'renamed' || $action === 'deleted')
 			{
 				if ( writePage($replacePage, $newContent) )
 				{
-					$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+					$changedPages[] = $replacePage." ($count ".translate('matches').")";
 				}
 				else
 				{
@@ -922,25 +939,23 @@ else if ( $action === 'renamed' || $action === 'deleted')
 		}
 		if (count($changedPages) > 0)
 		{
-			$msg .= "<br/>\n".__('Updated links in the following pages:')."\n<ul><li>";
-			$msg .= implode("</li><li>", $changedPages);
-			$msg .= "</li></ul>";
+			$note->items(translate('Updated links in the following pages:'), $changedPages);
 		}
-		gitChangeHandler($message, $msg);
+		gitChangeHandler($message, $note);
 		$page = $newPageName;
 	}
 	else
 	{
-		$msg .= ($action === 'deleted')
-			? (__('Error deleting file')." ".h($oldPageName))
-			: (__('Error renaming file')." ".h($oldPageName)." ".__('to')." ".h($newPageName));
+		$note->text(($action === 'deleted')
+			? (translate('Error deleting file')." ".$oldPageName)
+			: (translate('Error renaming file')." ".$oldPageName." ".translate('to')." ".$newPageName));
 		$page = $oldPageName;
 	}
 	if ($action === 'deleted' && $success)
 	{
 		$page  = DEFAULT_PAGE;
 	}
-	redirectWithMessage($page, $msg);
+	redirectWithNote($page, $note);
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
@@ -967,15 +982,13 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			rename($oldImgPath, $imgPath.$newImgName);
 	}
 
+	$note = new \W2\Note();
 	if ($success)
 	{
-		$msg = ($action === 'imgDeleted')
-			? (__('Image deleted').": ".h($oldImgName))
-			: (__('Image renamed').": ".h($oldImgName)." ".__('to')." ".h($newImgName));
-		// the commit message is plain text (the note above is HTML)
 		$commitMsg = ($action === 'imgDeleted')
-			? (__('Image deleted').": ".$oldImgName)
-			: (__('Image renamed').": ".$oldImgName." ".__('to')." ".$newImgName);
+			? (translate('Image deleted').": ".$oldImgName)
+			: (translate('Image renamed').": ".$oldImgName." ".translate('to')." ".$newImgName);
+		$note->text($commitMsg);
 		$changedPageNames = array();
 		// Change references to image in all pages:
 		$pagenames = getAllPageNames();
@@ -990,7 +1003,7 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 			{
 				if ( writePage($replacePage, $newContent) )
 				{
-					$changedPages[] = h($replacePage)." ($count ".__('matches').")";
+					$changedPages[] = $replacePage." ($count ".translate('matches').")";
 					$changedPageNames[] = $replacePage;
 				}
 				else
@@ -1001,21 +1014,19 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 		}
 		if (count($changedPages) > 0)
 		{
-			$commitMsg .= " (".__('Updated images in the following pages:')." ".implode(", ", $changedPageNames).")";
-			$msg .= "<br/>\n".__('Updated images in the following pages:')."\n<ul><li>";
-			$msg .= implode("</li><li>", $changedPages);
-			$msg .= "</li></ul>";
+			$commitMsg .= " (".translate('Updated images in the following pages:')." ".implode(", ", $changedPageNames).")";
+			$note->items(translate('Updated images in the following pages:'), $changedPages);
 		}
-		gitChangeHandler($commitMsg, $msg);
+		gitChangeHandler($commitMsg, $note);
 	}
 	else
 	{
-		$msg = ($action === 'imgDeleted')
-			? (__('Error deleting image: ')." (".h($oldImgName).")")
-			: (__('Error renaming image: ').h($oldImgName)." ".__('to')." ".h($newImgName));
+		$note->text(($action === 'imgDeleted')
+			? (translate('Error deleting image: ')." (".$oldImgName.")")
+			: (translate('Error renaming image: ').$oldImgName." ".translate('to')." ".$newImgName));
 	}
 	$prevpage = requireValidPreviousPage('prevpage');
-	redirectWithMessage($prevpage, $msg);
+	redirectWithNote($prevpage, $note);
 }
 else if ( $action === 'all' )
 {
@@ -1206,11 +1217,12 @@ if ($action === 'view' && isset($_GET['linkshere']))
 	print "</ul></div>";
 }
 print "    <div class=\"main\">\n\n";
-if(isset($_SESSION['msg']) && $_SESSION['msg'] != '')
+$note = \W2\Note::fromArray($_SESSION['note'] ?? null);
+if (!$note->isEmpty())
 {
-	print "      <div class=\"note\">".$_SESSION['msg']."</div>";
-	unset($_SESSION['msg']);
+	print "      <div class=\"note\">".$note->render()."</div>";
 }
+unset($_SESSION['note']);
 print "$html\n";
 print "    </div>\n";
 printFooter();
