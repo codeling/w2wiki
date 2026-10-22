@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class SourceGuardTest extends TestCase
 {
-	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php'];
+	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php', 'src/Html.php', 'src/Template.php'];
 
 	/** Functions which run code or commands, or are otherwise dangerous with user input */
 	private const FORBIDDEN_FUNCTIONS = [
@@ -87,7 +87,7 @@ final class SourceGuardTest extends TestCase
 		$this->assertSame(['index.php: checkedExecute'], $callers);
 	}
 
-	/** Only the autoloader includes files with a name which is not a fixed string or a constant */
+	/** Only the autoloader and the templates include files with a name which is not a fixed string or a constant */
 	#[DataProvider('files')]
 	public function testFilesAreNotIncludedWithVariableNames(string $file): void
 	{
@@ -102,7 +102,7 @@ final class SourceGuardTest extends TestCase
 			}
 			$code = implode(' ', $statement);
 			if (str_contains($code, '$')) {
-				$this->assertSame(['functions.php', '$file'], [$file, $code], "include with a variable in $file line {$token[2]}");
+				$this->assertContains([$file, $code], [['functions.php', '$file'], ['src/Template.php', '$file']], "include with a variable in $file line {$token[2]}");
 			}
 		}
 		$this->addToAssertionCount(1);

@@ -103,6 +103,15 @@ function getAllPageNames()
 }
 
 /**
+ * The templates for the HTML of the pages (see W2\Template)
+ */
+function templates()
+{
+	static $templates = null;
+	return $templates ??= new W2\Template(__DIR__ . '/src/templates');
+}
+
+/**
  * The references to uploaded files in the text of pages (see W2\UploadReferences)
  */
 function uploadReferences()
