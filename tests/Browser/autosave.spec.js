@@ -86,3 +86,32 @@ test('a draft of a page which was changed in the meantime comes with a warning',
   await expect(page.locator('#text')).toHaveValue('my draft');
   await expect(page.locator('.main .note')).toContainText('was changed');
 });
+
+test('a save which the server refuses keeps the draft, and the editor shows the text again', async ({ page, context }) => {
+  await page.goto('/index.php/' + encodeURIComponent('Refused save'));
+  await page.fill('#title', 'Refused save');
+  await page.fill('#text', 'a long edit');
+  // (like an expired session: the token in the form is no longer the one of the session)
+  await context.clearCookies();
+  await page.click('#save');
+  await expect(page.locator('.main .note')).toContainText('was not saved');
+  await expect(page.locator('#text')).toHaveValue('a long edit');
+  await expect(page.locator('#title')).toHaveValue('Refused save');
+  expect(await page.evaluate(() => localStorage.length)).toBe(1);
+  // (saving again works, with the token of the new session)
+  await page.click('#save');
+  await page.waitForURL(/index\.php\/Refused%20save$/);
+  expect(await page.evaluate(() => localStorage.length)).toBe(0);
+});
+
+test('a save which fails on the way keeps the draft', async ({ page, request }) => {
+  await savePage(request, 'Failed save', 'saved text');
+  await page.goto(editUrl('Failed save'));
+  await page.fill('#text', 'unsaved text');
+  await page.route('**/index.php', (route) => route.request().method() === 'POST' ? route.abort() : route.continue());
+  await page.click('#save').catch(() => {});
+  await page.unroute('**/index.php');
+  await page.goto(editUrl('Failed save'));
+  await expect(page.locator('#text')).toHaveValue('unsaved text');
+  await expect(page.locator('.main .note')).toContainText('Restored unsaved draft');
+});

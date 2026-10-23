@@ -288,6 +288,8 @@ $trustedProxies = array();
 // W2_SESSION_LIFETIME
 // 
 // How long before a login session expires?  Default is 30 days
+// (without password, the session ends when the browser is closed, but is kept on the
+// server for this long at most; it holds the security token of the forms, e.g. the editor's)
 define('W2_SESSION_LIFETIME', 60 * 60 * 24 * 30);
 
 // W2_SESSION_NAME

@@ -24,6 +24,16 @@ function isValidCSRFToken($token)
 }
 
 /**
+ * Whether the browser says that the request comes from another site (Sec-Fetch-Site header);
+ * requests without the header (older browsers, other clients) don't count as such
+ */
+function isCrossSiteRequest($server)
+{
+	$site = $server['HTTP_SEC_FETCH_SITE'] ?? '';
+	return $site !== '' && $site !== 'same-origin' && $site !== 'none';
+}
+
+/**
  * Whether the given IP address matches an allowlist entry, which is either
  * a single address (e.g. "192.168.1.10"), a CIDR range (e.g. "192.168.1.0/24"
  * or "fd00::/8"), or an address prefix ending in "." or ":" (e.g. "10.0.")

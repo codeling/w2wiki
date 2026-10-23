@@ -37,6 +37,42 @@ final class CsrfTest extends AppTestCase
 		$this->assertStringNotContainsString('pwned', $this->pageText('Home'));
 	}
 
+	public function testSavingWithExpiredSessionShowsTheEditorWithTheText(): void
+	{
+		$this->savePage('Long edit', 'old text');
+		// (the session expired: the new one has another token)
+		$response = $this->newClient()->post('/index.php', [
+			'action' => 'save', 'page' => 'Long edit', 'newText' => 'my <long> edit', 'isNew' => '', 'csrf_token' => str_repeat('a', 64),
+		], [], ['Sec-Fetch-Site: same-origin']);
+		$this->assertSame(403, $response->status);
+		$this->assertSame('old text', $this->pageText('Long edit'));
+		$this->assertStringContainsString('<form id="edit"', $response->body);
+		$this->assertStringContainsString('>my &lt;long&gt; edit</textarea>', $response->body);
+		$this->assertStringContainsString('The text was not saved', $response->body);
+		$this->assertStringNotContainsString(str_repeat('a', 64), $response->body);
+	}
+
+	public function testNewPageWithExpiredSessionShowsTheEditorWithTitleAndText(): void
+	{
+		$response = $this->http->post('/index.php', [
+			'action' => 'save', 'page' => 'Brand new', 'newText' => 'new text', 'isNew' => 'true', 'csrf_token' => 'wrong',
+		]);
+		$this->assertSame(403, $response->status);
+		$this->assertFileDoesNotExist($this->pageFile('Brand new'));
+		$this->assertStringContainsString('value="Brand new"', $response->body);
+		$this->assertStringContainsString('>new text</textarea>', $response->body);
+	}
+
+	public function testCrossSiteSaveWithoutTokenShowsNoEditor(): void
+	{
+		$response = $this->http->post('/index.php', [
+			'action' => 'save', 'page' => 'Home', 'newText' => 'pwned', 'isNew' => '',
+		], [], ['Sec-Fetch-Site: cross-site']);
+		$this->assertSame(403, $response->status);
+		$this->assertStringNotContainsString('pwned', $response->body);
+		$this->assertStringNotContainsString('<form id="edit"', $response->body);
+	}
+
 	public function testTokenOfAnotherSessionIsRefused(): void
 	{
 		$otherToken = $this->csrfToken($this->newClient());

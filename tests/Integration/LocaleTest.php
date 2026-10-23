@@ -183,10 +183,18 @@ final class LocaleTest extends AppTestCase
 	public function testMessagesOfRejectedRequestsAreTranslated(string $locale): void
 	{
 		$words = self::words($locale);
-		$response = $this->http->post('/index.php', ['action' => 'save', 'page' => 'X', 'newText' => 'x']);
+		$response = $this->http->post('/index.php', ['action' => 'renamed', 'oldPageName' => 'Home', 'newName' => 'X']);
 		$this->assertSame(403, $response->status);
 		$this->assertStringContainsString(
 			self::text($words, 'Invalid request: missing or wrong security token. Please go back, reload the page and try again.'),
+			$response->body,
+			$locale
+		);
+		// (a refused save shows the editor again instead)
+		$response = $this->http->post('/index.php', ['action' => 'save', 'page' => 'X', 'newText' => 'x']);
+		$this->assertSame(403, $response->status);
+		$this->assertStringContainsString(
+			self::text($words, 'The text was not saved, because the security token was missing or wrong (for example because the session has expired). Please check the text and save again.'),
 			$response->body,
 			$locale
 		);
