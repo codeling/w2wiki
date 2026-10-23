@@ -50,7 +50,12 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('Home', $fields['page']);
 		$this->assertSame('save', $fields['action']);
 		$this->assertSame('', $fields['isNew']);
-		$this->assertSame(file_get_contents($this->pageFile('Home')), $fields['newText']);
+		// (the page file has CRLF line endings; HTML parsers differ in whether they keep the CR of a text area)
+		$this->assertSame(
+			str_replace("\r\n", "\n", (string)file_get_contents($this->pageFile('Home'))),
+			str_replace("\r\n", "\n", $fields['newText'])
+		);
+		$this->assertStringContainsString("[[MarkdownSyntax|Markdown Syntax]]", $body, 'the text is in the page');
 		$this->assertStringContainsString('<textarea id="text" name="newText" rows="18"', $body);
 		$this->assertStringContainsString('<input id="save" type="submit" value="Save" />', $body);
 		$this->assertStringContainsString('<input id="cancel" type="button" onclick="history.go(-1);" value="Cancel" />', $body);
