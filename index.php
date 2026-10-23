@@ -393,49 +393,25 @@ if ( $action == 'save' )
 
 if ( isEditorAction($action) )
 {
-	$draftKey = "w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
-	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\"".
-		" data-draft-key=\"".h($draftKey)."\"".
-		" data-msg-restored=\"".__('Restored unsaved draft from %s.')."\"".
-		" data-msg-conflict=\"".__('Warning: the page was changed since this draft was started.')."\"".
-		" data-msg-discard=\"".__('Discard draft')."\">\n";
-	$html .= csrfField() . "\n";
-
-	if ( $action === 'edit' )
+	$similarPages = null;
+	if ($action === 'new' && $newPage != "" && !$triedSave)
 	{
-		$html .= "<input type=\"hidden\" name=\"page\" value=\"".h($page)."\" />\n";
-	}
-	else
-	{
-		if ($newPage != "" && !$triedSave)
+		// check if similar page exists...
+		$similarPages = array();
+		foreach(getAllPageNames() as $pageName)
 		{
-			$html .= "<div class=\"note\">". __('Creating new page since no page with given title exists!') ;
-			// check if similar page exists...
-			$pageNames = getAllPageNames();
-			foreach($pageNames as $pageName)
+			if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
 			{
-				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
-				{
-					$html .= "<br/><strong>".__('Note').":</strong> ".sprintf(__('Found similar page %s. Maybe you meant to edit this instead?'), pageLink($pageName, h($pageName)));
-				}
+				$similarPages[] = array('href' => pageURL($pageName), 'name' => $pageName);
 			}
-			$html .= "</div>\n";
 		}
-		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"".h($newPage)."\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
-
 	}
-
-	$html .= "<p class=\"editorbox\"><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
-	if (GIT_COMMIT_ENABLED)
-	{
-		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
-	}
-
-	$html .= "<p class=\"editactions\"><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
-	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
-	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
-	$html .= '<input id="cancel" type="button" onclick="'.HANDLER_GO_BACK.'" value="'. __('Cancel') .'" />'."\n";
-	$html .= "</p></form>\n";
+	$html .= templates()->render('editor', array(
+		'draftKey' => "w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage"),
+		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
+		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
+		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg
+	));
 }
 else if ( $action === 'logout' )
 {
@@ -457,50 +433,13 @@ else if ( $action === 'upload' )
 	}
 	else
 	{
-		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
-			'<input type="hidden" name="action" value="uploaded" />'.csrfField().
-			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
-			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
-			'<input id="file" type="file" name="userfile" />'."\n".
-			'<label for="newname">'.__('Save as').'</label> '.
-			'<input id="newname" type="text" name="newname" placeholder="'.h(__('Keep file name')).'" />'."\n".
-			(imageProcessingAvailable()
-				? ('<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
-					'<label for="resize">'.__('Shrink if larger than ').'</label>'.
-					'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
-					'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>')
-				: '').
-			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
-			"\n</p></form>\n";
-		$html .= '<script type="application/javascript" nonce="'.cspNonce().'">'."\n".
-			'function processForm(e) {'."\n".
-			'    e.preventDefault();'."\n".
-			'    var fileInput = document.getElementById("file");'."\n".
-			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
-			'    var filename = fileInput.files[0].name;'."\n".
-			'    var newname = document.getElementById("newname").value;'."\n".
-			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename)+"&newname="+encodeURIComponent(newname))'."\n".
-			'        .then((response) => {'."\n".
-			'            response.json().then((data) => {'."\n".
-			'                upload = true;'."\n".
-			'                if (data) {'."\n".
-			'                     upload = window.confirm('.__js('File %s already exists. Overwrite?').'.replace("%s", () => filename));'."\n".
-			'                }'."\n".
-			'                if (upload) {'."\n".
-			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
-			'                    var myform = document.getElementById("upload");'."\n".
-			'                    myform.submit();'."\n".
-			'                }'."\n".
-			'            });'."\n".
-			'        })'."\n".
-			'        .catch((err) => { console.log(err); });'."\n".
-			'}'."\n".
-			'window.addEventListener("load", function(event) {'."\n".
-			'    var form = document.getElementById("upload");'."\n".
-			'    form.addEventListener("submit", processForm);'."\n".
-			'});'."\n".
-			'</script>';
-
+		// (texts in the script are JavaScript string literals, not HTML; BASE_URI is the inside of one)
+		$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+		$html .= templates()->render('upload-form', array(
+			'csrfField' => \W2\Html::raw(csrfField()), 'prevPage' => $prevpage, 'shrink' => imageProcessingAvailable(),
+			'nonce' => cspNonce(), 'baseUri' => \W2\Html::raw(substr(json_encode(BASE_URI, $jsonFlags), 1, -1)),
+			'noFileText' => \W2\Html::raw(__js('No file selected!')), 'overwriteText' => \W2\Html::raw(__js('File %s already exists. Overwrite?'))
+		));
 	}
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
@@ -801,24 +740,12 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	{
 		$page = sanitizeFilename($_REQUEST['imgName'] ?? '');
 	}
-	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
-	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
-	$html .= csrfField();
-	$html .= "<p>".$actionName." ".h($page)." ".
-		(($action==='rename' || $action==='imgRename')
-			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . h($page) . "\" class=\"pagename\" />")
-			: "?")
-		. "</p>";
-	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"".HANDLER_GO_BACK."\" value=\"".__('Cancel')."\" />\n";
-	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
-	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
-	if ($action === 'imgDelete' || $action === 'imgRename')
-	{
-		$prevpage = requireValidPreviousPage('prevpage');
-		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
-	}
-	$html .= "</p></form>";
+	$actionName = ($action === 'delete' || $action === 'imgDelete') ? translate('Delete') : translate('Rename');
+	$html .= templates()->render('rename-delete', array(
+		'id' => $action, 'label' => $actionName, 'name' => $page, 'askNewName' => ($action === 'rename' || $action === 'imgRename'),
+		'nextAction' => $action . 'd', 'csrfField' => \W2\Html::raw(csrfField()),
+		'prevPage' => ($action === 'imgDelete' || $action === 'imgRename') ? requireValidPreviousPage('prevpage') : null
+	));
 }
 else if ( $action === 'renamed' || $action === 'deleted')
 {
