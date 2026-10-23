@@ -10,10 +10,8 @@
 
 require_once "auth_functions.php";
 
-if ( REQUIRE_PASSWORD )
-{
-	ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
-}
+// (without password too: the session holds the token of the editor's form, and editing can take hours)
+ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
 ini_set('session.use_strict_mode', 1);
 session_set_cookie_params(sessionCookieParams($_SERVER));
 session_name(W2_SESSION_NAME);
