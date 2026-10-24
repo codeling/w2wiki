@@ -281,6 +281,7 @@ if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 }
 $newPage = "";
 $text = "";
+$baseHash = null;
 $content = \W2\Html::raw('');
 if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
 {
@@ -316,6 +317,7 @@ if ($action === 'view' || $action === 'edit')
 	if ( isExistingPage($page) )
 	{
 		$text = pageStore()->read($page) ?? '';
+		$baseHash = \W2\Changes::textHash($text);
 	}
 	else
 	{
@@ -346,6 +348,7 @@ if ( $action == 'save' )
 {
 	$newText = $_POST['newText'] ?? '';
 	$isNew = $_POST['isNew'] ?? '';
+	$postedHash = $_POST['baseHash'] ?? '';
 	$postedDraftKey = $_POST['draftKey'] ?? '';
 	if (!str_starts_with($postedDraftKey, 'w2wiki-draft:'))
 	{
@@ -361,7 +364,7 @@ if ( $action == 'save' )
 	}
 	else
 	{
-		$result = (new \W2\Changes())->save($page, (bool)$isNew, $newText, $_POST['gitmsg'] ?? '');
+		$result = (new \W2\Changes())->save($page, (bool)$isNew, $newText, $_POST['gitmsg'] ?? '', $postedHash !== '' ? $postedHash : null);
 		$note = $result->note;
 		if ($result->success)
 		{
@@ -380,6 +383,12 @@ if ( $action == 'save' )
 		$oldgitmsg = $_POST['gitmsg'] ?? '';
 	}
 	$triedSave = true;
+	if (!$isNew)
+	{
+		// (the editor sends the hash it was sent, until the user has seen what somebody else has changed: then the next
+		// save is meant to replace it)
+		$baseHash = (isset($result) && $result->conflict) ? \W2\Changes::textHash(pageStore()->read($page) ?? '') : ($postedHash !== '' ? $postedHash : null);
+	}
 	$_SESSION['note'] = $note->toArray();
 }
 
@@ -393,7 +402,8 @@ if ( isEditorAction($action) )
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
-		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg
+		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
+		'baseHash' => $action === 'edit' ? $baseHash : null
 	));
 }
 else if ( $action === 'logout' )

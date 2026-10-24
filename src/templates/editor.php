@@ -8,7 +8,8 @@
  *         not saved), isNew (bool), csrfField (Html),
  *         page (text: the page being edited), newPage (text: the title entered for a new page),
  *         similarPages (null, or the list of pages with a name like the new one: href, name),
- *         text (text), rows (number), gitEnabled (bool), gitMessage (text)
+ *         text (text), rows (number), gitEnabled (bool), gitMessage (text),
+ *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save())
  */
 ?>
 <form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
@@ -17,6 +18,9 @@
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
 <?php if (!$this->isNew): ?>
 <input type="hidden" name="page" value="<?= $this->page ?>" />
+<?php if ($this->baseHash !== null): ?>
+<input type="hidden" name="baseHash" value="<?= $this->baseHash ?>" />
+<?php endif ?>
 <?php else: ?>
 <?php if ($this->similarPages !== null): ?>
 <div class="note"><?= __('Creating new page since no page with given title exists!') ?>

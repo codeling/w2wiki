@@ -23,8 +23,10 @@ final class Changes
 	 * @param bool $isNew		whether the editor was opened for a new page
 	 * @param string $text		new text of the page
 	 * @param string $userMessage	message for the commit, "" for the default
+	 * @param string|null $baseHash	{@see textHash()} of the text the editor was opened with, to refuse to save over a
+	 *				change somebody else has made since (null: no check, e.g. for forms of other versions)
 	 */
-	public function save(string $page, bool $isNew, string $text, string $userMessage): ChangeResult
+	public function save(string $page, bool $isNew, string $text, string $userMessage, ?string $baseHash = null): ChangeResult
 	{
 		$note = new Note();
 		if ($isNew)
@@ -44,6 +46,11 @@ final class Changes
 				array($page, UPLOAD_FOLDER));
 			return new ChangeResult(false, $page, $note);
 		}
+		if (!$isNew && $baseHash !== null && !hash_equals(self::textHash(pageStore()->read($page) ?? ''), $baseHash))
+		{
+			$note->text(translate('The page was changed (or deleted) by someone else since you opened it. Nothing was saved. Your text is still in the editor: please check the current version of the page, then save again to replace it.'));
+			return new ChangeResult(false, $page, $note, true);
+		}
 		if (!writePage($page, $text))
 		{
 			$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
@@ -53,6 +60,12 @@ final class Changes
 		$note->text($isNew ? translate('Created') : translate('Saved'));
 		gitChangeHandler($page . ($userMessage !== '' ? (": ".$userMessage) : ($isNew ? " created" : " changed")), $note);
 		return new ChangeResult(true, $page, $note);
+	}
+
+	/** Identifies the text of a page, to see whether it has changed (the editor sends the one of the text it was opened with) */
+	public static function textHash(string $text): string
+	{
+		return hash('sha256', $text);
 	}
 
 	/** Renames a page and changes the links to it in all pages; the result names the page to show afterwards */
