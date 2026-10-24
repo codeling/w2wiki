@@ -14,11 +14,12 @@ final class LocaleFilesTest extends TestCase
 {
 	private const SOURCE_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php'];
 
-	/** @return string[] the files with texts to translate: the scripts, and the templates (src/templates) */
+	/** @return string[] the files with texts to translate: the scripts, the classes (src) and the templates (src/templates) */
 	private static function sourceFiles(): array
 	{
 		$templates = array_map(fn($file) => 'src/templates/' . basename($file), glob(dirname(__DIR__, 2) . '/src/templates/*.php') ?: []);
-		return array_merge(self::SOURCE_FILES, $templates);
+		$classes = array_map(fn($file) => 'src/' . basename($file), glob(dirname(__DIR__, 2) . '/src/*.php') ?: []);
+		return array_merge(self::SOURCE_FILES, $classes, $templates);
 	}
 	private const ROOT_LOCALE = 'en';
 

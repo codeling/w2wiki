@@ -13,15 +13,9 @@ parameters:
 			path: functions.php
 
 		-
-			message: '#^Variable \$filename might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: index.php
-
-		-
 			message: '#^Variable \$page might not be defined\.$#'
 			identifier: variable.undefined
-			count: 14
+			count: 10
 			path: index.php
 
 		-
