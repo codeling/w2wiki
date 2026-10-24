@@ -4,11 +4,34 @@
  *
  * W2
  *
- * Session handling, IP restriction and password checks, shared by all entry
+ * Authentication by the web server, session handling, IP restriction and password checks, shared by all entry
  * points (index.php, api.php). Requires the settings (config.php, defaults.php) to be loaded.
  */
 
 require_once "auth_functions.php";
+
+foreach ( securityHeaders($_SERVER) as $name => $value )
+{
+	header("$name: $value");
+}
+
+// Authentication by the web server (REQUIRE_WEB_SERVER_AUTH): stop unless the request came in over
+// HTTPS and the web server authenticated the user (REMOTE_USER), before a session is created
+if ( REQUIRE_WEB_SERVER_AUTH )
+{
+	// (__() escapes for HTML, the messages are plain text)
+	$plain = fn($text) => html_entity_decode($text, ENT_QUOTES | ENT_HTML5, W2_CHARSET);
+	\WebAuth\ServerAuth::guard(array(
+		'require_https' => WEB_SERVER_AUTH_REQUIRE_HTTPS,
+		// (sent with the security headers above)
+		'hsts' => false,
+		'log_prefix' => 'W2',
+		'messages' => array(
+			'https' => $plain(__('Access denied: this wiki is only available over HTTPS.')),
+			'auth' => $plain(__('Access denied: the web server did not authenticate you.'))
+		)
+	));
+}
 
 // (without password too: the session holds the token of the editor's form, and editing can take hours)
 ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
@@ -24,11 +47,6 @@ if ( !empty($w2ConfigMissing) && empty($_SESSION['config_missing_logged']) )
 	$_SESSION['config_missing_logged'] = true;
 }
 
-foreach ( securityHeaders($_SERVER) as $name => $value )
-{
-	header("$name: $value");
-}
-
 // token protecting state-changing requests against cross-site request forgery
 if ( empty($_SESSION['csrf_token']) )
 {
@@ -38,18 +56,8 @@ if ( empty($_SESSION['csrf_token']) )
 if ( count($allowedIPs) > 0 )
 {
 	$ip = $_SERVER['REMOTE_ADDR'];
-	$accepted = false;
 
-	foreach ( $allowedIPs as $allowed )
-	{
-		if ( ipMatches($ip, $allowed) )
-		{
-			$accepted = true;
-			break;
-		}
-	}
-
-	if ( !$accepted )
+	if ( !\WebAuth\Ip::isInList($ip, $allowedIPs) )
 	{
 		http_response_code(403);
 		// (api.php doesn't load the locale)

@@ -121,13 +121,13 @@ if ( !isLoggedIn() )
 	{
 		$limits = loginThrottleLimits();
 		$throttleFolder = loginThrottleFolder();
-		$clientKey = clientAddress($_SERVER, $trustedProxies);
+		$clientKey = \WebAuth\ClientAddress::get($_SERVER, $trustedProxies);
 		if ( !isValidCSRFToken($_POST['csrf_token'] ?? null) )
 		{
 			// (the password isn't checked, so this is no way to guess it)
 			$loginMessage = __('Your session has expired. Please try again.');
 		}
-		elseif ( ($wait = loginThrottleStart($throttleFolder, $clientKey, time(), $limits)) !== 0 )
+		elseif ( ($wait = \WebAuth\LoginThrottle::start($throttleFolder, $clientKey, time(), $limits)) !== 0 )
 		{
 			if ( $wait < 0 )
 			{
@@ -145,7 +145,7 @@ if ( !isLoggedIn() )
 		}
 		elseif ( isCorrectPassword($_POST['p']) )
 		{
-			loginThrottleSucceeded($throttleFolder, $clientKey, $limits);
+			\WebAuth\LoginThrottle::succeeded($throttleFolder, $clientKey, $limits);
 			// prevent session fixation
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;

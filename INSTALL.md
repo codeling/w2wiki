@@ -190,6 +190,7 @@ location ^~ /defaults.php { deny all; }
 location ^~ /functions.php { deny all; }
 location ^~ /auth.php { deny all; }
 location ^~ /auth_functions.php { deny all; }
+location ^~ /webauth/ { deny all; }
 location ^~ /composer. { deny all; }
 location ^~ /phpunit.xml { deny all; }
 location ^~ /LICENSE { deny all; }
@@ -280,6 +281,52 @@ AuthName "W2"
 AuthUserFile /path/to/.htpasswd
 Require valid-user
 ```
+
+### Authentication by the web server
+
+Instead of (or in addition to) the password of W2, the web server can ask for
+credentials: HTTP Basic authentication allows several users, each with their
+own password, and an authenticating reverse proxy (single sign-on, a second
+factor) can be used if the web server in front of PHP passes the user on as
+`REMOTE_USER`. Then set in `config.php`:
+```
+define('REQUIRE_WEB_SERVER_AUTH', true);
+```
+W2 then refuses (with status 403) every request which the web server did not
+authenticate, and, unless `WEB_SERVER_AUTH_REQUIRE_HTTPS` is set to `false`,
+every request which did not come in over HTTPS. So a missing or ignored web
+server setting (`AllowOverride None`, a copied configuration without the
+authentication lines, ...) doesn't leave the wiki open, and passwords are never
+sent in cleartext. Only `REMOTE_USER` counts: request headers such as
+`Authorization` or `Remote-User` don't, since any client can send them.
+
+For Apache, add to the `.htaccess` file in the W2 folder (or the virtual host;
+create the password file outside of the web root with
+`htpasswd -B -c /path/to/.htpasswd user`):
+```
+AuthType Basic
+AuthName "W2"
+AuthUserFile /path/to/.htpasswd
+<RequireAll>
+    Require expr "%{HTTPS} == 'on' || %{ENV:HTTPS} == 'on'"
+    Require valid-user
+</RequireAll>
+```
+For nginx, in the location of W2 (`auth_basic` sets `$remote_user`, which has to
+be passed on to PHP):
+```
+auth_basic "W2";
+auth_basic_user_file /path/to/.htpasswd;
+# in the location for PHP:
+fastcgi_param REMOTE_USER $remote_user;
+```
+Protect the uploads in the same way, see "Uploaded files" above. Behind a proxy
+which terminates TLS, W2 sees plain HTTP: let the web server set `HTTPS` for the
+requests of that proxy (in Apache e.g. `SetEnvIfExpr "%{REMOTE_ADDR} -ipmatch '10.0.0.5' && %{HTTP:X-Forwarded-Proto} == 'https'" HTTPS=on`,
+in nginx `fastcgi_param HTTPS on;`), or set `WEB_SERVER_AUTH_REQUIRE_HTTPS` to
+`false` if only that proxy can reach W2. Basic authentication has no limit for
+wrong passwords: use fail2ban, `mod_evasive` or `limit_req` in nginx. More
+examples are in `webauth/samples/` and `webauth/README.md`.
 
 ### Password protection
 

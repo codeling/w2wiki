@@ -200,6 +200,24 @@ define('INCLUDE_MAX_SIZE', 1048576);
 // edit it, and upload files. See "Security Notice" in README.md.
 define('REQUIRE_PASSWORD', false);
 
+// REQUIRE_WEB_SERVER_AUTH
+//
+// Leave the authentication to the web server: set this to true if the web
+// server asks for a password (e.g. HTTP Basic authentication, see INSTALL.md),
+// or a single sign-on proxy in front of it authenticates the users. The wiki
+// then refuses every request which the web server did not authenticate (no
+// REMOTE_USER), so that a missing or ignored web server setting doesn't leave
+// the wiki open. Can be combined with REQUIRE_PASSWORD.
+define('REQUIRE_WEB_SERVER_AUTH', false);
+
+// WEB_SERVER_AUTH_REQUIRE_HTTPS
+//
+// With REQUIRE_WEB_SERVER_AUTH, also refuse every request which did not come in
+// over HTTPS, so that passwords are never sent in cleartext. Behind a proxy
+// which terminates TLS, let the web server set HTTPS for the requests of that
+// proxy (see INSTALL.md) rather than setting this to false.
+define('WEB_SERVER_AUTH_REQUIRE_HTTPS', true);
+
 // W2_PASSWORD
 //
 // The password for the wiki, if REQUIRE_PASSWORD is true and W2_PASSWORD_HASH
