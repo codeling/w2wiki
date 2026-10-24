@@ -37,6 +37,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   commands, variables in regular expressions that are not quoted with `preg_quote()`, files included by variable
   names, and request data read outside the entry points.
   `FileHeaderTest` makes sure that every source file has an `SPDX-License-Identifier` (see "License" in `README.md`).
+  `TemplateTest` tests `W2\Template` and `W2\Html` (text is escaped by default) with templates of its own;
+  `PageFrameTest` (integration) the frame around every page.
+  `FormsTest` and `UploadFormBaseUriTest` (integration) the forms: editor, rename and delete, upload.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
   `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;

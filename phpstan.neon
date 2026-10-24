@@ -20,6 +20,7 @@ parameters:
         - webauth/webauth.php
         - webauth/src
     excludePaths:
+        - src/templates
         - Michelf
         - vendor
         - tests

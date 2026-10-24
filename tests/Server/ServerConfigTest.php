@@ -174,7 +174,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function sourceFiles(): array
 	{
-		return [['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/auth.php'], ['/auth_functions.php'], ['/functions.php'], ['/locales/en.php'], ['/src/PageStore.php']];
+		return [['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/auth.php'], ['/auth_functions.php'], ['/functions.php'], ['/locales/en.php'], ['/src/PageStore.php'], ['/src/templates/page.php']];
 	}
 
 	#[DataProvider('unneededFiles')]
@@ -188,7 +188,7 @@ final class ServerConfigTest extends TestCase
 	{
 		return [
 			['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/functions.php'], ['/auth.php'], ['/auth_functions.php'],
-			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'], ['/src/PageStore.php'],
+			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'], ['/src/PageStore.php'], ['/src/templates/layout.php'],
 			['/tests/README.md'], ['/tests/bootstrap.php'], ['/composer.json'], ['/phpunit.xml.dist'],
 			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'],
 			['/webauth/webauth.php'], ['/webauth/src/ServerAuth.php'], ['/webauth/README.md'], ['/webauth/composer.json'],
@@ -242,7 +242,7 @@ final class ServerConfigTest extends TestCase
 
 	public static function folders(): array
 	{
-		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/src/'], ['/locales/'], ['/w2-icons/'], ['/webauth/']];
+		return [['/images/'], ['/pages/images/'], ['/Michelf/'], ['/src/'], ['/src/templates/'], ['/locales/'], ['/w2-icons/'], ['/webauth/']];
 	}
 
 	public function testHiddenFilesAndFoldersAreNotServed(): void

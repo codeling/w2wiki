@@ -13,6 +13,13 @@ use PHPUnit\Framework\TestCase;
 final class LocaleFilesTest extends TestCase
 {
 	private const SOURCE_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php'];
+
+	/** @return string[] the files with texts to translate: the scripts, and the templates (src/templates) */
+	private static function sourceFiles(): array
+	{
+		$templates = array_map(fn($file) => 'src/templates/' . basename($file), glob(dirname(__DIR__, 2) . '/src/templates/*.php') ?: []);
+		return array_merge(self::SOURCE_FILES, $templates);
+	}
 	private const ROOT_LOCALE = 'en';
 
 	public static function locales(): array
@@ -39,7 +46,7 @@ final class LocaleFilesTest extends TestCase
 	private static function usedKeys(): array
 	{
 		$keys = [];
-		foreach (self::SOURCE_FILES as $file) {
+		foreach (self::sourceFiles() as $file) {
 			$tokens = array_values(array_filter(
 				token_get_all((string)file_get_contents(dirname(__DIR__, 2) . "/$file")),
 				fn($token) => !is_array($token) || !in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)

@@ -37,82 +37,6 @@ const ImageExtensions = array("bmp", "gif", "heic", "heif","jpg", "jpeg", "png",
 // Session handling, IP and password checks:
 require_once "auth.php";
 
-// $savedDraft: key of the local draft which the browser can remove, because its text has just been saved
-function printHeader($title, $action, $bodyclass="", $savedDraft="")
-{
-	print "<!doctype html>\n";
-	print "<html lang=\"" . W2_LOCALE . "\">\n";
-	print "  <head>\n";
-	print "    <meta charset=\"" . W2_CHARSET . "\">\n";
-	print "    <link rel=\"apple-touch-icon\" href=\"" . assetURL("w2-icons/w2-icon.png") . "\"/>\n";
-	print "    <link rel=\"icon\" href=\"" . assetURL("w2-icons/w2-icon.png") . "\"/>\n";
-	// (in the editor, the page shrinks to the space above the on-screen keyboard, to keep Save in reach)
-	print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1" . (isEditorAction($action) ? ", interactive-widget=resizes-content" : "") . "\" />\n";
-	print "    <link type=\"text/css\" rel=\"stylesheet\" href=\"" . assetURL(CSS_FILE) ."\" />\n";
-	print "    <title>".PAGE_TITLE."$title</title>\n";
-	if (isEditorAction($action) || $savedDraft !== "")
-	{
-		// (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently;
-		// after saving, it removes the local draft of the saved text)
-		// (not relative: pages can be shown below the script, like /index.php/Page)
-		print "    <script src=\"" . assetURL("wiki.js") . "\"></script>\n";
-	}
-	print "  </head>\n";
-	print "  <body".($bodyclass != "" ? " class=\"$bodyclass\"":"").($savedDraft !== "" ? " data-saved-draft=\"".h($savedDraft)."\"" : "").">\n";
-}
-
-function printFooter()
-{
-	print "  </body>\n";
-	print "</html>";
-}
-
-function printDrawer()
-{
-	print "      <div id=\"drawer\" class=\"inactive\">\n".
-		"        <a href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\"><img src=\"" . assetURL("w2-icons/close.svg") . "\" alt=\"".__('Close')."\" title=\"".__('Close')."\" class=\"icon rightaligned\"/></a>\n".
-		"        <h5>".__('Markdown Syntax Helper')."</h5>\n".
-		"        <div>\n".
-		"# ".__('Header')." 1<br/>".
-		"## ".__('Header')." 2<br/>".
-		"### ".__('Header')." 3<br/>".
-		"#### ".__('Header')." 4<br/>".
-		"##### ".__('Header')." 5<br/>".
-		"###### ".__('Header')." 6<br/>".
-		"<br/>".
-		"*".__('Emphasize')."* - <em>".__('Emphasize')."</em><br/>".
-		"_".__('Emphasize')."_ - <em>".__('Emphasize')."</em><br/>".
-		"**".__('Bold')."** - <strong>".__('Bold')."</strong><br/>".
-		"__".__('Bold')."__ - <strong>".__('Bold')."</strong><br/>".
-		"<br/>".
-		"[[".__('Link to page')."]]<br/>".
-		"![[".__('Link to page')."]]<br/>".
-		"&lt;http://example.com/&gt;<br/>".
-		"[".__('link text')."](http://url)<br/><br/>".
-		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg)<br/>".
-		"![".__('Alt text')."](".h(uploadUrlPrefix())."image.jpg \"".__('Optional title')."\")<br/>".
-		"<br/>".
-		"- ".__('Unordered list')."<br/>".
-		"+ ".__('Unordered list')."<br/>".
-		"* ".__('Unordered list')."<br/>".
-		"1. ".__('Ordered list')."<br/>".
-		"<br/>".
-		"> ".__('Blockquote')."<br/>".
-		"```".__('Code')."```<br/>".
-		"`".__('Inline code')."`<br/><br/>".
-		"*** ".__('Horizontal rule')."<br/>".
-		"--- ".__('Horizontal rule')."<br/>\n".
-		"        </div>\n".
-		"      </div>\n".
-		"      <a id=\"drawer-control\" href=\"\" onclick=\"".HANDLER_TOGGLE_DRAWER."\">\n".
-		"        <span class=\"icongroup\">\n".
-		"          <img src=\"" . assetURL("w2-icons/format-text-bold.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
-		"          <img src=\"" . assetURL("w2-icons/format-text-italic.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
-		"          <img src=\"" . assetURL("w2-icons/format-text-code.svg") . "\" alt=\"".__('Formatting help')."\" title=\"".__('Formatting help')."\" class=\"icon\"/>\n".
-		"        </span>\n".
-		"      </a>\n";
-}
-
 if ( !isLoggedIn() )
 {
 	$loginFailed = false;
@@ -125,7 +49,7 @@ if ( !isLoggedIn() )
 		if ( !isValidCSRFToken($_POST['csrf_token'] ?? null) )
 		{
 			// (the password isn't checked, so this is no way to guess it)
-			$loginMessage = __('Your session has expired. Please try again.');
+			$loginMessage = translate('Your session has expired. Please try again.');
 		}
 		elseif ( ($wait = \WebAuth\LoginThrottle::start($throttleFolder, $clientKey, time(), $limits)) !== 0 )
 		{
@@ -133,14 +57,14 @@ if ( !isLoggedIn() )
 			{
 				w2Log("cannot use the login throttle folder " . $throttleFolder . "; make it writable for the web server, set LOGIN_THROTTLE_FOLDER, or set LOGIN_MAX_FAILURES to 0 to turn the throttling off");
 				http_response_code(503);
-				$loginMessage = __('Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.');
+				$loginMessage = translate('Logging in is not possible at the moment because of a server configuration problem. See the web server\'s error log for details.');
 			}
 			else
 			{
 				w2Log("login from " . $clientKey . " refused for " . $wait . " seconds (too many failed attempts)");
 				http_response_code(429);
 				header('Retry-After: ' . $wait);
-				$loginMessage = sprintf(__('Too many failed login attempts. Please try again in %s seconds.'), $wait);
+				$loginMessage = sprintf(translate('Too many failed login attempts. Please try again in %s seconds.'), $wait);
 			}
 		}
 		elseif ( isCorrectPassword($_POST['p']) )
@@ -168,26 +92,26 @@ if ( !isLoggedIn() )
 	}
 	if ( empty($_SESSION['password']) )
 	{
-		printHeader( __('Log In'), '', "login");
-		print "    <h1>" . __('Log In') . "</h1>\n";
+		$notes = array();
 		if ( $loginFailed )
 		{
-			print "    <p class=\"note\">" . __('Wrong password') . "</p>\n";
+			$notes[] = translate('Wrong password');
 		}
 		if ( $loginMessage !== '' )
 		{
-			print "    <p class=\"note\">" . $loginMessage . "</p>\n";
+			$notes[] = $loginMessage;
 		}
 		if ( W2_PASSWORD_HASH === '' && W2_PASSWORD === 'secret' )
 		{
-			print "    <p class=\"note\">" . __('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.') . "</p>\n";
+			$notes[] = translate('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.');
 		}
-		print "    <form method=\"post\">\n";
-		print "      ".__('Password') . ": <input type=\"password\" name=\"p\">\n";
-		print "      " . csrfField() . "\n";
-		print "      <input type=\"submit\" value=\"" . __('Log In') . "\">\n";
-		print "    </form>\n";
-		printFooter();
+		print templates()->render('layout', array(
+			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'savedDraft' => '',
+			'content' => templates()->render('login', array(
+				'heading' => translate('Log In'), 'notes' => $notes, 'passwordLabel' => translate('Password'),
+				'buttonLabel' => translate('Log In'), 'csrfField' => \W2\Html::raw(csrfField())
+			))
+		));
 		exit;
 	}
 }
@@ -473,53 +397,28 @@ if ( $action == 'save' )
 
 if ( isEditorAction($action) )
 {
+	$similarPages = null;
+	if ($action === 'new' && $newPage != "" && !$triedSave)
+	{
+		// check if similar page exists...
+		$similarPages = array();
+		foreach(getAllPageNames() as $pageName)
+		{
+			if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
+			{
+				$similarPages[] = array('href' => pageURL($pageName), 'name' => $pageName);
+			}
+		}
+	}
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
 	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
 		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
-	$html .= "<form id=\"edit\" method=\"post\" action=\"" . SELF . "\"".
-		" data-draft-key=\"".h($draftKey)."\"".
-		($triedSave ? " data-unsaved=\"true\"" : "").
-		" data-msg-restored=\"".__('Restored unsaved draft from %s.')."\"".
-		" data-msg-conflict=\"".__('Warning: the page was changed since this draft was started.')."\"".
-		" data-msg-discard=\"".__('Discard draft')."\">\n";
-	$html .= csrfField() . "\n";
-	$html .= "<input type=\"hidden\" name=\"draftKey\" value=\"".h($draftKey)."\" />\n";
-
-	if ( $action === 'edit' )
-	{
-		$html .= "<input type=\"hidden\" name=\"page\" value=\"".h($page)."\" />\n";
-	}
-	else
-	{
-		if ($newPage != "" && !$triedSave)
-		{
-			$html .= "<div class=\"note\">". __('Creating new page since no page with given title exists!') ;
-			// check if similar page exists...
-			$pageNames = getAllPageNames();
-			foreach($pageNames as $pageName)
-			{
-				if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
-				{
-					$html .= "<br/><strong>".__('Note').":</strong> ".sprintf(__('Found similar page %s. Maybe you meant to edit this instead?'), pageLink($pageName, h($pageName)));
-				}
-			}
-			$html .= "</div>\n";
-		}
-		$html .= "<p>" . __('Title') . ": <input id=\"title\" title=\"".__("Character restrictions: '#' and '|' have a special meaning in page links, they will therefore be removed; also, characters '~', '..', '\\', ':', '|', '&' might cause trouble in filenames and are therefore replaced by '-'.")."\" type=\"text\" name=\"page\" value=\"".h($newPage)."\" class=\"pagename\" placeholder=\"".__('Name of new page (restrictions in tip)')."\"/></p>\n";
-
-	}
-
-	$html .= "<p class=\"editorbox\"><textarea id=\"text\" name=\"newText\" rows=\"" . EDIT_ROWS . "\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\">".h($text)."</textarea></p>\n";
-	if (GIT_COMMIT_ENABLED)
-	{
-		$html .= "<p>".__('Message').": <input type=\"text\" id=\"gitmsg\" name=\"gitmsg\" value=\"".h($oldgitmsg)."\" /></p>\n";
-	}
-
-	$html .= "<p class=\"editactions\"><input type=\"hidden\" name=\"action\" value=\"save\" />\n";
-	$html .= "<input type=\"hidden\" name=\"isNew\" value=\"".(($action==='new')?"true":"")."\" />\n";
-	$html .= '<input id="save" type="submit" value="'. __('Save') .'" />'."\n";
-	$html .= '<input id="cancel" type="button" onclick="'.HANDLER_GO_BACK.'" value="'. __('Cancel') .'" />'."\n";
-	$html .= "</p></form>\n";
+	$html .= templates()->render('editor', array(
+		'draftKey' => $draftKey, 'unsaved' => $triedSave,
+		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
+		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
+		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg
+	));
 }
 else if ( $action === 'logout' )
 {
@@ -541,50 +440,13 @@ else if ( $action === 'upload' )
 	}
 	else
 	{
-		$html .= '<form id="upload" method="post" action="' . SELF . '" enctype="multipart/form-data"><p>'."\n".
-			'<input type="hidden" name="action" value="uploaded" />'.csrfField().
-			'<input type="hidden" name="prevpage" value="'.h($prevpage).'" />'.
-			'<input type="hidden" id="overwrite" name="overwrite" value="" />'.
-			'<input id="file" type="file" name="userfile" />'."\n".
-			'<label for="newname">'.__('Save as').'</label> '.
-			'<input id="newname" type="text" name="newname" placeholder="'.h(__('Keep file name')).'" />'."\n".
-			(imageProcessingAvailable()
-				? ('<input id="resize" type="checkbox" checked="checked" name="resize" value="true">'.
-					'<label for="resize">'.__('Shrink if larger than ').'</label>'.
-					'<input id="maxsize" type="number" name="maxsize" min="20" max="8192" value="1200">'."\n".
-					'<label for="maxsize" id="maxsizelabel">'.__('Pixels').'</label>')
-				: '').
-			'<input id="upload" type="submit" value="' . __('Upload') . '" />'.
-			"\n</p></form>\n";
-		$html .= '<script type="application/javascript" nonce="'.cspNonce().'">'."\n".
-			'function processForm(e) {'."\n".
-			'    e.preventDefault();'."\n".
-			'    var fileInput = document.getElementById("file");'."\n".
-			'    if (fileInput.files.length == 0) { alert('.__js('No file selected!').'); return; }'."\n".
-			'    var filename = fileInput.files[0].name;'."\n".
-			'    var newname = document.getElementById("newname").value;'."\n".
-			'    fetch("'.BASE_URI.'/api.php?task=checkupload&filename="+encodeURIComponent(filename)+"&newname="+encodeURIComponent(newname))'."\n".
-			'        .then((response) => {'."\n".
-			'            response.json().then((data) => {'."\n".
-			'                upload = true;'."\n".
-			'                if (data) {'."\n".
-			'                     upload = window.confirm('.__js('File %s already exists. Overwrite?').'.replace("%s", () => filename));'."\n".
-			'                }'."\n".
-			'                if (upload) {'."\n".
-			'                    document.getElementById("overwrite").value = data ? "true" : "";'."\n".
-			'                    var myform = document.getElementById("upload");'."\n".
-			'                    myform.submit();'."\n".
-			'                }'."\n".
-			'            });'."\n".
-			'        })'."\n".
-			'        .catch((err) => { console.log(err); });'."\n".
-			'}'."\n".
-			'window.addEventListener("load", function(event) {'."\n".
-			'    var form = document.getElementById("upload");'."\n".
-			'    form.addEventListener("submit", processForm);'."\n".
-			'});'."\n".
-			'</script>';
-
+		// (texts in the script are JavaScript string literals, not HTML; BASE_URI is the inside of one)
+		$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+		$html .= templates()->render('upload-form', array(
+			'csrfField' => \W2\Html::raw(csrfField()), 'prevPage' => $prevpage, 'shrink' => imageProcessingAvailable(),
+			'nonce' => cspNonce(), 'baseUri' => \W2\Html::raw(substr(json_encode(BASE_URI, $jsonFlags), 1, -1)),
+			'noFileText' => \W2\Html::raw(__js('No file selected!')), 'overwriteText' => \W2\Html::raw(__js('File %s already exists. Overwrite?'))
+		));
 	}
 	// list files in UPLOAD_FOLDER
 	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
@@ -885,24 +747,12 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 	{
 		$page = sanitizeFilename($_REQUEST['imgName'] ?? '');
 	}
-	$actionName = ($action === 'delete' || $action === 'imgDelete')?__('Delete'):__('Rename');
-	$html .= "<form id=\"$action\" method=\"post\" action=\"" . SELF . "\">";
-	$html .= csrfField();
-	$html .= "<p>".$actionName." ".h($page)." ".
-		(($action==='rename' || $action==='imgRename')
-			? (__('to')." <input id=\"newName\" type=\"text\" name=\"newName\" value=\"" . h($page) . "\" class=\"pagename\" />")
-			: "?")
-		. "</p>";
-	$html .= "<p><input id=\"$action\" type=\"submit\" value=\"$actionName\">";
-	$html .= "<input id=\"cancel\" type=\"button\" onclick=\"".HANDLER_GO_BACK."\" value=\"".__('Cancel')."\" />\n";
-	$html .= "<input type=\"hidden\" name=\"action\" value=\"{$action}d\" />";
-	$html .= "<input type=\"hidden\" name=\"oldPageName\" value=\"" . h($page) . "\" />";
-	if ($action === 'imgDelete' || $action === 'imgRename')
-	{
-		$prevpage = requireValidPreviousPage('prevpage');
-		$html .= '<input type="hidden" name="prevpage" value="'.h($prevpage).'" />';
-	}
-	$html .= "</p></form>";
+	$actionName = ($action === 'delete' || $action === 'imgDelete') ? translate('Delete') : translate('Rename');
+	$html .= templates()->render('rename-delete', array(
+		'id' => $action, 'label' => $actionName, 'name' => $page, 'askNewName' => ($action === 'rename' || $action === 'imgRename'),
+		'nextAction' => $action . 'd', 'csrfField' => \W2\Html::raw(csrfField()),
+		'prevPage' => ($action === 'imgDelete' || $action === 'imgRename') ? requireValidPreviousPage('prevpage') : null
+	));
 }
 else if ( $action === 'renamed' || $action === 'deleted')
 {
@@ -1134,54 +984,44 @@ else
 	$html .= empty($text) ? '' : toHTML($text);
 }
 
-$datetime = '';
+$modified = '';
 
 if ( ($action === 'all'))
 {
-	$title = __("All");
+	$title = translate("All");
 }
 else if ( $action === 'upload' )
 {
-	$title = __("Upload");
+	$title = translate("Upload");
 }
 else if ( $action === 'new' )
 {
-	$title = __("New");
+	$title = translate("New");
 }
 else if ( $action === 'search' )
 {
-	$title = __("Search");
+	$title = translate("Search");
 }
 else if (isset($filename) && $filename != '')
 {
-	$title = (($action === 'edit')? (__('Edit').": "):"") . h($page);
-	$date_format = __('date_format', TITLE_DATE);
+	$title = (($action === 'edit')? (translate('Edit').": "):"") . $page;
+	$date_format = translate('date_format', TITLE_DATE);
 	if ( $date_format )
 	{
-		$datetime = "<span class=\"titledate\">" . date($date_format, pageStore()->modified($page) ?? 0) . "</span>";
+		$modified = date($date_format, pageStore()->modified($page) ?? 0);
 	}
 }
 else
 {
-	$title = __($action);
+	$title = translate($action);
 }
 
-// Disable caching on the client (the iPhone is pretty agressive about this
-// and it can cause problems with the editing function)
-header("Cache-Control: no-store");
-$savedDraft = $_SESSION['savedDraft'] ?? '';
-unset($_SESSION['savedDraft']);
-printHeader($title, $action, isEditorAction($action) ? "editor" : "", $savedDraft);
-print "    <div class=\"titlebar\"><span class=\"title\">$title</span>$datetime";
-if ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
-{
-	print(getPageActions($page, $action, ""));
-}
-print "    </div>\n";
-print "    <div class=\"toolbar\">\n";
-print "      <a href=\"" . SELF . "\"><img src=\"" . assetURL("w2-icons/home.svg") . "\" alt=\"". __(DEFAULT_PAGE) . "\" title=\"". __(DEFAULT_PAGE) . "\" class=\"icon\"></a>\n";
-print "      <a href=\"" . SELF . "?action=all\"><img src=\"" . assetURL("w2-icons/list.svg") . "\" alt=\"". __('All') . "\" title=\"". __('All') . "\" class=\"icon\"></a>\n";
-print "      <a href=\"" . SELF . "?action=new\"><img src=\"" . assetURL("w2-icons/new.svg") . "\" alt=\"".__('New')."\" title=\"".__('New')."\" class=\"icon\"></a>\n";
+// The toolbar: the pages of the wiki and what can be done with them
+$toolbar = array(
+	array('href' => SELF, 'icon' => assetURL("w2-icons/home.svg"), 'label' => translate(DEFAULT_PAGE)),
+	array('href' => SELF . "?action=all", 'icon' => assetURL("w2-icons/list.svg"), 'label' => translate('All')),
+	array('href' => SELF . "?action=new", 'icon' => assetURL("w2-icons/new.svg"), 'label' => translate('New'))
+);
 if ( !DISABLE_UPLOADS )
 {
 	$uploadPage = isset($page) ? $page : (isset($prevpage)? $prevpage : DEFAULT_PAGE);
@@ -1190,51 +1030,53 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	print "      <a href=\"" . SELF . "?action=upload&amp;page=".urlencode($uploadPage)."\"><img src=\"" . assetURL("w2-icons/upload.svg") . "\" alt=\"".__('Upload')."\" title=\"".__('Upload')."\" class=\"icon\"/></a>\n";
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/upload.svg"), 'label' => translate('Upload'));
 }
 if ( REQUIRE_PASSWORD )
 {
-	print "      <a href=\"" . SELF . "?action=logout&amp;csrf_token=" . urlencode(csrfToken()) . "\">". __('Log out') . "</a>";
+	$toolbar[] = array('href' => SELF . "?action=logout&csrf_token=" . urlencode(csrfToken()), 'icon' => null, 'label' => translate('Log out'));
 }
-// (a GET request: the address of the results can be bookmarked and shared, and reloading them doesn't ask
-// to send the form again; the action is a field of the form, as a query in "action" would be dropped)
-print "      <form method=\"get\" action=\"" . SELF . "\">\n";
-print "        <input type=\"hidden\" name=\"action\" value=\"search\" />\n";
-print "        <input class=\"search\" placeholder=\"". __('Search') ."\" size=\"20\" id=\"search\" type=\"text\" name=\"q\" />\n      </form>\n";
-if (isEditorAction($action))
-{
-	printDrawer();
-}
-print "    </div>\n";
+
+$sidebar = null;
 if (SIDEBAR_PAGE != '' && showsSidebar($action))
 {
-	print "    <div class=\"sidebar\">\n\n";
-	$text = pageStore()->read(SIDEBAR_PAGE) ?? (__('Sidebar file could not be found')." (".SIDEBAR_PAGE.")");
-	print toHTML($text);
-	print "    </div>\n";
+	$sidebar = \W2\Html::raw(toHTML(pageStore()->read(SIDEBAR_PAGE) ?? (translate('Sidebar file could not be found')." (".SIDEBAR_PAGE.")")));
 }
+
+$linksHere = null;
 if ($action === 'view' && isset($_GET['linkshere']))
 {
-	print "<div class=\"linkshere\">".__('What links here:')."<ul>";
-	$pagenames = getAllPageNames();
-	foreach($pagenames as $searchPage)
+	$linksHere = array();
+	foreach(getAllPageNames() as $searchPage)
 	{
-		$text = pageStore()->read($searchPage) ?? '';
-		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", $text) )
+		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", pageStore()->read($searchPage) ?? '') )
 		{
-			$link = pageLink($searchPage, h($searchPage), "");
-			print("        <li>$link</li>\n");
+			$linksHere[] = array('href' => pageURL($searchPage), 'name' => $searchPage);
 		}
 	}
-	print "</ul></div>";
 }
-print "    <div class=\"main\">\n\n";
+
 $note = \W2\Note::fromArray($_SESSION['note'] ?? null);
-if (!$note->isEmpty())
-{
-	print "      <div class=\"note\">".$note->render()."</div>";
-}
 unset($_SESSION['note']);
-print "$html\n";
-print "    </div>\n";
-printFooter();
+
+// (the key of the local draft which the browser can remove, because its text has just been saved)
+$savedDraft = $_SESSION['savedDraft'] ?? '';
+unset($_SESSION['savedDraft']);
+
+// Disable caching on the client (the iPhone is pretty agressive about this
+// and it can cause problems with the editing function)
+header("Cache-Control: no-store");
+print templates()->render('layout', array(
+	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
+	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'savedDraft' => $savedDraft,
+	'content' => templates()->render('page', array(
+		'title' => $title, 'modified' => $modified,
+		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
+			? \W2\Html::raw(getPageActions($page, $action, "")) : null,
+		'toolbar' => $toolbar,
+		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
+		'sidebar' => $sidebar, 'linksHere' => $linksHere,
+		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
+		'content' => \W2\Html::raw($html)
+	))
+));
