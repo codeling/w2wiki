@@ -281,7 +281,6 @@ if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 }
 $newPage = "";
 $text = "";
-$html = "";
 if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
 {
 	// Look for page name following the script name in the URL, like this:
@@ -385,23 +384,11 @@ if ( $action == 'save' )
 
 if ( isEditorAction($action) )
 {
-	$similarPages = null;
-	if ($action === 'new' && $newPage != "" && !$triedSave)
-	{
-		// check if similar page exists...
-		$similarPages = array();
-		foreach(getAllPageNames() as $pageName)
-		{
-			if (levenshtein(strtoupper($newPage), strtoupper($pageName)) < sqrt(min(strlen($newPage), strlen($pageName))) )
-			{
-				$similarPages[] = array('href' => pageURL($pageName), 'name' => $pageName);
-			}
-		}
-	}
+	$similarPages = ($action === 'new' && $newPage != "" && !$triedSave) ? (new \W2\Lists())->similarPages($newPage) : null;
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
 	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
 		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
-	$html .= templates()->render('editor', array(
+	$content = templates()->render('editor', array(
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
@@ -416,90 +403,21 @@ else if ( $action === 'logout' )
 }
 else if ( $action === 'upload' )
 {
-	$sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'name';
-	if (!in_array($sortBy, array('name', 'recent', 'size')))
-	{
-		$sortBy = 'name';
-	}
+	$lists = new \W2\Lists();
+	$sortBy = $lists->sortKey($_REQUEST['sortBy'] ?? 'name');
 	$prevpage = requireValidPreviousPage('page');
-	if ( DISABLE_UPLOADS )
-	{
-		$html .= '<p>' . __('Image uploading has been disabled on this installation.') . '</p>';
-	}
-	else
+	$form = null;
+	if ( !DISABLE_UPLOADS )
 	{
 		// (texts in the script are JavaScript string literals, not HTML; BASE_URI is the inside of one)
 		$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
-		$html .= templates()->render('upload-form', array(
+		$form = templates()->render('upload-form', array(
 			'csrfField' => \W2\Html::raw(csrfField()), 'prevPage' => $prevpage, 'shrink' => imageProcessingAvailable(),
 			'nonce' => cspNonce(), 'baseUri' => \W2\Html::raw(substr(json_encode(BASE_URI, $jsonFlags), 1, -1)),
 			'noFileText' => \W2\Html::raw(__js('No file selected!')), 'overwriteText' => \W2\Html::raw(__js('File %s already exists. Overwrite?'))
 		));
 	}
-	// list files in UPLOAD_FOLDER
-	$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/*";
-	$imgNames = array_filter(glob($path), 'is_file');
-	$imgList = array();
-	foreach($imgNames as $imgName)
-	{
-		$fileItem = new StdClass();
-		$fileItem->name = $imgName;
-		$fileItem->recent = filemtime($imgName);
-		$fileItem->size = filesize($imgName);
-		$imgList[] = $fileItem;
-	}
-	$sortFun = function($a, $b) use ($sortBy)
-	{
-		return ($sortBy === 'name') ?
-			strnatcasecmp($a->name, $b->name) :
-			$b->$sortBy <=> $a->$sortBy;
-	};
-	usort($imgList, $sortFun);
-
-	$imgPages = array();
-	if (SHOW_PAGES_WHERE_FILE_USED)
-	{
-		$pagenames = getAllPageNames();
-		foreach($pagenames as $searchPage)
-		{
-			$text = pageStore()->read($searchPage) ?? '';
-			foreach ($imgNames as $imgName)
-			{
-				if ( uploadReferences()->count($text, basename($imgName)) > 0 )
-				{
-					$imgPages[$imgName][] = $searchPage;
-				}
-			}
-		}
-	}
-
-	$columns = array(array(translate('Name'), 'name'), array(translate('Usage'), null),
-		array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null));
-	if (SHOW_PAGES_WHERE_FILE_USED)
-	{
-		$columns[] = array(translate('Used on page'), null);
-	}
-	$date_format = __('date_format', TITLE_DATE);
-	$rows = array();
-	foreach ($imgList as $img)
-	{
-		$baseImgName = basename($img->name);
-		$usedOn = array();
-		foreach ($imgPages[$img->name] ?? array() as $usedPage)
-		{
-			$usedOn[] = array('href' => pageURL($usedPage), 'name' => $usedPage);
-		}
-		$rows[] = array(
-			'thumbnail' => in_array(getFileExt($baseImgName), ImageExtensions, true) ? uploadURL($baseImgName) : null,
-			'name' => $baseImgName, 'markdown' => imageLinkText($baseImgName),
-			'modified' => date($date_format, $img->recent), 'size' => humanFilesize($img->size),
-			'renameHref' => SELF."?action=imgRename&prevpage=".urlencode($prevpage)."&imgName=".urlencode($baseImgName),
-			'deleteHref' => SELF."?action=imgDelete&prevpage=".urlencode($prevpage)."&imgName=".urlencode($baseImgName),
-			'pages' => $usedOn);
-	}
-	$html .= templates()->render('upload-list', array(
-		'total' => count($imgNames), 'head' => sortableHeadings($action, $sortBy, $columns),
-		'showUsage' => SHOW_PAGES_WHERE_FILE_USED, 'rows' => $rows));
+	$content = templates()->render('upload-page', array('form' => $form, 'list' => $lists->uploads($sortBy, $prevpage)));
 }
 else if ( $action === 'uploaded' )
 {
@@ -518,7 +436,7 @@ else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete
 		$page = sanitizeFilename($_REQUEST['imgName'] ?? '');
 	}
 	$actionName = ($action === 'delete' || $action === 'imgDelete') ? translate('Delete') : translate('Rename');
-	$html .= templates()->render('rename-delete', array(
+	$content = templates()->render('rename-delete', array(
 		'id' => $action, 'label' => $actionName, 'name' => $page, 'askNewName' => ($action === 'rename' || $action === 'imgRename'),
 		'nextAction' => $action . 'd', 'csrfField' => \W2\Html::raw(csrfField()),
 		'prevPage' => ($action === 'imgDelete' || $action === 'imgRename') ? requireValidPreviousPage('prevpage') : null
@@ -545,88 +463,16 @@ else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 }
 else if ( $action === 'all' )
 {
-	$pageNames = getAllPageNames();
-	$filelist = array();
-	$sortBy = isset($_REQUEST['sortBy']) ? $_REQUEST['sortBy'] : 'name';
-	if (!in_array($sortBy, array('name', 'recent', 'size')))
-	{
-		$sortBy = 'name';
-	}
-	foreach($pageNames as $pageName)
-	{
-		$fileItem = new StdClass();
-		$fileItem->name = $pageName;
-		$fileItem->recent = pageStore()->modified($pageName) ?? 0;
-		$fileItem->size = pageStore()->size($pageName) ?? 0;
-		$filelist[] = $fileItem;
-	}
-	$sortFun = function($a, $b) use ($sortBy)
-	{
-		return ($sortBy === 'name') ?
-			strnatcasecmp($a->name, $b->name) :
-			$b->$sortBy <=> $a->$sortBy;
-	};
-	usort($filelist, $sortFun);
-	$date_format = translate('date_format', TITLE_DATE);
-	$rows = array();
-	foreach ($filelist as $file)
-	{
-		$rows[] = array('href' => pageURL($file->name), 'name' => $file->name, 'modified' => date($date_format, $file->recent),
-			'size' => humanFilesize($file->size), 'actions' => getPageActions($file->name, $action, "-dark"));
-	}
-	$html .= templates()->render('all-pages', array(
-		'total' => count($pageNames), 'rows' => $rows,
-		'head' => sortableHeadings($action, $sortBy, array(
-			array(translate('Name'), 'name'), array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null)))
-	));
+	$lists = new \W2\Lists();
+	$content = $lists->allPages($lists->sortKey($_REQUEST['sortBy'] ?? 'name'));
 }
 else if ( $action === 'search' )
 {
-	$matches = 0;
-	$q = $_REQUEST['q'] ?? '';
-	$results = array();
-	$create = null;
-	if ( trim($q) != "" )
-	{
-		$found = FALSE;
-		$matchingPages = array();
-		foreach (getAllPageNames() as $searchPage)
-		{
-			if (strcasecmp($searchPage, $q) == 0)
-			{
-				$found = TRUE;
-			}
-			if (stripos($searchPage, $q) !== false)
-			{
-				array_unshift($matchingPages, $searchPage);
-				++$matches;
-			}
-			else
-			{
-				$text = pageStore()->read($searchPage) ?? '';
-				if ( stripos($text, $q) !== false )
-				{
-					$matchingPages[] = $searchPage;
-					++$matches;
-				}
-			}
-		}
-		foreach ($matchingPages as $matchingPage)
-		{
-			$results[] = array('href' => pageURL($matchingPage), 'name' => $matchingPage, 'exact' => (strcasecmp($matchingPage, $q) == 0));
-		}
-		if (!$found)
-		{
-			$create = array('href' => pageURL($q), 'label' => translate('Create page')." '".$q."'");
-		}
-	}
-	$html .= templates()->render('search', array(
-		'heading' => translate('Search').": ".$q, 'searched' => (trim($q) != ""), 'results' => $results, 'create' => $create, 'matches' => $matches
-	));
+	$content = (new \W2\Lists())->search($_REQUEST['q'] ?? '');
 }
 else
 {
-	$html .= empty($text) ? '' : toHTML($text);
+	$content = \W2\Html::raw(empty($text) ? '' : toHTML($text));
 }
 
 $modified = '';
@@ -722,6 +568,6 @@ print templates()->render('layout', array(
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
-		'content' => \W2\Html::raw($html)
+		'content' => $content
 	))
 ));
