@@ -387,7 +387,7 @@ if ( $action == 'save' )
 	{
 		// (the editor sends the hash it was sent, until the user has seen what somebody else has changed: then the next
 		// save is meant to replace it)
-		$baseHash = (isset($result) && $result->conflict) ? \W2\Changes::textHash(pageStore()->read($page) ?? '') : ($postedHash !== '' ? $postedHash : null);
+		$baseHash = (isset($result) && $result->conflict) ? \W2\Changes::textHash(pageStore()->read($result->page) ?? '') : ($postedHash !== '' ? $postedHash : null);
 	}
 	$_SESSION['note'] = $note->toArray();
 }
