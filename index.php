@@ -45,13 +45,13 @@ if ( !isLoggedIn() )
 	{
 		$limits = loginThrottleLimits();
 		$throttleFolder = loginThrottleFolder();
-		$clientKey = clientAddress($_SERVER, $trustedProxies);
+		$clientKey = \WebAuth\ClientAddress::get($_SERVER, $trustedProxies);
 		if ( !isValidCSRFToken($_POST['csrf_token'] ?? null) )
 		{
 			// (the password isn't checked, so this is no way to guess it)
 			$loginMessage = translate('Your session has expired. Please try again.');
 		}
-		elseif ( ($wait = loginThrottleStart($throttleFolder, $clientKey, time(), $limits)) !== 0 )
+		elseif ( ($wait = \WebAuth\LoginThrottle::start($throttleFolder, $clientKey, time(), $limits)) !== 0 )
 		{
 			if ( $wait < 0 )
 			{
@@ -69,7 +69,7 @@ if ( !isLoggedIn() )
 		}
 		elseif ( isCorrectPassword($_POST['p']) )
 		{
-			loginThrottleSucceeded($throttleFolder, $clientKey, $limits);
+			\WebAuth\LoginThrottle::succeeded($throttleFolder, $clientKey, $limits);
 			// prevent session fixation
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;
@@ -106,7 +106,7 @@ if ( !isLoggedIn() )
 			$notes[] = translate('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.');
 		}
 		print templates()->render('layout', array(
-			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false,
+			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'savedDraft' => '',
 			'content' => templates()->render('login', array(
 				'heading' => translate('Log In'), 'notes' => $notes, 'passwordLabel' => translate('Password'),
 				'buttonLabel' => translate('Log In'), 'csrfField' => \W2\Html::raw(csrfField())
@@ -252,13 +252,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LEN
 	die(sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), h(ini_get('post_max_size'))).' '.
 		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
 }
+$saveRefused = false;
 if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
 	http_response_code(403);
-	die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
+	if ($action !== 'save' || $_SERVER['REQUEST_METHOD'] !== 'POST' || isCrossSiteRequest($_SERVER))
+	{
+		die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
+	}
+	// usually the session expired while editing: nothing is saved, but the editor is shown
+	// again with the text (and the new token), so that the text isn't lost
+	$saveRefused = true;
 }
-if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true))
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) && !$saveRefused)
 {
 	// (before anything is changed: a pull must not run between a change and its commit)
 	gitLockForChange();
@@ -329,65 +336,62 @@ if ($action === 'view' || $action === 'edit')
 }
 $oldgitmsg = "";
 $triedSave = false;
+$postedDraftKey = "";
 if ( $action == 'save' )
 {
 	$note = new \W2\Note();
 	$newText = $_POST['newText'] ?? '';
 	$isNew = $_POST['isNew'] ?? '';
+	$postedDraftKey = $_POST['draftKey'] ?? '';
+	if (!str_starts_with($postedDraftKey, 'w2wiki-draft:'))
+	{
+		$postedDraftKey = '';
+	}
 	if ($isNew)
 	{
 		$page = str_replace(array('|','#'), '', $page);
 		$filename = fileNameForPage($page);
 	}
-	// (the name is checked when saving existing pages too: the client decides whether a page is new)
-	if (($isNew && isExistingPage($page)) || !isValidPageName($page))
+	if ($saveRefused)
 	{
-		if ($isNew && isExistingPage($page))
-		{
-			$note->format(translate("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"),
-				array($page, \W2\Note::link(translate('edit'), "?action=edit&page=".urlencode($page))));
-		}
-		else
-		{
-			$note->format(translate("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."),
-				array($page, UPLOAD_FOLDER));
-		}
-		$action = $isNew ? 'new' : 'edit';
-		$text = $newText;
-		$newPage = $page;
-		if (GIT_COMMIT_ENABLED)
-		{
-			$oldgitmsg = $_POST['gitmsg'] ?? '';
-		}
-		$triedSave = true;
+		$note->text(translate('The text was not saved, because the security token was missing or wrong (for example because the session has expired). Please check the text and save again.'));
+	}
+	// (the name is checked when saving existing pages too: the client decides whether a page is new)
+	elseif ($isNew && isExistingPage($page))
+	{
+		$note->format(translate("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"),
+			array($page, \W2\Note::link(translate('edit'), "?action=edit&page=".urlencode($page))));
+	}
+	elseif (!isValidPageName($page))
+	{
+		$note->format(translate("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."),
+			array($page, UPLOAD_FOLDER));
+	}
+	elseif (!writePage($page, $newText))
+	{
+		$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
+		w2Log("error saving $filename");
 	}
 	else
 	{
-		$success = writePage($page, $newText);
-		if ( !$success )
-		{
-			$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
-			w2Log("error saving $filename");
-			$action = ($isNew ? 'new' : 'edit');
-			$text = $newText;
-			$newPage = $page;
-			if (GIT_COMMIT_ENABLED)
-			{
-				$oldgitmsg = $_POST['gitmsg'] ?? '';
-			}
-			$triedSave = true;
-		}
-		else
-		{
-			$note->text($isNew ? translate('Created') : translate('Saved'));
-			$usermsg = $_POST['gitmsg'] ?? '';
-			$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
-			gitChangeHandler($commitmsg, $note);
-			redirectWithNote($page, $note);
-		}
+		$note->text($isNew ? translate('Created') : translate('Saved'));
+		$usermsg = $_POST['gitmsg'] ?? '';
+		$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
+		gitChangeHandler($commitmsg, $note);
+		// (the browser keeps the draft until it sees this, in case the save fails on the way)
+		$_SESSION['savedDraft'] = $postedDraftKey;
+		redirectWithNote($page, $note);
 	}
 	// saving failed: show the editor again (with the entered title, text and message)
 	// instead of redirecting, so that nothing typed is lost
+	$action = $isNew ? 'new' : 'edit';
+	$text = $newText;
+	$newPage = $page;
+	if (GIT_COMMIT_ENABLED)
+	{
+		$oldgitmsg = $_POST['gitmsg'] ?? '';
+	}
+	$triedSave = true;
 	$_SESSION['note'] = $note->toArray();
 }
 
@@ -406,8 +410,11 @@ if ( isEditorAction($action) )
 			}
 		}
 	}
+	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
+	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
+		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
 	$html .= templates()->render('editor', array(
-		'draftKey' => "w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage"),
+		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg
@@ -1052,12 +1059,16 @@ if ($action === 'view' && isset($_GET['linkshere']))
 $note = \W2\Note::fromArray($_SESSION['note'] ?? null);
 unset($_SESSION['note']);
 
+// (the key of the local draft which the browser can remove, because its text has just been saved)
+$savedDraft = $_SESSION['savedDraft'] ?? '';
+unset($_SESSION['savedDraft']);
+
 // Disable caching on the client (the iPhone is pretty agressive about this
 // and it can cause problems with the editing function)
 header("Cache-Control: no-store");
 print templates()->render('layout', array(
 	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
-	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action),
+	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')

@@ -4,15 +4,17 @@
  *
  * The form to edit a page, or to write a new one (inside the main part of page).
  *
- * Values: draftKey (text, for the drafts kept in the browser), isNew (bool), csrfField (Html),
+ * Values: draftKey (text, for the drafts kept in the browser), unsaved (bool: saving has failed, the text is
+ *         not saved), isNew (bool), csrfField (Html),
  *         page (text: the page being edited), newPage (text: the title entered for a new page),
  *         similarPages (null, or the list of pages with a name like the new one: href, name),
  *         text (text), rows (number), gitEnabled (bool), gitMessage (text)
  */
 ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>" data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
 <?= $this->csrfField ?>
 
+<input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
 <?php if (!$this->isNew): ?>
 <input type="hidden" name="page" value="<?= $this->page ?>" />
 <?php else: ?>

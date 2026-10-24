@@ -44,9 +44,11 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('post', $form->getAttribute('method'));
 		$this->assertSame('/index.php', $form->getAttribute('action'));
 		$this->assertSame('w2wiki-draft:/index.php:edit:Home', $form->getAttribute('data-draft-key'));
+		$this->assertFalse($form->hasAttribute('data-unsaved'));
+		$this->assertSame('w2wiki-draft:/index.php:edit:Home', $this->fields($form)['draftKey']);
 		$this->assertSame('Restored unsaved draft from %s.', $form->getAttribute('data-msg-restored'));
 		$fields = $this->fields($form);
-		$this->assertEqualsCanonicalizing(['csrf_token', 'page', 'newText', 'action', 'isNew'], array_keys($fields));
+		$this->assertEqualsCanonicalizing(['csrf_token', 'draftKey', 'page', 'newText', 'action', 'isNew'], array_keys($fields));
 		$this->assertSame('Home', $fields['page']);
 		$this->assertSame('save', $fields['action']);
 		$this->assertSame('', $fields['isNew']);
@@ -67,7 +69,7 @@ final class FormsTest extends AppTestCase
 	{
 		$form = $this->form($this->http->get('/index.php', ['action' => 'new'])->body, 'edit');
 		$fields = $this->fields($form);
-		$this->assertEqualsCanonicalizing(['csrf_token', 'page', 'newText', 'action', 'isNew'], array_keys($fields));
+		$this->assertEqualsCanonicalizing(['csrf_token', 'draftKey', 'page', 'newText', 'action', 'isNew'], array_keys($fields));
 		$this->assertSame('', $fields['page']);
 		$this->assertSame('true', $fields['isNew']);
 		$this->assertSame('w2wiki-draft:/index.php:new:', $form->getAttribute('data-draft-key'));
@@ -91,6 +93,59 @@ final class FormsTest extends AppTestCase
 		$this->assertSame(self::HOSTILE_TEXT, $fields['newText']);
 		$this->assertSame('.hidden', $fields['page']);
 		$this->assertNoActiveContent($response->body, true);
+	}
+
+	// --- drafts kept in the browser -------------------------------------------------------
+
+	private const DRAFT_KEY = 'w2wiki-draft:/index.php:new:';
+
+	public function testFailedSaveShowsTheEditorAgainWithTheDraftOfTheEditorWhichSentTheText(): void
+	{
+		$response = $this->postAction('save', ['page' => '', 'isNew' => 'true', 'newText' => 'unsaved text', 'gitmsg' => '', 'draftKey' => self::DRAFT_KEY]);
+		$this->assertSame(200, $response->status);
+		$form = $this->form($response->body, 'edit');
+		$this->assertSame('true', $form->getAttribute('data-unsaved'), 'the text in the editor is not saved');
+		$this->assertSame(self::DRAFT_KEY, $form->getAttribute('data-draft-key'), 'a new page without a title has the draft it had');
+		$this->assertSame(self::DRAFT_KEY, $this->fields($form)['draftKey']);
+		$this->assertSame('unsaved text', $this->fields($form)['newText']);
+	}
+
+	public function testDraftKeyWhichIsNotOneIsIgnored(): void
+	{
+		foreach (['', 'something else', 'W2wiki-draft:/x', '../../w2wiki-draft:'] as $posted) {
+			$response = $this->postAction('save', ['page' => '.hidden', 'isNew' => 'true', 'newText' => 't', 'gitmsg' => '', 'draftKey' => $posted]);
+			$form = $this->form($response->body, 'edit');
+			$this->assertSame('w2wiki-draft:/index.php:new:.hidden', $form->getAttribute('data-draft-key'), "posted: $posted");
+		}
+	}
+
+	public function testDraftKeyIsEscaped(): void
+	{
+		$key = 'w2wiki-draft:"><script>alert(1)</script>';
+		$response = $this->postAction('save', ['page' => '', 'isNew' => 'true', 'newText' => 't', 'gitmsg' => '', 'draftKey' => $key]);
+		$this->assertSame($key, $this->form($response->body, 'edit')->getAttribute('data-draft-key'));
+		$this->assertNoActiveContent($response->body, true);
+	}
+
+	public function testSavedDraftIsReportedOnceAfterSaving(): void
+	{
+		$key = 'w2wiki-draft:/index.php:edit:Home';
+		$saved = $this->postAction('save', ['page' => 'Home', 'isNew' => '', 'newText' => 'new text', 'gitmsg' => '', 'draftKey' => $key]);
+		$body = $this->http->follow($saved)->body;
+		$this->assertStringContainsString('<body data-saved-draft="' . $key . '">', $body);
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+"></script>#', $body, 'the script removes the draft');
+		$after = $this->http->get('/index.php/Home')->body;
+		$this->assertStringNotContainsString('data-saved-draft', $after);
+		$this->assertStringNotContainsString('wiki.js', $after);
+	}
+
+	public function testSavedDraftIsEscaped(): void
+	{
+		$key = 'w2wiki-draft:"><script>alert(1)</script>';
+		$saved = $this->postAction('save', ['page' => 'Home', 'isNew' => '', 'newText' => 'text', 'gitmsg' => '', 'draftKey' => $key]);
+		$body = $this->http->follow($saved)->body;
+		$this->assertStringContainsString('data-saved-draft="w2wiki-draft:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"', $body);
+		$this->assertNoActiveContent($body);
 	}
 
 	public function testTitleOfANewPageIsEscaped(): void

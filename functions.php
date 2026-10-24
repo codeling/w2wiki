@@ -153,7 +153,7 @@ function w2Log($message)
 function hasMalformedRequestData(array $get, array $post, array $server, array $files = array())
 {
 	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
-		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p');
+		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p', 'draftKey');
 	foreach ( array($get, $post) as $values )
 	{
 		foreach ( $textParameters as $name )
