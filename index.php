@@ -468,7 +468,6 @@ else if ( $action === 'upload' )
 	};
 	usort($imgList, $sortFun);
 
-	$html .= "<p>".__('Total').": ".count($imgNames)." ".__('images')."</p>";
 	$imgPages = array();
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
@@ -478,70 +477,41 @@ else if ( $action === 'upload' )
 			$text = pageStore()->read($searchPage) ?? '';
 			foreach ($imgNames as $imgName)
 			{
-				$baseImgName = basename($imgName);
-				if ( uploadReferences()->count($text, $baseImgName) > 0 )
+				if ( uploadReferences()->count($text, basename($imgName)) > 0 )
 				{
-					if (array_key_exists($imgName, $imgPages))
-					{
-						array_push($imgPages[$imgName], $searchPage);
-					}
-					else
-					{
-						$imgPages[$imgName] = array( $searchPage );
-					}
+					$imgPages[$imgName][] = $searchPage;
 				}
 			}
 		}
 	}
 
-	$html .= "<table><thead>";
-	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=upload&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
-		"<th>".__("Usage")."</th>".
-		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=upload&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
-		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=upload&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
-		"<th>".__("Action")."</th>";
+	$columns = array(array(translate('Name'), 'name'), array(translate('Usage'), null),
+		array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null));
 	if (SHOW_PAGES_WHERE_FILE_USED)
 	{
-		$html .=  "<th>".__("Used on page")."</th>";
+		$columns[] = array(translate('Used on page'), null);
 	}
-	$html .= "</tr></thead><tbody>";
 	$date_format = __('date_format', TITLE_DATE);
-
+	$rows = array();
 	foreach ($imgList as $img)
 	{
 		$baseImgName = basename($img->name);
-		$isImg = false;
-		foreach(ImageExtensions as $ext)
+		$usedOn = array();
+		foreach ($imgPages[$img->name] ?? array() as $usedPage)
 		{
-			if (str_ends_with($baseImgName, $ext))
-			{
-				$isImg = true;
-			}
+			$usedOn[] = array('href' => pageURL($usedPage), 'name' => $usedPage);
 		}
-		$html .= "<tr>".
-			"<td>".($isImg?"<img class=\"thumbImg\" src=\"".h(uploadURL($baseImgName))."\" />":"<span class=\"thumbPlaceHolder\"></span>")."<span class=\"uploadFileName\">".h($baseImgName)."</span></td>".
-			"<td><pre>".h(imageLinkText($baseImgName))."</pre></td>".
-			"<td><nobr>".date($date_format, $img->recent)."</nobr></td>".
-			"<td><nobr>".humanFilesize($img->size)."</nobr></td>".
-			"<td>".
-			    "<a href=\"".SELF."?action=imgRename&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"" . assetURL("w2-icons/rename-dark.svg") . "\" alt=\"".__('Rename')."\" title=\"".__('Rename')."\" class=\"icon\"/></a>".
-			    "<a href=\"".SELF."?action=imgDelete&amp;prevpage=".urlencode($prevpage)."&amp;imgName=".urlencode($baseImgName)."\"><img src=\"" . assetURL("w2-icons/delete.svg") . "\" alt=\"".__('Delete')."\" title=\"".__('Delete')."\" class=\"icon\"/></a></td>";
-		if (SHOW_PAGES_WHERE_FILE_USED)
-		{
-			$html .= "<td>";
-			if (array_key_exists($img->name, $imgPages))
-			{
-				foreach($imgPages[$img->name] as $page)
-				{
-					$html .= pageLink($page, h($page));
-				}
-			}
-			$html .= "</td>";
-		}
-		$html .= "</tr>\n";
+		$rows[] = array(
+			'thumbnail' => in_array(getFileExt($baseImgName), ImageExtensions, true) ? uploadURL($baseImgName) : null,
+			'name' => $baseImgName, 'markdown' => imageLinkText($baseImgName),
+			'modified' => date($date_format, $img->recent), 'size' => humanFilesize($img->size),
+			'renameHref' => SELF."?action=imgRename&prevpage=".urlencode($prevpage)."&imgName=".urlencode($baseImgName),
+			'deleteHref' => SELF."?action=imgDelete&prevpage=".urlencode($prevpage)."&imgName=".urlencode($baseImgName),
+			'pages' => $usedOn);
 	}
-	$html .= "</tbody></table>\n";
+	$html .= templates()->render('upload-list', array(
+		'total' => count($imgNames), 'head' => sortableHeadings($action, $sortBy, $columns),
+		'showUsage' => SHOW_PAGES_WHERE_FILE_USED, 'rows' => $rows));
 }
 else if ( $action === 'uploaded' )
 {
@@ -897,12 +867,12 @@ else if ( $action === 'all' )
 	{
 		$sortBy = 'name';
 	}
-	foreach($pageNames as $page)
+	foreach($pageNames as $pageName)
 	{
 		$fileItem = new StdClass();
-		$fileItem->name = $page;
-		$fileItem->recent = pageStore()->modified($page) ?? 0;
-		$fileItem->size = pageStore()->size($page) ?? 0;
+		$fileItem->name = $pageName;
+		$fileItem->recent = pageStore()->modified($pageName) ?? 0;
+		$fileItem->size = pageStore()->size($pageName) ?? 0;
 		$filelist[] = $fileItem;
 	}
 	$sortFun = function($a, $b) use ($sortBy)
@@ -912,40 +882,30 @@ else if ( $action === 'all' )
 			$b->$sortBy <=> $a->$sortBy;
 	};
 	usort($filelist, $sortFun);
-	$html .= "<p>".__('Total').": ".count($pageNames)." ".__("pages")."</p>";
-	$html .= "<table><thead>";
-	$html .= "<tr>".
-		"<th>".(($sortBy!='name')?("<a href=\"".SELF."?action=all&sortBy=name\">".__('Name')."</a>"):"<span class=\"sortBy\">".__('Name')."</span>")."</th>".
-		"<th>".(($sortBy!='recent')?("<a href=\"".SELF."?action=all&sortBy=recent\">".__('Modified')."</a>"):"<span class=\"sortBy\">".__('Modified')."</span>")."</th>".
-		"<th>".(($sortBy!='size')?("<a href=\"".SELF."?action=all&sortBy=size\">".__('Size')."</a>"):"<span class=\"sortBy\">".__('Size')."</span>")."</th>".
-		"<th>".__('Action')."</th>".
-		"</tr></thead><tbody>";
-	$date_format = __('date_format', TITLE_DATE);
-
+	$date_format = translate('date_format', TITLE_DATE);
+	$rows = array();
 	foreach ($filelist as $file)
 	{
-		$html .= "<tr>".
-			"<td>".pageLink($file->name, h($file->name))."</td>".
-			"<td valign=\"top\"><nobr>".date( $date_format, $file->recent)."</nobr></td>".
-			"<td valign=\"top\"><nobr>".humanFilesize($file->size)."</nobr></td>".
-			"<td class=\"pageActions\">".getPageActions($file->name, $action,"-dark")."</td>".
-			"</tr>\n";
+		$rows[] = array('href' => pageURL($file->name), 'name' => $file->name, 'modified' => date($date_format, $file->recent),
+			'size' => humanFilesize($file->size), 'actions' => getPageActions($file->name, $action, "-dark"));
 	}
-	$html .= "</tbody></table>\n";
+	$html .= templates()->render('all-pages', array(
+		'total' => count($pageNames), 'rows' => $rows,
+		'head' => sortableHeadings($action, $sortBy, array(
+			array(translate('Name'), 'name'), array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null)))
+	));
 }
 else if ( $action === 'search' )
 {
 	$matches = 0;
 	$q = $_REQUEST['q'] ?? '';
-	$html .= "    <h1>".__('Search').": ".h($q)."</h1>\n";
-
+	$results = array();
+	$create = null;
 	if ( trim($q) != "" )
 	{
-		$html .= "    <ul>\n";
-		$pagenames = getAllPageNames();
 		$found = FALSE;
 		$matchingPages = array();
-		foreach ($pagenames as $searchPage)
+		foreach (getAllPageNames() as $searchPage)
 		{
 			if (strcasecmp($searchPage, $q) == 0)
 			{
@@ -966,18 +926,18 @@ else if ( $action === 'search' )
 				}
 			}
 		}
-		foreach ($matchingPages as $page)
+		foreach ($matchingPages as $matchingPage)
 		{
-			$link = pageLink($page, h($page), (strcasecmp($page, $q) == 0)? " class=\"literalMatch\"": "");
-			$html .= "        <li>$link</li>\n";
+			$results[] = array('href' => pageURL($matchingPage), 'name' => $matchingPage, 'exact' => (strcasecmp($matchingPage, $q) == 0));
 		}
 		if (!$found)
 		{
-			$html .= "        <li>".pageLink($q, __('Create page')." '".h($q)."'", " class=\"noexist\"")."</li>";
+			$create = array('href' => pageURL($q), 'label' => translate('Create page')." '".$q."'");
 		}
-		$html .= "      </ul>\n";
 	}
-	$html .= "      <p>$matches ".__('matches')."</p>\n";
+	$html .= templates()->render('search', array(
+		'heading' => translate('Search').": ".$q, 'searched' => (trim($q) != ""), 'results' => $results, 'create' => $create, 'matches' => $matches
+	));
 }
 else
 {
@@ -1072,7 +1032,7 @@ print templates()->render('layout', array(
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
-			? \W2\Html::raw(getPageActions($page, $action, "")) : null,
+			? getPageActions($page, $action, "") : null,
 		'toolbar' => $toolbar,
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
