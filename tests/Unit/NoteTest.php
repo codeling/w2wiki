@@ -81,6 +81,19 @@ final class NoteTest extends TestCase
 		$this->assertSame(['link', 'text', $address], Note::link('text', $address));
 	}
 
+	public function testALinkCanOpenInANewWindow(): void
+	{
+		$note = (new Note())->format('See the %s.', [Note::link('current <version>', '/index.php/A', true)]);
+		$this->assertSame('See the <a href="/index.php/A" target="_blank" rel="noopener">current &lt;version&gt;</a>.', $note->render());
+		// (and stays so when the note has been kept in the session)
+		$this->assertSame($note->render(), Note::fromArray($note->toArray())->render());
+	}
+
+	public function testALinkWithAnUnknownFlagIsIgnored(): void
+	{
+		$this->assertTrue(Note::fromArray([['format', '%s', [['link', 't', '/p', 'x']]]])->isEmpty());
+	}
+
 	public function testFormatWithABlock(): void
 	{
 		$note = (new Note())->format('Use %s to refer to it!', [Note::block('![Image](/images/a<b>.gif)')]);

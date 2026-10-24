@@ -48,7 +48,8 @@ final class Changes
 		}
 		if (!$isNew && $baseHash !== null && !hash_equals(self::textHash(pageStore()->read($page) ?? ''), $baseHash))
 		{
-			$note->text(translate('The page was changed (or deleted) by someone else since you opened it. Nothing was saved. Your text is still in the editor: please check the current version of the page, then save again to replace it.'));
+			$note->format(translate('The page was changed (or deleted) by someone else since you opened it. Nothing was saved. Your text is still in the editor: please check the %s of the page, then save again to replace it.'),
+				array(Note::link(translate('current version'), pageURL($page), true)));
 			return new ChangeResult(false, $page, $note, true);
 		}
 		if (!writePage($page, $text))

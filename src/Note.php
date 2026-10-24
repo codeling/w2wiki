@@ -56,14 +56,15 @@ final class Note
 	/**
 	 * A link, for use as a value of format(). Only addresses within the wiki and of web sites are accepted.
 	 *
-	 * @return array{0: string, 1: string, 2: string}
+	 * @param bool $newWindow	whether the link opens in a new window or tab (to keep what is on the page, like a form)
+	 * @return array{0: string, 1: string, 2: string}|array{0: string, 1: string, 2: string, 3: true}
 	 */
-	public static function link(string $text, string $address): array
+	public static function link(string $text, string $address, bool $newWindow = false): array
 	{
 		if (!preg_match(self::ADDRESS, $address)) {
 			throw new \InvalidArgumentException('not an address within the wiki or of a web site');
 		}
-		return ['link', $text, $address];
+		return $newWindow ? ['link', $text, $address, true] : ['link', $text, $address];
 	}
 
 	/**
@@ -173,8 +174,8 @@ final class Note
 					return false;
 				}
 				foreach ($part[2] as $value) {
-					$isLink = is_array($value) && count($value) === 3 && $value[0] === 'link' && is_string($value[1]) && is_string($value[2])
-						&& preg_match(self::ADDRESS, $value[2]) === 1;
+					$isLink = is_array($value) && (count($value) === 3 || (count($value) === 4 && ($value[3] ?? null) === true))
+						&& $value[0] === 'link' && is_string($value[1]) && is_string($value[2]) && preg_match(self::ADDRESS, $value[2]) === 1;
 					$isBlock = is_array($value) && count($value) === 2 && $value[0] === 'pre' && is_string($value[1]);
 					if (!is_string($value) && !$isLink && !$isBlock) {
 						return false;
@@ -228,7 +229,7 @@ final class Note
 				if (!is_array($value)) {
 					$html .= self::escape($value);
 				} elseif ($value[0] === 'link') {
-					$html .= '<a href="' . self::escape($value[2]) . '">' . self::escape($value[1]) . '</a>';
+					$html .= '<a href="' . self::escape($value[2]) . '"' . (isset($value[3]) ? ' target="_blank" rel="noopener"' : '') . '>' . self::escape($value[1]) . '</a>';
 				} else {
 					$html .= '<pre>' . self::escape($value[1]) . '</pre>';
 				}
