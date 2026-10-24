@@ -339,7 +339,6 @@ $triedSave = false;
 $postedDraftKey = "";
 if ( $action == 'save' )
 {
-	$note = new \W2\Note();
 	$newText = $_POST['newText'] ?? '';
 	$isNew = $_POST['isNew'] ?? '';
 	$postedDraftKey = $_POST['draftKey'] ?? '';
@@ -350,37 +349,21 @@ if ( $action == 'save' )
 	if ($isNew)
 	{
 		$page = str_replace(array('|','#'), '', $page);
-		$filename = fileNameForPage($page);
 	}
 	if ($saveRefused)
 	{
-		$note->text(translate('The text was not saved, because the security token was missing or wrong (for example because the session has expired). Please check the text and save again.'));
-	}
-	// (the name is checked when saving existing pages too: the client decides whether a page is new)
-	elseif ($isNew && isExistingPage($page))
-	{
-		$note->format(translate("Error creating page '%s' - it already exists! Please choose a different name, or %s the existing page (this discards current text!)!"),
-			array($page, \W2\Note::link(translate('edit'), "?action=edit&page=".urlencode($page))));
-	}
-	elseif (!isValidPageName($page))
-	{
-		$note->format(translate("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."),
-			array($page, UPLOAD_FOLDER));
-	}
-	elseif (!writePage($page, $newText))
-	{
-		$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
-		w2Log("error saving $filename");
+		$note = (new \W2\Note())->text(translate('The text was not saved, because the security token was missing or wrong (for example because the session has expired). Please check the text and save again.'));
 	}
 	else
 	{
-		$note->text($isNew ? translate('Created') : translate('Saved'));
-		$usermsg = $_POST['gitmsg'] ?? '';
-		$commitmsg = $page . ($usermsg !== '' ?  (": ".$usermsg) : ($isNew ? " created" : " changed"));
-		gitChangeHandler($commitmsg, $note);
-		// (the browser keeps the draft until it sees this, in case the save fails on the way)
-		$_SESSION['savedDraft'] = $postedDraftKey;
-		redirectWithNote($page, $note);
+		$result = (new \W2\Changes())->save($page, (bool)$isNew, $newText, $_POST['gitmsg'] ?? '');
+		$note = $result->note;
+		if ($result->success)
+		{
+			// (the browser keeps the draft until it sees this, in case the save fails on the way)
+			$_SESSION['savedDraft'] = $postedDraftKey;
+			redirectWithNote($result->page, $note);
+		}
 	}
 	// saving failed: show the editor again (with the entered title, text and message)
 	// instead of redirecting, so that nothing typed is lost
@@ -728,135 +711,20 @@ else if ( $action === 'renamed' || $action === 'deleted')
 {
 	// TODO: prevent relative filenames from being injected
 	$oldPageName = sanitizeFilename($_POST['oldPageName'] ?? '');
-	$newPageName = ($action === 'deleted') ? "": sanitizeFilename($_POST['newName'] ?? '');
-	$note = new \W2\Note();
-	if ($action === 'deleted')
-	{
-		$success = pageStore()->delete($oldPageName);
-	}
-	else
-	{
-		$success = pageStore()->rename($oldPageName, $newPageName);
-	}
-	if ($success)
-	{
-		// (plain text, which is also the message of the commit)
-		$message = ($action === 'deleted')
-			? (translate('Removed')." ".$oldPageName)
-			: (translate('Renamed')." ".$oldPageName." ".translate('to')." ".$newPageName);
-		$note->text($message);
-		// Change links in all pages to point to new page
-		$pagenames = getAllPageNames();
-		$changedPages = array();
-		foreach ($pagenames as $replacePage)
-		{
-			$content = pageStore()->read($replacePage) ?? '';
-			$count = 0;
-			$newContent = preg_replace("/\[\[".preg_quote($oldPageName, '/')."([|#].*?\]\]|\]\])/",
-				(($action === 'deleted') ? "" : "[[".pregReplacementQuote($newPageName)."\\1"),
-				$content, -1, $count);
-			if ($count > 0) // if something changed
-			{
-				if ( writePage($replacePage, $newContent) )
-				{
-					$changedPages[] = $replacePage." ($count ".translate('matches').")";
-				}
-				else
-				{
-					w2Log("error updating links in " . fileNameForPage($replacePage));
-				}
-			}
-		}
-		if (count($changedPages) > 0)
-		{
-			$note->items(translate('Updated links in the following pages:'), $changedPages);
-		}
-		gitChangeHandler($message, $note);
-		$page = $newPageName;
-	}
-	else
-	{
-		$note->text(($action === 'deleted')
-			? (translate('Error deleting file')." ".$oldPageName)
-			: (translate('Error renaming file')." ".$oldPageName." ".translate('to')." ".$newPageName));
-		$page = $oldPageName;
-	}
-	if ($action === 'deleted' && $success)
-	{
-		$page  = DEFAULT_PAGE;
-	}
-	redirectWithNote($page, $note);
+	$changes = new \W2\Changes();
+	$result = ($action === 'deleted')
+		? $changes->deletePage($oldPageName)
+		: $changes->renamePage($oldPageName, sanitizeFilename($_POST['newName'] ?? ''));
+	redirectWithNote($result->page, $result->note);
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )
 {
 	$oldImgName = basename(sanitizeFilename($_POST['oldPageName'] ?? ''));
-	$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
-	$oldImgPath = $imgPath . $oldImgName;
-	$newImgName = ($action === 'imgDeleted') ? "": basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'] ?? '')));
-	if (isHiddenFile($oldImgName))
-	{
-		// never touch e.g. the .htaccess file protecting the uploads folder
-		$success = false;
-	}
-	else if ($action == 'imgDeleted')
-	{
-		$success = is_file($oldImgPath) && unlink($oldImgPath);
-	}
-	else
-	{
-		// only allow renaming to a valid upload extension; otherwise, e.g.
-		// an image containing PHP code could be renamed to .php and executed;
-		// the type must stay the same (a PNG must not become an unsanitized SVG)
-		$success = is_file($oldImgPath) && hasValidUploadExt($newImgName) && renameKeepsFileType($oldImgName, $newImgName) &&
-			!file_exists($imgPath.$newImgName) &&
-			rename($oldImgPath, $imgPath.$newImgName);
-	}
-
-	$note = new \W2\Note();
-	if ($success)
-	{
-		$commitMsg = ($action === 'imgDeleted')
-			? (translate('Image deleted').": ".$oldImgName)
-			: (translate('Image renamed').": ".$oldImgName." ".translate('to')." ".$newImgName);
-		$note->text($commitMsg);
-		$changedPageNames = array();
-		// Change references to image in all pages:
-		$pagenames = getAllPageNames();
-		$changedPages = array();
-		foreach ($pagenames as $replacePage)
-		{
-			$content = pageStore()->read($replacePage) ?? '';
-			list($newContent, $count) = ($action === 'imgDeleted')
-				? uploadReferences()->removeImages($content, $oldImgName)
-				: uploadReferences()->rename($content, $oldImgName, $newImgName);
-			if ($count > 0) // if something changed
-			{
-				if ( writePage($replacePage, $newContent) )
-				{
-					$changedPages[] = $replacePage." ($count ".translate('matches').")";
-					$changedPageNames[] = $replacePage;
-				}
-				else
-				{
-					w2Log("error updating links in " . fileNameForPage($replacePage));
-				}
-			}
-		}
-		if (count($changedPages) > 0)
-		{
-			$commitMsg .= " (".translate('Updated images in the following pages:')." ".implode(", ", $changedPageNames).")";
-			$note->items(translate('Updated images in the following pages:'), $changedPages);
-		}
-		gitChangeHandler($commitMsg, $note);
-	}
-	else
-	{
-		$note->text(($action === 'imgDeleted')
-			? (translate('Error deleting image: ')." (".$oldImgName.")")
-			: (translate('Error renaming image: ').$oldImgName." ".translate('to')." ".$newImgName));
-	}
-	$prevpage = requireValidPreviousPage('prevpage');
-	redirectWithNote($prevpage, $note);
+	$changes = new \W2\Changes();
+	$result = ($action === 'imgDeleted')
+		? $changes->deleteImage($oldImgName)
+		: $changes->renameImage($oldImgName, basename(str_replace(" ", "_", sanitizeFilename($_POST['newName'] ?? ''))));
+	redirectWithNote(requireValidPreviousPage('prevpage'), $result->note);
 }
 else if ( $action === 'all' )
 {
