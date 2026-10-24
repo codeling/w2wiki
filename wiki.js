@@ -84,6 +84,16 @@ function removeDraft(key)
 
 document.addEventListener('DOMContentLoaded', () =>
 {
+	// the server has saved the text of this draft (the page after saving loads this script for that):
+	if (document.body.dataset.savedDraft)
+	{
+		removeDraft(document.body.dataset.savedDraft);
+	}
+	let form = document.getElementById("edit");
+	if (!form)
+	{
+		return;
+	}
 	makeElementDraggable(document.getElementById("drawer"));
 
 	// prevent inadvertent navigation away from edited content:
@@ -96,8 +106,6 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	});
 
-	// (this script is only loaded where the editor is, see isEditorAction())
-	let form = document.getElementById("edit");
 	let textArea = document.getElementById("text");
 	let titleInput = document.getElementById("title");
 	let gitmsgInput = document.getElementById("gitmsg");
@@ -107,6 +115,9 @@ document.addEventListener('DOMContentLoaded', () =>
 	let baseText = textArea.value;
 	let baseTitle = titleInput ? titleInput.value : "";
 	let baseGitmsg = gitmsgInput ? gitmsgInput.value : "";
+	// (the editor shown again after saving failed contains the unsaved text, not the saved one)
+	let unsaved = form.dataset.unsaved === "true";
+	let draftBase = baseText;
 
 	// autosave the current content as local draft, so that it survives
 	// the tab being unloaded (e.g. by mobile browsers after inactivity):
@@ -120,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () =>
 			text: textArea.value,
 			title: titleInput ? titleInput.value : "",
 			gitmsg: gitmsgInput ? gitmsgInput.value : "",
-			base: baseText,
+			base: draftBase,
 			time: Date.now()
 		});
 	}
@@ -143,10 +154,28 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	});
 	addEventListener('pagehide', saveDraft);
+	// (back from a failed save to this page from the browser's cache: its text is still unsaved)
+	addEventListener('pageshow', (event) =>
+	{
+		if (event.persisted && readDraft(key))
+		{
+			modified = true;
+		}
+	});
 
 	// restore a previously autosaved draft:
 	let draft = readDraft(key);
-	if (draft)
+	if (unsaved)
+	{
+		// (the text is the one of the draft, if it was kept: keep it, with the text it was started from)
+		if (draft)
+		{
+			draftBase = draft.base;
+		}
+		modified = true;
+		saveDraft();
+	}
+	else if (draft)
 	{
 		if (draft.text === baseText && (!titleInput || draft.title === baseTitle))
 		{
@@ -200,10 +229,11 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	}
 
+	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	form.addEventListener('submit', () =>
 	{
+		saveDraft();
 		modified = false;
-		removeDraft(key);
 	});
 	document.getElementById("cancel").addEventListener('click', () =>
 	{

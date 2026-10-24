@@ -28,6 +28,16 @@ function isValidCSRFToken($token)
 }
 
 /**
+ * Whether the browser says that the request comes from another site (Sec-Fetch-Site header);
+ * requests without the header (older browsers, other clients) don't count as such
+ */
+function isCrossSiteRequest($server)
+{
+	$site = $server['HTTP_SEC_FETCH_SITE'] ?? '';
+	return $site !== '' && $site !== 'same-origin' && $site !== 'none';
+}
+
+/**
  * Check the given password against W2_PASSWORD_HASH (created with PHP's
  * password_hash, or a deprecated unsalted SHA-1 hash), or W2_PASSWORD
  */
