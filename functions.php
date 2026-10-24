@@ -388,9 +388,12 @@ function isInUploadFolder($page)
 	return explode('/', $page)[0] === UPLOAD_FOLDER;
 }
 
+/**
+ * How to refer to an uploaded file in a page (plain text, not HTML: escape it where it is written)
+ */
 function imageLinkText($imgName)
 {
-	return "![".__("Image Description")."](".uploadUrlPrefix()."$imgName)";
+	return "![".translate("Image Description")."](".uploadUrlPrefix()."$imgName)";
 }
 
 function sanitizeFilename($inFileName)
@@ -829,19 +832,46 @@ function humanFilesize($bytes, $decimals = 2) {
 	return sprintf("%.".($factor==0?0:$decimals)."f", $bytes / pow(1024, $factor)) . @$sz[$factor];
 }
 
+/**
+ * The headings of a table which can be sorted by some of its columns, for the template table-head.
+ *
+ * @param string $action	the action which shows the table (the headings are links to it)
+ * @param string $sortBy	the column which the table is sorted by
+ * @param array<int, array{0: string, 1: string|null}> $columns	the label of each column, and what to sort by to
+ *                          sort by it (or null for a column which can't be sorted by)
+ * return W2\Html
+ */
+function sortableHeadings($action, $sortBy, $columns)
+{
+	$headings = array();
+	foreach ($columns as list($label, $key))
+	{
+		$headings[] = array('label' => $label, 'current' => ($key !== null && $key === $sortBy),
+			'href' => ($key === null || $key === $sortBy) ? null : SELF . "?action=" . $action . "&sortBy=" . $key);
+	}
+	return templates()->render('table-head', array('columns' => $headings));
+}
+
+/**
+ * The icons to do something with a page (edit, delete, rename, show the pages which link to it), except for
+ * the action which is being done, as links to the actions.
+ *
+ * @param string $imgSuffix	"-dark" for the icons on a light background
+ * return W2\Html
+ */
 function getPageActions($page, $action, $imgSuffix)
 {
-	$pageActions = array('edit', 'delete', 'rename');
-	$pageActionNames = array(__('Edit'), __('Delete'), __('Rename'));
-	$result = '';
-	for ($i = 0; $i < count($pageActions); $i++ )
+	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
+	$items = array();
+	foreach ($pageActions as $name => $label)
 	{
-		if ($action != $pageActions[$i])
+		if ($action != $name)
 		{
-			$result .= "      <a href=\"".SELF."?action=".$pageActions[$i].
-				"&amp;page=".urlencode($page)."\"><img src=\"".assetURL("w2-icons/".$pageActions[$i].$imgSuffix.".svg")."\" alt=\"".$pageActionNames[$i]."\" title=\"".$pageActionNames[$i]."\" class=\"icon\"></a>\n";
+			$items[] = array('href' => SELF . "?action=" . $name . "&page=" . urlencode($page),
+				'icon' => assetURL("w2-icons/" . $name . $imgSuffix . ".svg"), 'label' => $label);
 		}
 	}
-	$result .= "      <a href=\"" . SELF . "?action=view&amp;page=".urlencode($page)."&linkshere=true\"><img src=\"".assetURL("w2-icons/link".$imgSuffix.".svg")."\" alt=\"".__('Show links here')."\" title=\"".__('Show links here')."\" class=\"icon\"/></a>\n";
-	return $result;
+	$items[] = array('href' => SELF . "?action=view&page=" . urlencode($page) . "&linkshere=true",
+		'icon' => assetURL("w2-icons/link" . $imgSuffix . ".svg"), 'label' => translate('Show links here'));
+	return templates()->render('page-actions', array('items' => $items));
 }
