@@ -534,18 +534,7 @@ if (SIDEBAR_PAGE != '' && showsSidebar($action))
 	$sidebar = \W2\Html::raw(toHTML(pageStore()->read(SIDEBAR_PAGE) ?? (translate('Sidebar file could not be found')." (".SIDEBAR_PAGE.")")));
 }
 
-$linksHere = null;
-if ($action === 'view' && isset($_GET['linkshere']))
-{
-	$linksHere = array();
-	foreach(getAllPageNames() as $searchPage)
-	{
-		if ( preg_match("/\[\[".preg_quote($page, '/')."/i", pageStore()->read($searchPage) ?? '') )
-		{
-			$linksHere[] = array('href' => pageURL($searchPage), 'name' => $searchPage);
-		}
-	}
-}
+$linksHere = ($action === 'view' && isset($_GET['linkshere'])) ? (new \W2\Lists())->linksHere($page) : null;
 
 $note = \W2\Note::fromArray($_SESSION['note'] ?? null);
 unset($_SESSION['note']);
