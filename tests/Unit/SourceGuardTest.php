@@ -13,13 +13,13 @@ use PHPUnit\Framework\TestCase;
 final class SourceGuardTest extends TestCase
 {
 	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php',
-		'src/Html.php', 'src/Template.php',
+		'src/Html.php', 'src/Template.php', 'src/Changes.php', 'src/ChangeResult.php', 'src/Git.php', 'src/GitResult.php',
 		'webauth/webauth.php', 'webauth/src/ClientAddress.php', 'webauth/src/Csrf.php', 'webauth/src/Https.php', 'webauth/src/Ip.php',
 		'webauth/src/LoginThrottle.php', 'webauth/src/Password.php', 'webauth/src/ServerAuth.php', 'webauth/src/Session.php'];
 
 	/** Functions which run code or commands, or are otherwise dangerous with user input */
 	private const FORBIDDEN_FUNCTIONS = [
-		'system', 'passthru', 'shell_exec', 'popen', 'proc_open', 'pcntl_exec', 'unserialize', 'extract',
+		'system', 'passthru', 'shell_exec', 'popen', 'exec', 'pcntl_exec', 'unserialize', 'extract',
 		'assert', 'create_function', 'parse_str', 'mb_ereg_replace', 'eval', 'call_user_func', 'call_user_func_array',
 	];
 
@@ -71,8 +71,8 @@ final class SourceGuardTest extends TestCase
 		$this->addToAssertionCount(1);
 	}
 
-	/** Commands are only run by checkedExecute(), whose callers quote the arguments */
-	public function testExecIsOnlyUsedByCheckedExecute(): void
+	/** Commands are only started by Git::run(), as a list of arguments (no shell) */
+	public function testProcessesAreOnlyStartedByGit(): void
 	{
 		$callers = [];
 		foreach (self::FILES as $file) {
@@ -82,12 +82,14 @@ final class SourceGuardTest extends TestCase
 				if (is_array($token) && $token[0] === T_FUNCTION && is_array($tokens[$i + 1] ?? null)) {
 					$function = $tokens[$i + 1][1];
 				}
-				if (self::isCall($tokens, $i) && strtolower($token[1]) === 'exec') {
+				if (self::isCall($tokens, $i) && strtolower($token[1]) === 'proc_open') {
 					$callers[] = "$file: $function";
+					// (a variable, which holds the list: a string would be run by a shell)
+					$this->assertSame('$command', self::text($tokens[$i + 2]), "proc_open in $file with a command which is not \$command");
 				}
 			}
 		}
-		$this->assertSame(['index.php: checkedExecute'], $callers);
+		$this->assertSame(['src/Git.php: run'], $callers);
 	}
 
 	/** Only the autoloader and the templates include files with a name which is not a fixed string or a constant */

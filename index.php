@@ -142,32 +142,32 @@ function redirectWithNote($page, \W2\Note $note)
 	exit;
 }
 
-// $knownErrors: messages (plain text) for return values which have a meaning of their own, by return value
-// $silentReturnValues: return values which are no error, but still mean the command did not succeed
-function checkedExecute(\W2\Note $note, $cmd, $knownErrors = array(), $silentReturnValues = array())
+/**
+ * Notes a failed git command (details like the command and its output may reveal server internals, so they are
+ * only logged) and returns whether it succeeded.
+ *
+ * @param array $knownErrors	messages (plain text) for exit codes which have a meaning of their own, by code
+ */
+function checkedGit(\W2\Note $note, \W2\GitResult $result, array $knownErrors = array())
 {
-	$returnValue = 0;
-	$output = '';
-	exec($cmd, $output, $returnValue);
-	if ($returnValue != 0 && !in_array($returnValue, $silentReturnValues))
+	if (!$result->succeeded())
 	{
-		// details (command, output) may reveal server internals, so only log them
-		w2Log("error executing command $cmd (return value: $returnValue): ".implode(" ", $output));
+		w2Log("error executing command {$result->command} (return value: {$result->code}): ".$result->output);
 		$note->br();
-		if (isset($knownErrors[$returnValue]))
+		if (isset($knownErrors[$result->code]))
 		{
-			$note->text($knownErrors[$returnValue]);
+			$note->text($knownErrors[$result->code]);
 		}
 		else
 		{
-			$note->format(translate("Error executing git command (return value: %s); see the web server's error log for details."), array($returnValue));
+			$note->format(translate("Error executing git command (return value: %s); see the web server's error log for details."), array($result->code));
 		}
 	}
-	return ($returnValue == 0);
+	return $result->succeeded();
 }
 
-// Return value of the commit command if there is nothing to commit
-const GIT_NOTHING_TO_COMMIT = 4;
+// Seconds after which git is stopped when it talks to the remote repository (which may not answer)
+const GIT_REMOTE_TIMEOUT = 20;
 
 function gitChangeHandler($commitmsg, \W2\Note $note)
 {
@@ -177,15 +177,18 @@ function gitChangeHandler($commitmsg, \W2\Note $note)
 	}
 	// (not while a pull is running; the lock was usually taken before the change was made)
 	$lock = gitLock(true);
-	// (nothing to commit, e.g., if a page was saved without changes, is no error, and nothing to push)
-	$commit = "cd ".escapeshellarg(PAGES_PATH)." && git add -A && { ".
-		"if git diff --cached --quiet; then exit ".GIT_NOTHING_TO_COMMIT."; fi; ".
-		"git commit -m ".escapeshellarg($commitmsg)."; }";
-	if (checkedExecute($note, $commit, array(), array(GIT_NOTHING_TO_COMMIT)))
+	$git = new \W2\Git(PAGES_PATH);
+	if (checkedGit($note, $git->run(array('add', '-A'))))
 	{
-		if (GIT_PUSH_ENABLED)
+		// (nothing to commit, e.g., if a page was saved without changes, is no error, and nothing to push;
+		// "git diff --cached --quiet" exits with 1 if there is something to commit)
+		$changes = $git->run(array('diff', '--cached', '--quiet'));
+		if ($changes->code !== 0 && checkedGit($note, $changes->code === 1 ? $git->run(array('commit', '-m', $commitmsg)) : $changes))
 		{
-			checkedExecute($note, "cd ".escapeshellarg(PAGES_PATH)." && git push");
+			if (GIT_PUSH_ENABLED)
+			{
+				checkedGit($note, $git->run(array('push'), GIT_REMOTE_TIMEOUT));
+			}
 		}
 	}
 	gitUnlock($lock);
@@ -209,17 +212,19 @@ function gitPull($action, \W2\Note $note)
 		return;
 	}
 	// (no password prompt, and no waiting forever for a remote which doesn't answer)
-	$pull = "cd ".escapeshellarg(PAGES_PATH)." && ".
-		"if command -v timeout >/dev/null 2>&1; then limit='timeout 20'; else limit=; fi; ".
-		"GIT_TERMINAL_PROMPT=0 \$limit git pull --no-rebase --no-edit; result=\$?; ".
-		"if [ \$result -ne 0 ] && git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then git merge --abort; exit ".GIT_PULL_CONFLICT."; fi; ".
-		"exit \$result";
+	$git = new \W2\Git(PAGES_PATH);
+	$pull = $git->run(array('pull', '--no-rebase', '--no-edit'), GIT_REMOTE_TIMEOUT);
+	if (!$pull->succeeded() && $git->run(array('rev-parse', '-q', '--verify', 'MERGE_HEAD'))->succeeded())
+	{
+		$git->run(array('merge', '--abort'));
+		$pull = new \W2\GitResult(GIT_PULL_CONFLICT, $pull->output, false);
+	}
 	$conflict = translate('There were merge conflicts while pulling changes from the remote repository. The pull was cancelled and the wiki keeps its own version. Please resolve the conflicts in the pages repository (ask the wiki administrator).');
 	$pullNote = new \W2\Note();
-	if (checkedExecute($pullNote, $pull, array(GIT_PULL_CONFLICT => $conflict)) && GIT_PUSH_ENABLED)
+	if (checkedGit($pullNote, $pull, array(GIT_PULL_CONFLICT => $conflict)) && GIT_PUSH_ENABLED)
 	{
 		// (also publishes the merge, and commits which could not be pushed earlier)
-		checkedExecute($pullNote, "cd ".escapeshellarg(PAGES_PATH)." && GIT_TERMINAL_PROMPT=0 git push");
+		checkedGit($pullNote, $git->run(array('push'), GIT_REMOTE_TIMEOUT));
 	}
 	gitUnlock($lock);
 	$note->append($pullNote);
