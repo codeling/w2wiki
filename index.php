@@ -281,6 +281,7 @@ if ($action === 'logout' && !isValidCSRFToken($_GET['csrf_token'] ?? null))
 }
 $newPage = "";
 $text = "";
+$content = \W2\Html::raw('');
 if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
 {
 	// Look for page name following the script name in the URL, like this:
