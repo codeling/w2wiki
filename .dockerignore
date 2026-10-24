@@ -21,4 +21,7 @@
 !pages/_sidebar.md
 !pages/images/.htaccess
 !vendor/.htaccess
+!webauth
+webauth/tests
+webauth/.github
 !container

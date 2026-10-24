@@ -49,6 +49,11 @@ including [running W2 in a container](INSTALL.md#running-in-a-container-docker-a
 
 Automated tests (PHPUnit, run against a private copy of the wiki) are described in [tests/README.md](tests/README.md); they run on GitHub Actions for pull requests.
 
+The code for authentication (web server authentication, CSRF tokens, IP allowlist, password check, throttling
+of failed logins) is shared with other apps in the library [php-webauth](https://github.com/codeling/php-webauth),
+which is included as a git subtree in `webauth/`. Change it there, and update the copy with
+`git subtree pull --prefix=webauth https://github.com/codeling/php-webauth.git main --squash`.
+
 
 ## Security Notice
 
@@ -58,7 +63,7 @@ In its current form, W2 wiki is not security-hardened; it's recommended to only 
 
 - Always serve it over HTTPS.
 - Either set `REQUIRE_PASSWORD` to `true` and store a hash of your password (created with `password_hash`) in `W2_PASSWORD_HASH`, see the [installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md). There is only this one password for everybody. Failed logins are limited (lockouts that grow with every failure, and a limit over all clients). Unsalted SHA-1 password hashes are deprecated and will stop working in a future version.
-- Or use the access control of your web server or a reverse proxy: an IP allowlist (`$allowedIPs`), HTTP Basic Authentication (which allows several users), or an authenticating proxy with single sign-on or a second factor.
+- Or use the access control of your web server or a reverse proxy: an IP allowlist (`$allowedIPs`), HTTP Basic Authentication (which allows several users), or an authenticating proxy with single sign-on or a second factor. With `REQUIRE_WEB_SERVER_AUTH`, the wiki refuses every request which the web server did not authenticate, or which did not come over HTTPS, so a missing or ignored web server setting doesn't leave it open (see the [installation instructions](INSTALL.md#authentication-by-the-web-server)).
 - Uploaded files are served directly by the web server and are not protected by the wiki's password; only the web server's access control protects them.
 
 SVG uploads are disabled by default, since SVG files can contain scripts; they can be enabled with the optional [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) library, see the [installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md).

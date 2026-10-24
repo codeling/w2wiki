@@ -1,10 +1,12 @@
 <?php
 // SPDX-License-Identifier: MIT
 
-namespace W2\Tests\Unit;
+namespace WebAuth\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use WebAuth\ClientAddress;
+use WebAuth\LoginThrottle;
 
 /** Throttling of failed logins, and finding out the address of the client */
 final class LoginThrottleTest extends TestCase
@@ -20,7 +22,7 @@ final class LoginThrottleTest extends TestCase
 
 	protected function setUp(): void
 	{
-		$this->folder = sys_get_temp_dir() . '/w2-throttle-unit-' . bin2hex(random_bytes(6));
+		$this->folder = sys_get_temp_dir() . '/webauth-throttle-test-' . bin2hex(random_bytes(6));
 	}
 
 	protected function tearDown(): void
@@ -33,7 +35,7 @@ final class LoginThrottleTest extends TestCase
 
 	private function attempt(string $client, int $now, array $limits = self::LIMITS): int
 	{
-		return loginThrottleStart($this->folder, $client, $now, $limits);
+		return LoginThrottle::start($this->folder, $client, $now, $limits);
 	}
 
 	public function testClientIsLockedOutAfterTheAllowedFailures(): void
@@ -82,7 +84,7 @@ final class LoginThrottleTest extends TestCase
 	{
 		$this->attempt('a', 1000);
 		$this->attempt('a', 1001);
-		loginThrottleSucceeded($this->folder, 'a', self::LIMITS);
+		LoginThrottle::succeeded($this->folder, 'a', self::LIMITS);
 		$this->assertSame(0, $this->attempt('a', 1002));
 		$this->assertSame(0, $this->attempt('a', 1003));
 		$this->assertSame(0, $this->attempt('a', 1004), 'only two failures have been counted before');
@@ -134,7 +136,7 @@ final class LoginThrottleTest extends TestCase
 		$limits = ['maxFailures' => 100, 'globalMaxFailures' => 2] + self::LIMITS;
 		for ($i = 0; $i < 10; $i++) {
 			$this->assertSame(0, $this->attempt('a', 1000 + $i, $limits));
-			loginThrottleSucceeded($this->folder, 'a', $limits);
+			LoginThrottle::succeeded($this->folder, 'a', $limits);
 		}
 		$this->assertSame(0, $this->attempt('b', 1100, $limits));
 	}
@@ -144,7 +146,7 @@ final class LoginThrottleTest extends TestCase
 		$file = $this->folder . '-file';
 		file_put_contents($file, 'x');
 		try {
-			$this->assertSame(-1, loginThrottleStart($file . '/sub', 'a', 1000, self::LIMITS));
+			$this->assertSame(-1, LoginThrottle::start($file . '/sub', 'a', 1000, self::LIMITS));
 		} finally {
 			unlink($file);
 		}
@@ -157,7 +159,7 @@ final class LoginThrottleTest extends TestCase
 		$files = glob($this->folder . '/*.json');
 		$this->assertCount(2, $files);
 		touch($files[0], 1000);
-		loginThrottlePrune($this->folder, 5000, 1000);
+		LoginThrottle::prune($this->folder, 5000, 1000);
 		$this->assertCount(1, glob($this->folder . '/*.json'));
 	}
 
@@ -166,6 +168,14 @@ final class LoginThrottleTest extends TestCase
 		$this->attempt('../../evil', 1000);
 		$this->assertCount(1, glob($this->folder . '/*.json'));
 		$this->assertSame(1, preg_match('/^[0-9a-f]{64}\.json$/', basename(glob($this->folder . '/*.json')[0])));
+	}
+
+	public function testDefaultFolderDependsOnTheInstallation(): void
+	{
+		$a = LoginThrottle::defaultFolder('app-login', '/var/www/a');
+		$this->assertSame($a, LoginThrottle::defaultFolder('app-login', '/var/www/a'));
+		$this->assertNotSame($a, LoginThrottle::defaultFolder('app-login', '/var/www/b'));
+		$this->assertStringStartsWith(rtrim(sys_get_temp_dir(), '/') . '/app-login-', $a);
 	}
 
 	public static function clients(): array
@@ -191,6 +201,6 @@ final class LoginThrottleTest extends TestCase
 	#[DataProvider('clients')]
 	public function testClientAddress(array $server, array $trustedProxies, string $expected): void
 	{
-		$this->assertSame($expected, clientAddress($server, $trustedProxies));
+		$this->assertSame($expected, ClientAddress::get($server, $trustedProxies));
 	}
 }
