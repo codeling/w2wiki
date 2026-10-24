@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class SourceGuardTest extends TestCase
 {
 	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php',
-		'src/Html.php', 'src/Template.php', 'src/Changes.php', 'src/ChangeResult.php', 'src/Git.php', 'src/GitResult.php',
+		'src/Html.php', 'src/Template.php', 'src/Changes.php', 'src/ChangeResult.php', 'src/Uploads.php', 'src/Git.php', 'src/GitResult.php',
 		'webauth/webauth.php', 'webauth/src/ClientAddress.php', 'webauth/src/Csrf.php', 'webauth/src/Https.php', 'webauth/src/Ip.php',
 		'webauth/src/LoginThrottle.php', 'webauth/src/Password.php', 'webauth/src/ServerAuth.php', 'webauth/src/Session.php'];
 
