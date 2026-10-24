@@ -407,7 +407,7 @@ that you have shell access on your server. If you do not have such access,
 this integration will not work.
 
 **Prerequisite:** git needs to be installed on the server, and needs to be
-callable via php's `exec` function.
+callable by PHP: the PHP function `proc_open` must not be disabled (`disable_functions` in php.ini).
 To install git for example on an Ubuntu server, you would execute
 `$ sudo apt install git` on a shell
 
