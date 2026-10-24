@@ -132,6 +132,15 @@ final class AuthFunctionsTest extends TestCase
 		unset($_SESSION);
 	}
 
+	public function testCrossSiteRequests(): void
+	{
+		$this->assertTrue(isCrossSiteRequest(['HTTP_SEC_FETCH_SITE' => 'cross-site']));
+		$this->assertTrue(isCrossSiteRequest(['HTTP_SEC_FETCH_SITE' => 'same-site']));
+		$this->assertFalse(isCrossSiteRequest(['HTTP_SEC_FETCH_SITE' => 'same-origin']));
+		$this->assertFalse(isCrossSiteRequest(['HTTP_SEC_FETCH_SITE' => 'none']));
+		$this->assertFalse(isCrossSiteRequest([]));
+	}
+
 	public static function serverVariables(): array
 	{
 		return [
