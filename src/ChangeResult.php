@@ -11,13 +11,17 @@ namespace W2;
 
 if (!defined('W2APP')){ die('No direct access.'); }
 
-/** Outcome of an action of {@see Changes}: whether it worked, the page to show next (if any) and the message */
+/**
+ * Outcome of an action of {@see Changes}: whether it worked, the page to show next (if any) and the message;
+ * $conflict: a save was refused because the page was changed after the editor was opened
+ */
 final class ChangeResult
 {
 	public function __construct(
 		public readonly bool $success,
 		public readonly string $page,
-		public readonly Note $note
+		public readonly Note $note,
+		public readonly bool $conflict = false
 	) {
 	}
 }
