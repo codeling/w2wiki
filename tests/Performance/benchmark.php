@@ -6,6 +6,7 @@
  * make this faster, not a test: run it before and after, and compare.
  *
  *   php tests/Performance/benchmark.php [--pages=100,300,1000] [--runs=7] [--save=before.json] [--compare=before.json]
+ *   php tests/Performance/benchmark.php --pages=1000 --generate=/path/to/folder     (only creates the pages folder)
  *
  * For every size a pages folder is generated (always the same: seeded random numbers) with nested folders, [[links]]
  * between the pages, images, a sidebar, and a copy of the wiki is configured to use it. Every scenario is run in a
@@ -58,9 +59,16 @@ if (($argv[1] ?? '') === '--request') {
 
 // --- the benchmark ---------------------------------------------------------------------------------------------
 
-$options = getopt('', ['pages::', 'runs::', 'save::', 'compare::']);
+$options = getopt('', ['pages::', 'runs::', 'save::', 'compare::', 'generate::']);
 $sizes = array_map('intval', explode(',', $options['pages'] ?? '100,300,1000'));
 $runs = max(1, (int)($options['runs'] ?? 7));
+if (isset($options['generate'])) {
+	// (only the pages folder, e.g. to try the wiki with it: PAGES_PATH in config.php)
+	is_dir($options['generate']) || mkdir($options['generate'], 0755, true);
+	generatePages($options['generate'], $sizes[0]);
+	echo "{$sizes[0]} pages in {$options['generate']}\n";
+	exit(0);
+}
 $appRoot = dirname(__DIR__, 2);
 $work = sys_get_temp_dir() . '/w2-bench-' . bin2hex(random_bytes(4));
 mkdir($work);

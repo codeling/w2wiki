@@ -129,8 +129,7 @@ Like the PHP tests, the browser tests can be run against another version with
 
 ## Performance baseline
 
-`php tests/Performance/benchmark.php --pages=100,300,1000 --save=before.json` generates pages folders of
-realistic size (nested folders, links, images, a sidebar), runs every action of the wiki in a fresh PHP process and
-reports how often it lists all pages (`getAllPageNames()`), the time that takes, and the time of the request. After a
-change, `--compare=before.json` shows the difference. It is not part of the test suites: the times depend on the
-machine, so only compare runs made on the same one.
+`php tests/Performance/benchmark.php --pages=100,300,1000 --save=before.json` runs every action of the wiki on
+generated pages folders of realistic size and reports how often each lists all pages and how long the request takes;
+after a change, `--compare=before.json` shows the difference. It is not part of the test suites: the times depend on
+the machine. [Performance/README.md](Performance/README.md) has the baseline and what it shows.
