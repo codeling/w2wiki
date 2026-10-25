@@ -10,7 +10,9 @@
 
 use Michelf\MarkdownExtra;
 
-// Optional libraries installed via Composer (see INSTALL.md)
+// Libraries installed via Composer (see INSTALL.md): without Composer the wiki runs with the copy of the Markdown
+// library in the folder Michelf (loaded by the autoloader below), and without SVG uploads. The Composer version of
+// the Markdown library is used if it is installed; tests/Unit/MarkdownLibraryTest.php checks that the copy is the same.
 if ( is_file(__DIR__ . '/vendor/autoload.php') )
 {
 	require_once __DIR__ . '/vendor/autoload.php';

@@ -88,7 +88,8 @@ with an [SPDX](https://spdx.dev/learn/handling-license-info/) identifier in the 
 
 Files which only have a comment line start with `// SPDX-License-Identifier: MIT` (`# ...` in shell scripts, YAML
 and the `Containerfile`). Copyright notices of earlier authors stay in the files they were in. The bundled
-`Michelf/` files are [PHP Markdown](https://michelf.ca/projects/php-markdown/) and keep their own notices.
+`Michelf/` files are [PHP Markdown](https://michelf.ca/projects/php-markdown/) (also a Composer dependency, see INSTALL.md)
+and keep their own notices and license.
 `tests/Unit/FileHeaderTest.php` fails for a source file without the identifier.
 
 
