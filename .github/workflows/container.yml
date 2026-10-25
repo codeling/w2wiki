@@ -52,6 +52,27 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/pages/Home.md)" = 403
           docker exec w2 sh -c 'cd pages && git log --oneline | grep -q "Initial pages"'
 
+      - name: ImageMagick policy
+        run: |
+          # the formats of the uploads can be processed, other formats and files can't be read (container/imagemagick-policy.xml)
+          docker exec w2 php -r '
+            $img = new Imagick(); $img->newImage(300, 200, "red"); $img->setImageFormat("png");
+            file_put_contents("/tmp/p.png", $img->getImageBlob());
+            // (lower case, as W2 uses them; "jpg" is the default CONVERT_FORMAT)
+            foreach (["png", "gif", "jpeg", "jpg", "bmp", "webp"] as $format) {
+              $img = new Imagick("png:/tmp/p.png"); $img->resizeImage(100, 0, Imagick::FILTER_LANCZOS, 1); $img->setImageFormat($format);
+              $img->writeImage("$format:/tmp/out.$format"); (new Imagick())->pingImage("$format:/tmp/out.$format");
+            }
+            echo "processing works\n";
+            // (files of these formats: content of another format could be read as that one)
+            file_put_contents("/tmp/x.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><rect width=\"5\" height=\"5\"/></svg>");
+            file_put_contents("/tmp/x.mvg", "viewbox 0 0 10 10\nfill red\nrectangle 0,0 5,5\n");
+            file_put_contents("/tmp/x.ps", "%!PS\nnewpath 0 0 moveto 5 5 lineto stroke showpage\n");
+            file_put_contents("/tmp/x.pdf", "%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 10 10]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n");
+            foreach (["text:/etc/passwd", "@/etc/passwd", "mvg:/tmp/x.mvg", "svg:/tmp/x.svg", "/tmp/x.svg", "ps:/tmp/x.ps", "pdf:/tmp/x.pdf", "/tmp/x.pdf"] as $source) {
+              try { new Imagick($source); fwrite(STDERR, "not refused: $source\n"); exit(1); } catch (ImagickException $e) { echo "refused: $source\n"; }
+            }'
+
       - name: Check the image of the pull request without publishing
         if: github.event_name == 'pull_request'
         run: docker image inspect w2wiki:ci --format 'user={{.Config.User}} size={{.Size}}'
