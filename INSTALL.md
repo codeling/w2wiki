@@ -259,6 +259,15 @@ copy it to ImageMagick's `policy.xml` (e.g. `/etc/ImageMagick-6/policy.xml`;
 `convert -list policy` shows which file is used) and add `CONVERT_FORMAT` to its
 list of formats if you changed it to another one.
 
+### The Markdown library
+
+W2 renders pages with [PHP Markdown](https://michelf.ca/projects/php-markdown/) (`michelf/php-markdown`, license
+BSD-3-Clause). It works without any installation step: a copy is in the folder `Michelf` (with its `License.md`). If you
+run `composer install` the Composer package is used instead, and `composer update michelf/php-markdown` updates it
+(`composer audit` reports known security problems of it). The copy and the package must be the same version, which
+`tests/Unit/MarkdownLibraryTest.php` checks: after an update, copy the `*.php` files and `License.md` from
+`vendor/michelf/php-markdown/Michelf/` and `vendor/michelf/php-markdown/` into the folder `Michelf`.
+
 ### SVG uploads
 
 SVG files can contain scripts, which would run in the context of the wiki when

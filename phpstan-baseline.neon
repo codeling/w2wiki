@@ -7,12 +7,6 @@ parameters:
 			path: auth.php
 
 		-
-			message: '#^Instantiated class Michelf\\MarkdownExtra not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: functions.php
-
-		-
 			message: '#^Variable \$page might not be defined\.$#'
 			identifier: variable.undefined
 			count: 10
