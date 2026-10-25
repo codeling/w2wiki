@@ -6,6 +6,7 @@ namespace W2\Tests\Unit;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use W2\Tests\Support\HtmlAssertions;
+use W2\MarkdownParser;
 use W2\Tests\Support\MaliciousMarkdown;
 
 final class MarkdownToHtmlTest extends TestCase
@@ -96,6 +97,55 @@ final class MarkdownToHtmlTest extends TestCase
 		$this->assertStringContainsString('<code>[[Home]]</code>', $html);
 		$this->assertStringContainsString('<a href="/index.php/Missing" class="noexist">Missing</a>', $html);
 		$this->assertStringContainsString('<a href="http://x">text</a>', $html);
+	}
+
+	public static function deepQuotes(): array
+	{
+		return [
+			'markers' => [str_repeat('>', 1000) . ' x'],
+			'markers with spaces' => [str_repeat('> ', 1000) . 'x'],
+			'one level more per line' => [implode("\n", array_map(fn($i) => str_repeat('>', $i) . ' x', range(1, 1000)))],
+			'in a list item' => ["- a\n\n    " . str_repeat('>', 1000) . ' x'],
+			'in a footnote' => ["x[^a]\n\n[^a]: " . str_repeat('> ', 1000) . 'x'],
+		];
+	}
+
+	private static function depth(): int
+	{
+		return (new MarkdownParser())->maxBlockquoteDepth;
+	}
+
+	#[DataProvider('deepQuotes')]
+	public function testBlockquoteNestingIsLimited(string $markdown): void
+	{
+		// without the limit, a thousand levels need more than 512 MB of memory
+		$this->assertSame(self::depth(), self::quoteDepth(toHTML($markdown)));
+	}
+
+	/** The deepest nesting of blockquotes in the HTML */
+	private static function quoteDepth(string $html): int
+	{
+		$depth = $deepest = 0;
+		preg_match_all('#<(/?)blockquote>#', $html, $tags);
+		foreach ($tags[1] as $closing) {
+			$depth += $closing === '' ? 1 : -1;
+			$deepest = max($deepest, $depth);
+		}
+		return $deepest;
+	}
+
+	public function testQuotesUpToTheLimitAreNested(): void
+	{
+		$html = toHTML(str_repeat('>', self::depth()) . ' x');
+		$this->assertSame(self::depth(), self::quoteDepth($html));
+		$this->assertStringContainsString('<p>x</p>', $html);
+	}
+
+	public function testMarkersBeyondTheLimitAreShownAsText(): void
+	{
+		$html = toHTML(str_repeat('>', self::depth() + 2) . ' x');
+		$this->assertSame(self::depth(), self::quoteDepth($html));
+		$this->assertStringContainsString('<p>>> x</p>', $html);
 	}
 
 	public function testPlaceholdersCannotBeForgedByPageText(): void
