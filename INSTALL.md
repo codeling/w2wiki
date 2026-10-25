@@ -197,6 +197,7 @@ location ^~ /LICENSE { deny all; }
 location ^~ /README.md { deny all; }
 location ^~ /INSTALL.md { deny all; }
 location ^~ /CLAUDE.md { deny all; }
+location ^~ /docs/ { deny all; }
 location ~* \.(js|css|svg|png)$ {
     add_header Cache-Control "max-age=31536000, immutable";
     add_header X-Content-Type-Options nosniff;

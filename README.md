@@ -104,7 +104,8 @@ Originally written by [Steven Frank](https://github.com/panicsteve/w2wiki) and o
 - [Mejans](https://github.com/Mejans) - Occitan translations
 - [martin-v](https://github.com/martin-v) - folder support
 
-W2 wiki uses [PHP Markdown](https://github.com/michelf/php-markdown) by Michel Fortin for rendering Markdown to HTML.
+W2 wiki uses [PHP Markdown](https://github.com/michelf/php-markdown) by Michel Fortin for rendering Markdown to HTML
+(see [docs/MarkdownLibrary.md](docs/MarkdownLibrary.md) for a review of it and a comparison with league/commonmark).
 
 The [Markdown syntax](https://github.com/codeling/w2wiki/blob/master/pages/MarkdownSyntax.md) description is taken from [daringfireball.net](https://daringfireball.net/projects/markdown/syntax).
 
