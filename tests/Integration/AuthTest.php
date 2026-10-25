@@ -92,6 +92,17 @@ final class AuthTest extends AppTestCase
 		$this->assertStringContainsString('Welcome to W2', $this->http->get('/index.php')->body);
 	}
 
+	public function testLoginsAreLoggedWithTheClientAddress(): void
+	{
+		$logOffset = $this->server->logSize();
+		$this->login('hunter3');
+		$this->assertStringContainsString('W2: failed login attempt from 127.0.0.1', $this->server->logSince($logOffset));
+		$this->assertStringNotContainsString('successful login', $this->server->logSince($logOffset));
+		$this->login('hunter2');
+		$this->assertStringContainsString('W2: successful login from 127.0.0.1', $this->server->logSince($logOffset));
+		$this->assertStringNotContainsString('hunter', $this->server->logSince($logOffset), 'passwords must not be logged');
+	}
+
 	public function testNoDeprecationNoteWithPasswordHash(): void
 	{
 		$logOffset = $this->server->logSize();
