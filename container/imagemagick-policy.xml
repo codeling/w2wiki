@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: MIT
+
+  ImageMagick security policy of the W2 container image (replaces /etc/ImageMagick-6/policy.xml).
+
+  W2 only lets ImageMagick read uploaded images of the types it accepts (bmp, gif, heic/heif, jpeg, png,
+  webp; never SVG or PDF), always with the format given explicitly ("png:/path/file.png"), and write them
+  as CONVERT_FORMAT (jpg by default). Everything else ImageMagick could do with a file is turned off here,
+  so that a malicious upload can't reach it: no other formats (e.g. MVG, MSL, SVG, PS, PDF, URL, TEXT),
+  no external programs (delegates such as Ghostscript), no reading of other files ("@file" lists, "-"),
+  and limits on the resources one image may take. W2's own limit (MAX_IMAGE_PIXELS, checked before an
+  image is read) stays the first line of defense; the limits here are above it, so that they don't refuse
+  images which W2 accepts.
+
+  If you set CONVERT_FORMAT to a format not listed below, add it to the "module" line.
+  Check the policy in the container with: convert -list policy
+-->
+<!DOCTYPE policymap [
+  <!ELEMENT policymap (policy)*>
+  <!ATTLIST policymap xmlns CDATA #FIXED "">
+  <!ELEMENT policy EMPTY>
+  <!ATTLIST policy xmlns CDATA #FIXED "">
+  <!ATTLIST policy domain NMTOKEN #REQUIRED>
+  <!ATTLIST policy name NMTOKEN #IMPLIED>
+  <!ATTLIST policy pattern CDATA #IMPLIED>
+  <!ATTLIST policy rights NMTOKEN #IMPLIED>
+  <!ATTLIST policy stealth NMTOKEN #IMPLIED>
+  <!ATTLIST policy value CDATA #IMPLIED>
+]>
+<policymap>
+  <!-- resources of one image (W2 accepts up to MAX_IMAGE_PIXELS, 100 megapixels by default) -->
+  <policy domain="resource" name="memory" value="256MiB"/>
+  <policy domain="resource" name="map" value="512MiB"/>
+  <policy domain="resource" name="disk" value="1GiB"/>
+  <policy domain="resource" name="width" value="64KP"/>
+  <policy domain="resource" name="height" value="64KP"/>
+  <policy domain="resource" name="time" value="120"/>
+  <policy domain="system" name="max-memory-request" value="256MiB"/>
+  <!-- pixels which don't fit into memory are cached in /tmp (the only writable folder besides the pages) -->
+  <policy domain="resource" name="temporary-path" value="/tmp"/>
+
+  <!-- no external programs, no other files -->
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="filter" rights="none" pattern="*"/>
+  <policy domain="path" rights="none" pattern="-"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+
+  <!-- only the formats of the uploads which W2 processes (and of CONVERT_FORMAT) -->
+  <policy domain="module" rights="none" pattern="*"/>
+  <policy domain="module" rights="read | write" pattern="{BMP,GIF,HEIC,JPEG,PNG,WEBP}"/>
+</policymap>

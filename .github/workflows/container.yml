@@ -52,6 +52,21 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/pages/Home.md)" = 403
           docker exec w2 sh -c 'cd pages && git log --oneline | grep -q "Initial pages"'
 
+      - name: ImageMagick policy
+        run: |
+          # the formats of the uploads can be processed, other formats and files can't be read (container/imagemagick-policy.xml)
+          docker exec w2 php -r '
+            $img = new Imagick(); $img->newImage(300, 200, "red"); $img->setImageFormat("png");
+            file_put_contents("/tmp/p.png", $img->getImageBlob());
+            foreach (["png", "gif", "jpeg", "bmp", "webp"] as $format) {
+              $img = new Imagick("png:/tmp/p.png"); $img->resizeImage(100, 0, Imagick::FILTER_LANCZOS, 1); $img->setImageFormat($format);
+              $img->writeImage("$format:/tmp/out.$format"); (new Imagick())->pingImage("$format:/tmp/out.$format");
+            }
+            echo "processing works\n";
+            foreach (["text:/etc/passwd", "@/etc/passwd", "mvg:/tmp/p.png", "msl:/tmp/p.png", "svg:/tmp/p.png", "pdf:/tmp/p.png", "ps:/tmp/p.png"] as $source) {
+              try { new Imagick($source); fwrite(STDERR, "not refused: $source\n"); exit(1); } catch (ImagickException $e) { echo "refused: $source\n"; }
+            }'
+
       - name: Check the image of the pull request without publishing
         if: github.event_name == 'pull_request'
         run: docker image inspect w2wiki:ci --format 'user={{.Config.User}} size={{.Size}}'

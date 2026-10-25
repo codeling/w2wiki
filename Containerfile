@@ -37,6 +37,8 @@ RUN set -eux; \
 ENV APACHE_RUN_DIR=/tmp/apache2 APACHE_LOCK_DIR=/tmp/apache2 APACHE_PID_FILE=/tmp/apache2/apache2.pid
 COPY container/w2.conf /etc/apache2/conf-enabled/w2.conf
 COPY container/php.ini "$PHP_INI_DIR/conf.d/w2.ini"
+# ImageMagick may only read and write the formats of the uploads, without external programs (see the file)
+COPY container/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 RUN set -eux; \
 	a2enmod headers; \
 	sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf; \

@@ -237,6 +237,18 @@ Shrinking uploaded images, applying their EXIF rotation and converting formats
 stores images as they are and the upload form has no shrink option; images
 which have to be converted (HEIC/HEIF by default) are refused with a message.
 
+W2 always tells ImageMagick the format of an upload (it never lets it guess from
+the content), never gives it SVG or PDF files, and refuses images with more than
+`MAX_IMAGE_PIXELS` pixels before reading them. ImageMagick can do much more
+with a file than W2 needs, though (other formats, external programs such as
+Ghostscript, reading other files), so restrict it with a security policy as
+well. The container image has one: `container/imagemagick-policy.xml`, which only
+allows the formats of the uploads, no external programs and no other files, and
+limits the memory, disk space and time one image may take. To use it elsewhere,
+copy it to ImageMagick's `policy.xml` (e.g. `/etc/ImageMagick-6/policy.xml`;
+`convert -list policy` shows which file is used) and add `CONVERT_FORMAT` to its
+list of formats if you changed it to another one.
+
 ### SVG uploads
 
 SVG files can contain scripts, which would run in the context of the wiki when
