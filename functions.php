@@ -8,7 +8,7 @@
  * loaded; the functions use the constants defined in config.php when called).
  */
 
-use Michelf\MarkdownExtra;
+use W2\MarkdownParser;
 
 // Libraries installed via Composer (see INSTALL.md): without Composer the wiki runs with the copy of the Markdown
 // library in the folder Michelf (loaded by the autoloader below), and without SVG uploads. The Composer version of
@@ -731,7 +731,7 @@ function expandIncludes($text, array $stack = array(), &$budget = null)
 function toHTML($inText)
 {
 	$inText = expandIncludes($inText);
-	$parser = new MarkdownExtra;
+	$parser = new MarkdownParser;
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';
 	$outHTML  = $parser->transform($inText);
