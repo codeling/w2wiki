@@ -74,15 +74,18 @@ if ( !isLoggedIn() )
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;
 			$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-			if ( isLegacyPasswordHash() )
-			{
-				// (the user has just proven to know the password, so we can offer its new hash)
-				w2Log("logged in with a deprecated SHA-1 password hash; replace W2_PASSWORD_HASH in config.php by a password_hash() hash");
-				$_SESSION['note'] = (new \W2\Note())
-					->text(translate('W2_PASSWORD_HASH in config.php is an unsalted SHA-1 hash. This is deprecated and will stop working in a future version. Please replace it by this hash of your password (in single quotes):') . ' ')
-					->code(password_hash($_POST['p'], PASSWORD_DEFAULT))
-					->toArray();
-			}
+		}
+		elseif ( legacyPasswordMatches($_POST['p']) )
+		{
+			// (no login with the settings of earlier versions; but the user has just proven to know the
+			// password, so we can offer its hash for the new setting)
+			\WebAuth\LoginThrottle::succeeded($throttleFolder, $clientKey, $limits);
+			w2Log("login refused: " . legacyPasswordSetting() . " in config.php is no longer supported; set W2_PASSWORD_HASH to a password_hash() hash (the login page shows one of the password just entered)");
+			$migrationNote = (new \W2\Note())
+				->format(translate('Logging in with %s in config.php is no longer supported, as it can be guessed quickly by anybody who sees config.php. To log in, set W2_PASSWORD_HASH in config.php to this hash of your password (in single quotes):'), array(legacyPasswordSetting()))
+				->text(' ')
+				->code(password_hash($_POST['p'], PASSWORD_DEFAULT));
+			$loginMessage = \W2\Html::raw($migrationNote->render());
 		}
 		else
 		{
@@ -101,10 +104,12 @@ if ( !isLoggedIn() )
 		{
 			$notes[] = $loginMessage;
 		}
-		if ( W2_PASSWORD_HASH === '' && W2_PASSWORD === 'secret' )
+		if ( W2_PASSWORD_HASH === '' && legacyPasswordSetting() === '' )
 		{
-			$notes[] = translate('Login is disabled while the default password is configured; please set W2_PASSWORD_HASH (or W2_PASSWORD) in config.php.');
+			$notes[] = translate('Login is disabled until a password is set: please set W2_PASSWORD_HASH in config.php (see config.sample.php).');
 		}
+		// (the page may show a hash of the password, see above)
+		header("Cache-Control: no-store");
 		print templates()->render('layout', array(
 			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'savedDraft' => '',
 			'content' => templates()->render('login', array(

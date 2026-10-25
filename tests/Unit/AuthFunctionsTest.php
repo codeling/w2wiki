@@ -16,32 +16,54 @@ final class AuthFunctionsTest extends TestCase
 	{
 		$bcrypt = password_hash('hunter2', PASSWORD_BCRYPT, ['cost' => 4]);
 		return [
-			// password, hash setting, plain password setting, expected
-			'bcrypt hash, right password' => ['hunter2', $bcrypt, '', true],
-			'bcrypt hash, wrong password' => ['hunter3', $bcrypt, '', false],
-			'bcrypt hash, plain password setting is ignored' => ['secret', $bcrypt, 'secret', false],
-			'argon2 style hash is recognized' => ['x', '$argon2id$v=19$m=1,t=1,p=1$c29tZXNhbHQ$aGFzaA', '', false],
-			'sha1 hash, right password' => ['legacy', sha1('legacy'), '', true],
-			'sha1 hash in capitals' => ['legacy', strtoupper(sha1('legacy')), '', true],
-			'sha1 hash, wrong password' => ['legacyx', sha1('legacy'), '', false],
-			'sha1 hash, hash itself as password' => [sha1('legacy'), sha1('legacy'), '', false],
-			'magic hash collision (both 0e...)' => ['aaK1STfY', sha1('aaroZmOk'), '', false],
-			'magic hash, right password' => ['aaroZmOk', sha1('aaroZmOk'), '', true],
-			'plain password, right' => ['correct horse', '', 'correct horse', true],
-			'plain password, wrong' => ['correct horsf', '', 'correct horse', false],
-			'plain password, different case' => ['Correct Horse', '', 'correct horse', false],
-			'default password is refused' => ['secret', '', 'secret', false],
-			'nothing configured' => ['anything', '', '', false],
-			'empty password with empty hash' => ['', '', '', false],
-			'empty password with hash' => ['', sha1(''), '', false],
-			'empty password with plain password' => ['', '', 'x', false],
+			// password, hash setting, plain password setting (W2_PASSWORD of earlier versions),
+			// expected: logs in, proves to know the password of a setting of earlier versions
+			'bcrypt hash, right password' => ['hunter2', $bcrypt, '', true, false],
+			'bcrypt hash, wrong password' => ['hunter3', $bcrypt, '', false, false],
+			'bcrypt hash, plain password setting is ignored' => ['correct horse', $bcrypt, 'correct horse', false, false],
+			'argon2 style hash is recognized' => ['x', '$argon2id$v=19$m=1,t=1,p=1$c29tZXNhbHQ$aGFzaA', '', false, false],
+			'sha1 hash, right password' => ['legacy', sha1('legacy'), '', false, true],
+			'sha1 hash in capitals' => ['legacy', strtoupper(sha1('legacy')), '', false, true],
+			'sha1 hash, wrong password' => ['legacyx', sha1('legacy'), '', false, false],
+			'sha1 hash, hash itself as password' => [sha1('legacy'), sha1('legacy'), '', false, false],
+			'magic hash collision (both 0e...)' => ['aaK1STfY', sha1('aaroZmOk'), '', false, false],
+			'magic hash, right password' => ['aaroZmOk', sha1('aaroZmOk'), '', false, true],
+			'sha1 hash, plain password setting is ignored' => ['correct horse', sha1('legacy'), 'correct horse', false, false],
+			'plain password, right' => ['correct horse', '', 'correct horse', false, true],
+			'plain password, wrong' => ['correct horsf', '', 'correct horse', false, false],
+			'plain password, different case' => ['Correct Horse', '', 'correct horse', false, false],
+			'default password' => ['secret', '', 'secret', false, false],
+			'nothing configured' => ['anything', '', '', false, false],
+			'empty password with empty hash' => ['', '', '', false, false],
+			'empty password with sha1 hash' => ['', sha1(''), '', false, false],
+			'empty password with plain password' => ['', '', 'x', false, false],
 		];
 	}
 
 	#[DataProvider('passwordConfigurations')]
-	public function testPasswordChecking(string $password, string $hash, string $plain, bool $expected): void
+	public function testPasswordChecking(string $password, string $hash, string $plain, bool $login, bool $legacy): void
 	{
-		$this->assertSame($expected, isCorrectPassword($password, $hash, $plain));
+		$this->assertSame($login, isCorrectPassword($password, $hash));
+		$this->assertSame($legacy, legacyPasswordMatches($password, $hash, $plain));
+	}
+
+	public static function legacySettings(): array
+	{
+		return [
+			// hash setting, plain password setting, expected
+			'password_hash hash' => [password_hash('x', PASSWORD_BCRYPT, ['cost' => 4]), 'x', ''],
+			'sha1 hash' => [sha1('x'), '', 'W2_PASSWORD_HASH'],
+			'sha1 hash and plain password' => [sha1('x'), 'x', 'W2_PASSWORD_HASH'],
+			'plain password' => ['', 'x', 'W2_PASSWORD'],
+			'default password' => ['', 'secret', ''],
+			'nothing' => ['', '', ''],
+		];
+	}
+
+	#[DataProvider('legacySettings')]
+	public function testSettingsOfEarlierVersionsAreRecognized(string $hash, string $plain, string $expected): void
+	{
+		$this->assertSame($expected, legacyPasswordSetting($hash, $plain));
 	}
 
 	public static function hashes(): array
@@ -64,9 +86,13 @@ final class AuthFunctionsTest extends TestCase
 
 	public function testPasswordsWhichAreNotStringsAreRefused(): void
 	{
-		$this->assertFalse(isCorrectPassword(null, '', 'x'));
-		$this->assertFalse(isCorrectPassword(['x'], '', 'x'));
-		$this->assertFalse(isCorrectPassword(true, '', '1'));
+		$hash = password_hash('1', PASSWORD_BCRYPT, ['cost' => 4]);
+		$this->assertFalse(isCorrectPassword(null, $hash));
+		$this->assertFalse(isCorrectPassword(['1'], $hash));
+		$this->assertFalse(isCorrectPassword(true, $hash));
+		$this->assertFalse(legacyPasswordMatches(null, '', 'x'));
+		$this->assertFalse(legacyPasswordMatches(['x'], '', 'x'));
+		$this->assertFalse(legacyPasswordMatches(true, '', '1'));
 	}
 
 	public function testCsrfTokens(): void

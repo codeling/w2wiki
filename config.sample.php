@@ -218,27 +218,21 @@ define('REQUIRE_WEB_SERVER_AUTH', false);
 // proxy (see INSTALL.md) rather than setting this to false.
 define('WEB_SERVER_AUTH_REQUIRE_HTTPS', true);
 
-// W2_PASSWORD
-//
-// The password for the wiki, if REQUIRE_PASSWORD is true and W2_PASSWORD_HASH
-// is empty. Replace 'secret' with your password to set your password; logging
-// in is refused as long as the default 'secret' is configured.
-define('W2_PASSWORD', 'secret');
-
 // W2_PASSWORD_HASH
 //
-// Alternate (more secure) password storage, takes precedence over W2_PASSWORD.
-// Set it to the output of PHP's password_hash function for your password,
-// which you can for example create on the command line like this:
+// A hash of the password for the wiki, if REQUIRE_PASSWORD is true; logging in
+// is refused as long as it is empty. Set it to the output of PHP's
+// password_hash function for your password, which you can for example create
+// on the command line like this:
 //     php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 //
 // Note: since the hash contains '$' characters, use single quotes, e.g.:
 // define('W2_PASSWORD_HASH', '$2y$10$...');
 //
-// DEPRECATED: for backwards compatibility, an unsalted SHA-1 hash of the
-// password is still accepted, but this will stop working in a future version.
-// If you still use one, logging in shows a hash to replace it with (and the
-// error log mentions it).
+// Earlier versions also accepted the password in plain text (W2_PASSWORD) or an
+// unsalted SHA-1 hash here. These don't allow logging in any more: if config.php
+// still has one, entering that password on the login page shows a
+// password_hash hash of it to put here instead.
 define('W2_PASSWORD_HASH', '');
 
 // allowedIPs
