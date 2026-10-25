@@ -397,6 +397,10 @@ one after the other (or in parallel, or with a new session for every attempt):
   from the `X-Forwarded-For` header, which is ignored for requests from any
   other address. Don't list proxies you don't have: any client could send that
   header.
+- Every login is written to the web server's error log with the client
+  address (`W2: successful login from ...`, `W2: failed login attempt from ...`,
+  and lockouts), never with the password. A successful login you don't
+  expect means that somebody else knows the password: change it.
 
 The login form also contains a CSRF token, like all other forms.
 

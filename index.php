@@ -70,6 +70,8 @@ if ( !isLoggedIn() )
 		elseif ( isCorrectPassword($_POST['p']) )
 		{
 			\WebAuth\LoginThrottle::succeeded($throttleFolder, $clientKey, $limits);
+			// (like the failed ones: a login nobody expected is the sign of a stolen password)
+			w2Log("successful login from " . $clientKey);
 			// prevent session fixation
 			session_regenerate_id(true);
 			$_SESSION['password'] = true;
