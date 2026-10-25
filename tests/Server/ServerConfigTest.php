@@ -190,7 +190,7 @@ final class ServerConfigTest extends TestCase
 			['/config.php'], ['/config.sample.php'], ['/defaults.php'], ['/functions.php'], ['/auth.php'], ['/auth_functions.php'],
 			['/locales/en.php'], ['/locales/de.php'], ['/Michelf/Markdown.php'], ['/Michelf/MarkdownExtra.php'], ['/src/PageStore.php'], ['/src/templates/layout.php'],
 			['/tests/README.md'], ['/tests/bootstrap.php'], ['/composer.json'], ['/phpunit.xml.dist'],
-			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'],
+			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'], ['/docs/MarkdownLibrary.md'],
 			['/webauth/webauth.php'], ['/webauth/src/ServerAuth.php'], ['/webauth/README.md'], ['/webauth/composer.json'],
 			['/webauth/samples/htaccess.sample'],
 		];
