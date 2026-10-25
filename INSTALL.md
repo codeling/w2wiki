@@ -229,6 +229,16 @@ own, which apply first and are not detected by W2: `client_max_body_size` in
 nginx (default 1 MB) and `LimitRequestBody` in Apache. Raise them together, e.g.
 `client_max_body_size 20m;` for `upload_max_filesize = 16M` and `post_max_size = 20M`.
 
+### Session lifetime
+
+The security token of the forms (e.g. the editor's) is kept in the PHP session, which W2
+keeps for `W2_SESSION_LIFETIME` (30 days by default). With the PHP packages of Debian and
+Ubuntu, that setting doesn't take effect: a cron job deletes session files older than
+`session.gc_maxlifetime` from the `php.ini` files, by default after 24 minutes. Raise it
+there to keep long edits from expiring, e.g. `session.gc_maxlifetime = 86400` in `/etc/php/<version>/fpm/php.ini` (or
+`apache2/php.ini`). If a session expires anyway, saving shows the editor again with the
+text, and the next save works.
+
 ### Image processing
 
 Shrinking uploaded images, applying their EXIF rotation and converting formats
