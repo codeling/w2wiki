@@ -126,3 +126,11 @@ the check that scripts in old SVG files of the uploads folder are blocked by the
 
 Like the PHP tests, the browser tests can be run against another version with
 `W2_APP_ROOT=/path/to/checkout php tests/bin/serve-app.php --port=8092` and `W2_BASE_URL=http://127.0.0.1:8092`.
+
+## Performance baseline
+
+`php tests/Performance/benchmark.php --pages=100,300,1000 --save=before.json` generates pages folders of
+realistic size (nested folders, links, images, a sidebar), runs every action of the wiki in a fresh PHP process and
+reports how often it lists all pages (`getAllPageNames()`), the time that takes, and the time of the request. After a
+change, `--compare=before.json` shows the difference. It is not part of the test suites: the times depend on the
+machine, so only compare runs made on the same one.
