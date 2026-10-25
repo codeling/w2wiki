@@ -103,6 +103,14 @@ about 0.5 ms for 100 pages, 1 ms for 300, 2.6 to 3 ms for 1000 (1.7 ms of that i
 the request in all pages, search, what links here and the list of uploads, about 21 % in the renaming and deleting
 actions (which are otherwise short), and 54 % of the editor for a missing page, which is only 9 ms.
 
+**Links to pages do not list the pages.** Whether the page behind a `[[link]]` exists (it is shown differently if not)
+is checked with `isExistingPage()`, which is `PageStore::exists()`: a check of the name and one `file_exists()` of the
+page's file, so one filesystem stat per link, for the links in the page and in the sidebar. Nothing is kept between
+the checks, so a page which is linked three times is checked three times; `PageStore::read()` also checks `exists()`
+before reading, so every read of a page is two filesystem calls. These stats are not counted by the benchmark (which
+counts the listings); their cost is within the rendering times above: `toHTML()` of the sidebar, with 10 links, takes
+0.3 ms in all, the page 0.5 ms. At this size they are no concern.
+
 **Decision: the result of `getAllPageNames()` is not kept for the request.** It would save one listing in the two
 cases which list twice: about 3 ms of 26 ms for the autolink view, and about 2.5 ms of 9 ms for the editor for a
 missing page, at 1000 pages. All other actions would not change. The slower parts are elsewhere (below). The question
