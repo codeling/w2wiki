@@ -58,7 +58,8 @@ jobs:
           docker exec w2 php -r '
             $img = new Imagick(); $img->newImage(300, 200, "red"); $img->setImageFormat("png");
             file_put_contents("/tmp/p.png", $img->getImageBlob());
-            foreach (["png", "gif", "jpeg", "bmp", "webp"] as $format) {
+            // (lower case, as W2 uses them; "jpg" is the default CONVERT_FORMAT)
+            foreach (["png", "gif", "jpeg", "jpg", "bmp", "webp"] as $format) {
               $img = new Imagick("png:/tmp/p.png"); $img->resizeImage(100, 0, Imagick::FILTER_LANCZOS, 1); $img->setImageFormat($format);
               $img->writeImage("$format:/tmp/out.$format"); (new Imagick())->pingImage("$format:/tmp/out.$format");
             }

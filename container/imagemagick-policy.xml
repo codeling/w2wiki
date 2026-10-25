@@ -46,7 +46,8 @@
   <policy domain="path" rights="none" pattern="-"/>
   <policy domain="path" rights="none" pattern="@*"/>
 
-  <!-- only the formats of the uploads which W2 processes (and of CONVERT_FORMAT) -->
+  <!-- only the formats of the uploads which W2 processes (and of CONVERT_FORMAT); in both cases, as
+       ImageMagick 6.9.11 compares the names as given (W2 uses lower case: "png:", setImageFormat('jpg')) -->
   <policy domain="module" rights="none" pattern="*"/>
-  <policy domain="module" rights="read | write" pattern="{BMP,GIF,HEIC,JPEG,PNG,WEBP}"/>
+  <policy domain="module" rights="read | write" pattern="{BMP,bmp,GIF,gif,HEIC,heic,HEIF,heif,JPEG,jpeg,JPG,jpg,PNG,png,WEBP,webp}"/>
 </policymap>
