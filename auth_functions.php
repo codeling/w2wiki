@@ -38,25 +38,60 @@ function isCrossSiteRequest($server)
 }
 
 /**
- * Check the given password against W2_PASSWORD_HASH (created with PHP's
- * password_hash, or a deprecated unsalted SHA-1 hash), or W2_PASSWORD
+ * Check the given password against W2_PASSWORD_HASH, which must be a hash
+ * created with PHP's password_hash (the settings of earlier versions don't
+ * allow logging in any more, see legacyPasswordMatches())
  */
-function isCorrectPassword($password, $passwordHash = null, $plainPassword = null)
+function isCorrectPassword($password, $passwordHash = null)
 {
 	$passwordHash ??= W2_PASSWORD_HASH;
-	$plainPassword ??= W2_PASSWORD;
-	// refuse to work with the well-known default password
-	return \WebAuth\Password::verify($password, $passwordHash, $plainPassword !== 'secret' ? $plainPassword : '');
+	return !isLegacyPasswordHash($passwordHash) && \WebAuth\Password::verify($password, $passwordHash);
 }
 
 /**
- * Whether the given W2_PASSWORD_HASH is a legacy unsalted SHA-1 hash (as
- * opposed to a hash created with PHP's password_hash). Deprecated: support for
- * these will be removed in a future version.
+ * Whether the given W2_PASSWORD_HASH is an unsalted SHA-1 hash, as accepted by
+ * earlier versions (as opposed to a hash created with PHP's password_hash)
  */
 function isLegacyPasswordHash($passwordHash = null)
 {
 	return \WebAuth\Password::isLegacyHash($passwordHash ?? W2_PASSWORD_HASH);
+}
+
+/**
+ * The password setting of earlier versions which config.php still has instead
+ * of a password_hash hash in W2_PASSWORD_HASH: W2_PASSWORD_HASH as an unsalted
+ * SHA-1 hash, or the password in plain text in W2_PASSWORD (which is no longer
+ * a setting; its default 'secret' never was a password). Empty if there is none.
+ */
+function legacyPasswordSetting($passwordHash = null, $plainPassword = null)
+{
+	$passwordHash ??= W2_PASSWORD_HASH;
+	$plainPassword ??= defined('W2_PASSWORD') ? (string)constant('W2_PASSWORD') : '';
+	if ( isLegacyPasswordHash($passwordHash) )
+	{
+		return 'W2_PASSWORD_HASH';
+	}
+	return ($passwordHash === '' && $plainPassword !== '' && $plainPassword !== 'secret') ? 'W2_PASSWORD' : '';
+}
+
+/**
+ * Whether the given password is the one of the setting of earlier versions (see
+ * legacyPasswordSetting()). It doesn't let anybody log in: it only proves to
+ * know the password, so that a password_hash hash of it can be offered for
+ * W2_PASSWORD_HASH.
+ */
+function legacyPasswordMatches($password, $passwordHash = null, $plainPassword = null)
+{
+	$passwordHash ??= W2_PASSWORD_HASH;
+	$plainPassword ??= defined('W2_PASSWORD') ? (string)constant('W2_PASSWORD') : '';
+	switch ( legacyPasswordSetting($passwordHash, $plainPassword) )
+	{
+		case 'W2_PASSWORD_HASH':
+			return \WebAuth\Password::verify($password, $passwordHash);
+		case 'W2_PASSWORD':
+			return \WebAuth\Password::verify($password, '', $plainPassword);
+	}
+	return false;
 }
 
 /**

@@ -334,30 +334,27 @@ W2 has the ability to prompt for a password before allowing access to the
 site.  Two lines in config.php control this:
 ```
 define('REQUIRE\_PASSWORD', false);
-define('W2\_PASSWORD', 'secret');
+define('W2\_PASSWORD\_HASH', '');
 ```
 
-Set `REQUIRE_PASSWORD` to true and set `W2_PASSWORD` to the password you'd like
-to use (logging in is refused while it is still set to the default `secret`).
-
-**Note:** This is a very rudimentary way of authorizing access: there is one
-password for everybody, and no user accounts. A more secure variant is to set
-`W2_PASSWORD_HASH` to a hash of your password created with PHP's
-`password_hash` function, e.g. via:
+Set `REQUIRE_PASSWORD` to true and set `W2_PASSWORD_HASH` to a hash of the
+password you'd like to use, created with PHP's `password_hash` function, e.g. via:
 ```
 php -r 'echo password_hash("your_password", PASSWORD_DEFAULT), "\n";'
 ```
 Use single quotes for the value in `config.php`, since the hash contains `$`
-characters. The hash takes precedence over `W2_PASSWORD`, so you can then
-remove the password from `config.php`.
+characters. Logging in is refused as long as no hash is set.
 
-**Deprecated: SHA-1 hashes.** Earlier versions also accepted an unsalted SHA-1
-hash (e.g. from `sha1sum`) as `W2_PASSWORD_HASH`. These are quick to
-guess for anybody who gets to see the hash, so this is deprecated and will be
-removed in a future version. While one is configured, the error log mentions
-it at every login, and the page shown after logging in contains the
-`password_hash` hash of the password you just entered: replace the value of
-`W2_PASSWORD_HASH` in `config.php` by that hash and the notice is gone.
+**Note:** This is a very rudimentary way of authorizing access: there is one
+password for everybody, and no user accounts.
+
+**Settings of earlier versions.** Earlier versions also accepted the password in
+plain text (`W2_PASSWORD`) or an unsalted SHA-1 hash (e.g. from `sha1sum`) as
+`W2_PASSWORD_HASH`. Both are quick to guess for anybody who gets to see
+`config.php`, so they no longer allow logging in. To switch, enter your password
+on the login page as before: instead of logging you in, the wiki shows a
+`password_hash` hash of it (and the error log says why). Put that hash into
+`W2_PASSWORD_HASH` (replacing the SHA-1 hash), remove `W2_PASSWORD`, and log in again.
 
 Uploaded files are served statically by the web server (see "Uploaded images"
 above) and are therefore **not** protected by the password. If that matters,

@@ -42,12 +42,11 @@ defined('AUTOLINK_PAGE_TITLES') || define('AUTOLINK_PAGE_TITLES', false);
 defined('INCLUDE_MAX_DEPTH') || define('INCLUDE_MAX_DEPTH', 5);
 defined('INCLUDE_MAX_SIZE') || define('INCLUDE_MAX_SIZE', 1048576);
 
-// Security and session settings (no authentication unless configured; the default password
-// 'secret' is refused, so logging in is impossible until a password is set)
+// Security and session settings (no authentication unless configured; logging in is impossible
+// until W2_PASSWORD_HASH is set)
 defined('REQUIRE_PASSWORD') || define('REQUIRE_PASSWORD', false);
 defined('REQUIRE_WEB_SERVER_AUTH') || define('REQUIRE_WEB_SERVER_AUTH', false);
 defined('WEB_SERVER_AUTH_REQUIRE_HTTPS') || define('WEB_SERVER_AUTH_REQUIRE_HTTPS', true);
-defined('W2_PASSWORD') || define('W2_PASSWORD', 'secret');
 defined('W2_PASSWORD_HASH') || define('W2_PASSWORD_HASH', '');
 $allowedIPs ??= array();
 defined('LOGIN_MAX_FAILURES') || define('LOGIN_MAX_FAILURES', 5);

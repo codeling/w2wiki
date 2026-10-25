@@ -19,6 +19,7 @@ final class AuthMagicHashTest extends AppTestCase
 		$this->assertMatchesRegularExpression('/^0e\d+$/', sha1('aaK1STfY'));
 		$this->assertMatchesRegularExpression('/^0e\d+$/', sha1('aaroZmOk'));
 		$this->assertStringContainsString('Wrong password', $this->login('aaK1STfY')->body);
-		$this->assertStringContainsString('Welcome to W2', $this->login('aaroZmOk')->body);
+		// (the right password is only shown the hash to replace the SHA-1 hash with, see AuthLegacyHashTest)
+		$this->assertStringContainsString('<code>$2y$', $this->login('aaroZmOk')->body);
 	}
 }

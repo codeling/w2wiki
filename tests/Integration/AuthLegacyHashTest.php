@@ -5,7 +5,10 @@ namespace W2\Tests\Integration;
 
 use W2\Tests\Support\AppTestCase;
 
-/** Unsalted SHA-1 password hashes (as documented in earlier versions) still work, but are deprecated */
+/**
+ * Unsalted SHA-1 password hashes (as documented in earlier versions) don't allow logging in any more; entering
+ * the password shows a password_hash hash of it to replace them with
+ */
 final class AuthLegacyHashTest extends AppTestCase
 {
 	protected function configOverrides(): array
@@ -13,9 +16,10 @@ final class AuthLegacyHashTest extends AppTestCase
 		return ['REQUIRE_PASSWORD' => true, 'W2_PASSWORD_HASH' => sha1('legacy')];
 	}
 
-	public function testCorrectPasswordIsAccepted(): void
+	public function testCorrectPasswordDoesNotLogIn(): void
 	{
-		$this->assertStringContainsString('Welcome to W2', $this->login('legacy')->body);
+		$this->assertStringNotContainsString('Welcome to W2', $this->login('legacy')->body);
+		$this->assertStringNotContainsString('Welcome to W2', $this->http->get('/index.php')->body);
 	}
 
 	public function testWrongPasswordIsRefused(): void
@@ -23,32 +27,35 @@ final class AuthLegacyHashTest extends AppTestCase
 		$this->assertStringContainsString('Wrong password', $this->login('legacyx')->body);
 	}
 
-	/** The hash which the notice after logging in offers as the replacement */
-	private function offeredHash(string $html): ?string
-	{
-		return preg_match('/<div class="note">[^<]*SHA-1[^<]*<code>([^<]+)<\/code><\/div>/', $html, $matches)
-			? html_entity_decode($matches[1], ENT_QUOTES) : null;
-	}
-
-	public function testLoginOffersAReplacementHash(): void
+	public function testCorrectPasswordIsShownAReplacementHash(): void
 	{
 		$logOffset = $this->server->logSize();
-		$hash = $this->offeredHash($this->login('legacy')->body);
+		$response = $this->login('legacy');
+		$hash = $this->offeredHash($response->body, 'W2_PASSWORD_HASH');
 		$this->assertNotNull($hash, 'the note with the new hash is missing');
 		$this->assertTrue(password_verify('legacy', $hash), 'the offered hash must be a hash of the password');
 		$this->assertStringStartsWith('$2y$', $hash);
-		$this->assertStringContainsString('deprecated SHA-1 password hash', $this->server->logSince($logOffset));
+		$this->assertStringNotContainsString('Wrong password', $response->body);
+		$this->assertStringContainsString('no-store', (string)$response->header('cache-control'));
+		$this->assertStringContainsString('login refused: W2_PASSWORD_HASH in config.php is no longer supported', $this->server->logSince($logOffset));
 	}
 
-	public function testNoteIsShownOnlyOnce(): void
+	public function testNoHashIsShownForAWrongPassword(): void
 	{
-		$this->login('legacy');
-		$this->assertNull($this->offeredHash($this->http->get('/index.php')->body));
+		$body = $this->login('legacyx')->body;
+		$this->assertNull($this->offeredHash($body, 'W2_PASSWORD_HASH'));
+		$this->assertStringNotContainsString('<code>', $body);
 	}
 
-	public function testNoteIsNotShownAfterFailedLogin(): void
+	public function testNoHashIsShownWithoutAPassword(): void
 	{
-		$this->assertNull($this->offeredHash($this->login('legacyx')->body));
-		$this->assertStringNotContainsString('<code>', $this->login('legacyx')->body);
+		$this->assertStringNotContainsString('<code>', $this->http->get('/index.php')->body);
+	}
+
+	/** The hash which the note after entering the password offers as the replacement of the setting */
+	private function offeredHash(string $html, string $setting): ?string
+	{
+		return preg_match('/<p class="note">[^<]*' . $setting . '[^<]*<code>([^<]+)<\/code><\/p>/', $html, $matches)
+			? html_entity_decode($matches[1], ENT_QUOTES) : null;
 	}
 }
