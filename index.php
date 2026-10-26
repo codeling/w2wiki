@@ -237,6 +237,19 @@ function gitPull($action, \W2\Note $note)
 	$note->append($pullNote);
 }
 
+/**
+ * Answers a request made by the script of the editor (an upload with json=1) in JSON and ends it
+ *
+ * @param array $data	"success", the "message" (plain text) and, if the file was stored, its name ("file") and the "link" to it
+ */
+function jsonAnswer($status, array $data)
+{
+	http_response_code($status);
+	header('Content-Type: application/json');
+	echo json_encode($data + array('success' => false, 'message' => ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+	exit;
+}
+
 function destroy_session()
 {
 	if ( isset($_COOKIE[session_name()]) )
@@ -257,9 +270,16 @@ if (hasMalformedRequestData($_GET, $_POST, $_SERVER, $_FILES))
 	die(__('Invalid request'));
 }
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : 'view';
+// (the editor uploads files with a request of its own, and wants the answer as JSON instead of a redirect;
+// from the query, as PHP drops the form of a request which is too large)
+$uploadJson = $action === 'uploaded' && ($_GET['json'] ?? '') === '1';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && !$_POST && !$_FILES)
 {
 	// PHP discards the whole body of a request larger than post_max_size (no token, no file)
+	if ($uploadJson)
+	{
+		jsonAnswer(413, array('message' => sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), ini_get('post_max_size'))));
+	}
 	http_response_code(413);
 	die(sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), h(ini_get('post_max_size'))).' '.
 		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
@@ -268,6 +288,10 @@ $saveRefused = false;
 if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
+	if ($uploadJson)
+	{
+		jsonAnswer(403, array('message' => __('Invalid request: missing or wrong security token. Please go back, reload the page and try again.')));
+	}
 	http_response_code(403);
 	if ($action !== 'save' || $_SERVER['REQUEST_METHOD'] !== 'POST' || isCrossSiteRequest($_SERVER))
 	{
@@ -418,7 +442,8 @@ if ( isEditorAction($action) )
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
-		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff
+		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff,
+		'uploads' => !DISABLE_UPLOADS, 'shrink' => imageProcessingAvailable(), 'apiUrl' => BASE_URI . '/api.php'
 	));
 }
 else if ( $action === 'logout' )
@@ -449,10 +474,20 @@ else if ( $action === 'uploaded' )
 {
 	if ( DISABLE_UPLOADS )
 	{
+		if ($uploadJson)
+		{
+			jsonAnswer(403, array('message' => __('Invalid access. Uploads are disabled in the configuration.')));
+		}
 		die(__('Invalid access. Uploads are disabled in the configuration.'));
 	}
 	$result = (new \W2\Uploads())->store($_FILES['userfile'] ?? array(), $_POST['newname'] ?? '', ($_POST['overwrite'] ?? '') === 'true',
 		isset($_POST['resize']) && $_POST['resize'] === 'true', intval($_POST['maxsize'] ?? 1200));
+	if ($uploadJson)
+	{
+		$stored = $result->file !== '';
+		jsonAnswer($stored ? 200 : 422, array('success' => $stored, 'message' => $result->note->toText(),
+			'file' => $result->file, 'link' => $stored ? imageLinkText($result->file) : ''));
+	}
 	redirectWithNote(requireValidPreviousPage('prevpage'), $result->note);
 }
 else if ( $action === 'rename' || $action === 'delete' || $action === 'imgDelete' || $action === 'imgRename')

@@ -43,6 +43,7 @@ final class Uploads
 		$fileType = mime_content_type($tmpName);
 		$fileExt = getFileExt($dstName);
 		$note = new Note();
+		$storedName = '';
 		$typeAllowed = in_array($fileType, validUploadTypes(), true);
 		$svgData = null;
 		if ( $fileExt === 'svg' )
@@ -187,6 +188,7 @@ final class Uploads
 
 				if (!$processFailed)
 				{
+					$storedName = $dstName;
 					gitChangeHandler($commitMsg, $note);
 					$note->format(translate('Use %s to refer to it!'), array(Note::block(imageLinkText($dstName))));
 				}
@@ -215,6 +217,6 @@ final class Uploads
 			$note->text(translate('Upload error: invalid file type'));
 			w2Log("Upload error: file name = $dstName, invalid file type $fileType");
 		}
-		return new ChangeResult(true, '', $note);
+		return new ChangeResult(true, '', $note, false, $storedName);
 	}
 }

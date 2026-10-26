@@ -171,4 +171,13 @@ final class NoteTest extends TestCase
 		$note = Note::fromArray([['text', 'a'], ['html', '<b>'], ['code', 'c'], 'junk']);
 		$this->assertSame('a<code>c</code>', $note->render());
 	}
+
+	public function testPlainTextHasNoMarkup(): void
+	{
+		$note = (new Note())->text('Saved <b> ')->format('See %s or %s for %s', [Note::link('here', '/page'), 'x', Note::block('![a](/images/b.png)')])
+			->br(2)->code('abc')->items('Pages:', ['A', 'B']);
+		$this->assertSame("Saved <b> See here (/page) or x for \n![a](/images/b.png)\n\n\nabc\nPages:\n- A\n- B", $note->toText());
+		$this->assertSame('', (new Note())->toText());
+		$this->assertSame('a', (new Note())->br()->text('a')->toText());
+	}
 }

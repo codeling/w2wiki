@@ -228,6 +228,20 @@ body.editor .note {
 	background-color: #eeeeee;
 }
 
+/* the upload button and options below the text, with the progress or error of an upload */
+.uploadbar input[type="number"] {
+	width: 5em;
+}
+#uploadstatus {
+	margin-left: .5em;
+}
+#uploadstatus.error {
+	font-weight: bold;
+}
+.editorbox.dropping textarea {
+	outline: dashed 2px #666644;
+}
+
 input#gitmsg {
 	width: 60%;
 }

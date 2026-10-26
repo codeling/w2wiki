@@ -58,6 +58,10 @@ $w2_word_set = array(
 	'Keep file name' => 'Dateiname beibehalten',
 	'What links here:' => 'Seiten die hierher linken:',
 	'Close' => 'Schließen',
+	'Uploading %s' => '%s wird hochgeladen',
+	'Inserted %s' => 'Eingefügt: %s',
+	'Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)' => 'Eine Datei hochladen und den Link darauf an der Cursorposition einfügen (auch durch Ablegen von Dateien auf dem Text oder Einfügen eines Bildes)',
+	'The server did not answer as expected (maybe the session has expired). Please reload the page; the text is kept as a draft.' => 'Der Server hat nicht wie erwartet geantwortet (vielleicht ist die Sitzung abgelaufen). Bitte lade die Seite neu; der Text bleibt als Entwurf erhalten.',
 	// Messages
 	'Upload error' => 'Fehler beim Hochladen',
 	'Upload error: invalid file type' => 'Fehler beim Hochladen: Dieser Dateityp ist nicht zugelassen, bitte wende Dich an deinen Administrator!',

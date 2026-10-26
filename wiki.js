@@ -82,6 +82,203 @@ function removeDraft(key)
 	}
 }
 
+/** Sends a file to the wiki, with the progress (a fraction between 0 and 1) reported while the request is sent */
+function sendUpload(url, formData, onProgress)
+{
+	return new Promise((resolve, reject) =>
+	{
+		let request = new XMLHttpRequest();
+		request.open('POST', url);
+		request.upload.addEventListener('progress', (event) =>
+		{
+			if (event.lengthComputable)
+			{
+				onProgress(event.loaded / event.total);
+			}
+		});
+		request.addEventListener('load', () =>
+		{
+			try
+			{
+				resolve(JSON.parse(request.responseText));
+			}
+			catch (e)
+			{
+				// (e.g. the login page: the session has expired)
+				resolve(null);
+			}
+		});
+		request.addEventListener('error', () => reject(new Error('network')));
+		request.send(formData);
+	});
+}
+
+/**
+ * Uploading files from the editor: the Upload button, files dropped on the text and images pasted into it.
+ * The link to each file is inserted at the cursor; the text of the editor is not touched otherwise.
+ */
+function setupUpload(form, textArea)
+{
+	let button = document.getElementById('uploadbutton');
+	if (!button)
+	{
+		return;
+	}
+	let fileInput = document.getElementById('uploadfile');
+	let status = document.getElementById('uploadstatus');
+	let resizeInput = document.getElementById('uploadresize');
+	let maxSizeInput = document.getElementById('uploadmaxsize');
+	let tokenInput = form.querySelector('input[name="csrf_token"]');
+	let queue = [];
+	let busy = false;
+
+	function show(text, isError)
+	{
+		status.textContent = text;
+		status.className = isError ? 'error' : '';
+	}
+
+	function insertAtCursor(text)
+	{
+		textArea.focus();
+		// (as typed text: it can be undone, and counts as a change)
+		if (!document.execCommand || !document.execCommand('insertText', false, text))
+		{
+			textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
+			textArea.dispatchEvent(new Event('input', { bubbles: true }));
+		}
+	}
+
+	async function uploadOne(file)
+	{
+		let overwrite = false;
+		let check = await fetch(form.dataset.checkUrl + '&filename=' + encodeURIComponent(file.name), { credentials: 'same-origin' });
+		if (await check.json())
+		{
+			if (!window.confirm(form.dataset.msgOverwrite.replace('%s', () => file.name)))
+			{
+				show('', false);
+				return null;
+			}
+			overwrite = true;
+		}
+		let data = new FormData();
+		data.append('csrf_token', tokenInput ? tokenInput.value : '');
+		data.append('overwrite', overwrite ? 'true' : '');
+		if (resizeInput)
+		{
+			data.append('resize', resizeInput.checked ? 'true' : '');
+			data.append('maxsize', maxSizeInput.value);
+		}
+		data.append('userfile', file, file.name);
+		let label = form.dataset.msgUploading.replace('%s', () => file.name);
+		show(label, false);
+		let answer = await sendUpload(form.dataset.uploadUrl, data, (fraction) =>
+		{
+			show(label + ' (' + Math.round(fraction * 100) + ' %)', false);
+		});
+		if (!answer)
+		{
+			throw new Error(form.dataset.msgBadAnswer);
+		}
+		if (!answer.success)
+		{
+			throw new Error(answer.message || form.dataset.msgError);
+		}
+		return answer;
+	}
+
+	async function processQueue()
+	{
+		if (busy)
+		{
+			return;
+		}
+		busy = true;
+		button.disabled = true;
+		let links = [];
+		try
+		{
+			while (queue.length > 0)
+			{
+				let answer = await uploadOne(queue.shift());
+				if (answer)
+				{
+					links.push(answer.link);
+				}
+			}
+			if (links.length > 0)
+			{
+				insertAtCursor(links.join('\n'));
+				show(form.dataset.msgInserted.replace('%s', () => links.join(' ')), false);
+			}
+		}
+		catch (e)
+		{
+			queue = [];
+			// (the files which were stored before the error are still linked)
+			if (links.length > 0)
+			{
+				insertAtCursor(links.join('\n'));
+			}
+			show(e.message === 'network' ? form.dataset.msgError : e.message, true);
+		}
+		busy = false;
+		button.disabled = false;
+	}
+
+	function addFiles(files)
+	{
+		queue.push(...files);
+		processQueue();
+	}
+
+	button.addEventListener('click', () => fileInput.click());
+	fileInput.addEventListener('change', () =>
+	{
+		addFiles(Array.from(fileInput.files));
+		fileInput.value = '';
+	});
+
+	let box = textArea.parentNode;
+	let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+	textArea.addEventListener('dragover', (event) =>
+	{
+		if (hasFiles(event))
+		{
+			event.preventDefault();
+			box.classList.add('dropping');
+		}
+	});
+	textArea.addEventListener('dragleave', () => box.classList.remove('dropping'));
+	textArea.addEventListener('drop', (event) =>
+	{
+		box.classList.remove('dropping');
+		if (hasFiles(event) && event.dataTransfer.files.length > 0)
+		{
+			event.preventDefault();
+			addFiles(Array.from(event.dataTransfer.files));
+		}
+	});
+	textArea.addEventListener('paste', (event) =>
+	{
+		let clipboard = event.clipboardData;
+		// (only an image without text: copied cells or formatted text come with a picture of themselves)
+		if (!clipboard || clipboard.files.length === 0 || Array.from(clipboard.types).includes('text/plain'))
+		{
+			return;
+		}
+		event.preventDefault();
+		let stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+		addFiles(Array.from(clipboard.files).map((file, i) =>
+		{
+			// (a pasted image is always called "image.png")
+			let match = /^image\.(\w+)$/.exec(file.name);
+			return match ? new File([file], 'image-' + stamp + (i > 0 ? '-' + (i + 1) : '') + '.' + match[1], { type: file.type }) : file;
+		}));
+	});
+}
+
 document.addEventListener('DOMContentLoaded', () =>
 {
 	// the server has saved the text of this draft (the page after saving loads this script for that):
@@ -228,6 +425,8 @@ document.addEventListener('DOMContentLoaded', () =>
 			form.parentNode.insertBefore(note, form);
 		}
 	}
+
+	setupUpload(form, textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	form.addEventListener('submit', () =>
