@@ -9,13 +9,15 @@
  *         page (text: the page being edited), newPage (text: the title entered for a new page),
  *         similarPages (null, or the list of pages with a name like the new one: href, name),
  *         text (text), rows (number), gitEnabled (bool), gitMessage (text),
+ *         uploads (bool: files can be uploaded from the editor), shrink (bool: uploaded images can be shrunk),
+ *         apiUrl (text: the address of api.php, which tells whether an uploaded file exists already),
  *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save()),
  *         diff (null, or the lines which differ between the current text of the page and the text in the editor, with some
  *         lines around them: see LineDiff::withContext(); each is a list of the kind (LineDiff::SAME, REMOVED, ADDED,
  *         GAP) and the line, or for a gap the number of lines left out)
  */
 ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>"<?php if ($this->uploads): ?> data-upload-url="<?= $this->e(SELF) ?>?action=uploaded&amp;json=1" data-check-url="<?= $this->e($this->apiUrl) ?>?task=checkupload" data-msg-uploading="<?= __('Uploading %s') ?>" data-msg-overwrite="<?= __('File %s already exists. Overwrite?') ?>" data-msg-inserted="<?= __('Inserted %s') ?>" data-msg-error="<?= __('Upload error') ?>" data-msg-bad-answer="<?= __('The server did not answer as expected (maybe the session has expired). Please reload the page; the text is kept as a draft.') ?>"<?php endif ?>>
 <?= $this->csrfField ?>
 
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
@@ -47,6 +49,13 @@
 <span class="same">  <?= $line[1] ?></span>
 <?php endif ?>
 <?php endforeach ?></pre></div>
+<?php endif ?>
+<?php if ($this->uploads): ?>
+<p class="uploadbar"><input id="uploadbutton" type="button" value="<?= __('Upload') ?>" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)') ?>" /><input id="uploadfile" type="file" multiple="multiple" hidden="hidden" />
+<?php if ($this->shrink): ?>
+<input id="uploadresize" type="checkbox" checked="checked" /><label for="uploadresize"><?= __('Shrink if larger than ') ?></label><input id="uploadmaxsize" type="number" min="20" max="8192" value="1200" /> <label for="uploadmaxsize"><?= __('Pixels') ?></label>
+<?php endif ?>
+<span id="uploadstatus" role="status"></span></p>
 <?php endif ?>
 <p class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><?= $this->text ?></textarea></p>
 <?php if ($this->gitEnabled): ?>

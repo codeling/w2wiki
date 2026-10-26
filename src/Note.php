@@ -219,6 +219,42 @@ final class Note
 		return $html;
 	}
 
+	/**
+	 * The note as plain text, for answers which are not HTML (links are written as "text (address)",
+	 * text to copy in a line of its own)
+	 */
+	public function toText(): string
+	{
+		$text = '';
+		foreach ($this->parts as $part) {
+			switch ($part[0]) {
+				case 'text':
+				case 'code':
+					$text .= $part[1];
+					break;
+				case 'pre':
+					$text .= $part[1] . "\n";
+					break;
+				case 'br':
+					$text .= $text === '' ? '' : str_repeat("\n", $part[1]);
+					break;
+				case 'items':
+					$text .= ($text === '' ? '' : "\n") . $part[1] . "\n" . implode("\n", array_map(fn($item) => '- ' . $item, $part[2]));
+					break;
+				case 'format':
+					foreach (explode('%s', $part[1]) as $i => $segment) {
+						if ($i > 0) {
+							$value = $part[2][$i - 1] ?? '';
+							$text .= !is_array($value) ? $value : ($value[0] === 'link' ? $value[1] . ' (' . $value[2] . ')' : "\n" . $value[1] . "\n");
+						}
+						$text .= $segment;
+					}
+					break;
+			}
+		}
+		return trim($text);
+	}
+
 	/** @param array<int, string|array<int, string>> $values */
 	private function renderFormat(string $format, array $values): string
 	{
