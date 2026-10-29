@@ -124,9 +124,9 @@ final class LocaleTest extends AppTestCase
 	{
 		$words = self::words($locale);
 		$body = $this->http->get('/index.php?action=upload')->body;
-		foreach (['No file selected!', 'File %s already exists. Overwrite?'] as $key) {
-			$literal = json_encode($words[$key] ?? $key, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
-			$this->assertStringContainsString($literal, $body, "$locale: $key");
+		// (the texts of the dialog for the script are attributes of it)
+		foreach (['overwrite' => 'File %s already exists. Overwrite?', 'uploading' => 'Uploading %s', 'error' => 'Upload error'] as $name => $key) {
+			$this->assertStringContainsString("data-msg-$name=\"" . self::text($words, $key) . '"', $body, "$locale: $key");
 		}
 	}
 

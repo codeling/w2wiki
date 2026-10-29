@@ -135,21 +135,24 @@ function setupBacklinks(textArea)
 }
 
 /**
- * Uploading files from the editor. The button of the symbol bar opens a dialog to choose a file; files dropped on the
- * text and images pasted into it open the dialog with the files already chosen. Images can be cropped in the dialog
- * (the server does it, with the part to keep sent as fractions of the image) and shrunk, which is shown as the size
- * the image will have. The link to each file is inserted at the cursor; the text of the editor is not touched otherwise.
+ * Uploading files, in the editor and on the upload page: the button (of the symbol bar of the editor, or of the upload
+ * page) opens a dialog to choose files. Images can be cropped in the dialog (the server does it, with the part to keep
+ * sent as fractions of the image) and shrunk, which is shown as the size the image will have, and a file can be
+ * stored under another name.
+ * In the editor (with a text area), files dropped on the text and images pasted into it open the dialog with the
+ * files already chosen, and the link to each file is inserted at the cursor; the text is not touched otherwise.
+ * On the upload page (no text area), the page is loaded again to show the new files in its list.
  */
-function setupUpload(form, textArea)
+function setupUpload(dialog, textArea)
 {
 	let openButton = document.getElementById('uploadbutton');
-	let dialog = document.getElementById('uploaddialog');
 	if (!openButton || !dialog || !dialog.showModal)
 	{
 		return;
 	}
 	let fileInput = document.getElementById('uploadfile');
 	let nameLabel = document.getElementById('uploadname');
+	let newNameInput = document.getElementById('uploadnewname');
 	let countLabel = document.getElementById('uploadcount');
 	let status = document.getElementById('uploadstatus');
 	let startButton = document.getElementById('uploadstart');
@@ -167,7 +170,6 @@ function setupUpload(form, textArea)
 	let cropReset = document.getElementById('cropreset');
 	// (without image processing on the server, the dialog has no options for images)
 	let hasImageOptions = !!cropSection;
-	let tokenInput = form.querySelector('input[name="csrf_token"]');
 	const MIN_CROP = 0.02;
 	const WHOLE = { x: 0, y: 0, w: 1, h: 1 };
 	// (the formats which browsers show, so that the part to keep can be chosen)
@@ -235,7 +237,7 @@ function setupUpload(form, textArea)
 			width = Math.round(width * scale);
 			height = Math.round(height * scale);
 		}
-		resultSize.textContent = form.dataset.msgResultSize.replace('%s', () => width + ' × ' + height);
+		resultSize.textContent = dialog.dataset.msgResultSize.replace('%s', () => width + ' × ' + height);
 	}
 
 	function setCrop(rect)
@@ -350,7 +352,7 @@ function setupUpload(form, textArea)
 		show('', false);
 		nameLabel.textContent = current ? current.name : '';
 		countLabel.textContent = (current && total > 1)
-			? form.dataset.msgCount.replace('%1$s', total - queue.length).replace('%2$s', total) : '';
+			? dialog.dataset.msgCount.replace('%1$s', total - queue.length).replace('%2$s', total) : '';
 		if (current)
 		{
 			showPreview(current);
@@ -377,14 +379,27 @@ function setupUpload(form, textArea)
 		next();
 	}
 
+	/** The name the file is stored under: the name chosen in the dialog (which keeps the extension of the file), or its own */
+	function targetName(file)
+	{
+		let chosen = newNameInput.value.trim().replace(/ /g, '_');
+		let extension = /\.([^.]+)$/.exec(file.name);
+		if (chosen === '')
+		{
+			return file.name;
+		}
+		return (extension && !chosen.toLowerCase().endsWith('.' + extension[1].toLowerCase())) ? chosen + '.' + extension[1] : chosen;
+	}
+
 	/** Sends the chosen file; returns the answer of the server, or null when the file already exists and is not replaced */
 	async function uploadOne(file)
 	{
 		let overwrite = false;
-		let check = await fetch(form.dataset.checkUrl + '&filename=' + encodeURIComponent(file.name), { credentials: 'same-origin' });
+		let check = await fetch(dialog.dataset.checkUrl + '&filename=' + encodeURIComponent(file.name) + '&newname=' + encodeURIComponent(newNameInput.value),
+			{ credentials: 'same-origin' });
 		if (await check.json())
 		{
-			if (!window.confirm(form.dataset.msgOverwrite.replace('%s', () => file.name)))
+			if (!window.confirm(dialog.dataset.msgOverwrite.replace('%s', () => targetName(file))))
 			{
 				show('', false);
 				return null;
@@ -392,8 +407,9 @@ function setupUpload(form, textArea)
 			overwrite = true;
 		}
 		let data = new FormData();
-		data.append('csrf_token', tokenInput ? tokenInput.value : '');
+		data.append('csrf_token', dialog.dataset.token);
 		data.append('overwrite', overwrite ? 'true' : '');
+		data.append('newname', newNameInput.value);
 		if (hasImageOptions)
 		{
 			data.append('resize', resizeInput.checked ? 'true' : '');
@@ -404,19 +420,19 @@ function setupUpload(form, textArea)
 			data.append('crop', [crop.x, crop.y, crop.w, crop.h].map((value) => value.toFixed(5)).join(','));
 		}
 		data.append('userfile', file, file.name);
-		let label = form.dataset.msgUploading.replace('%s', () => file.name);
+		let label = dialog.dataset.msgUploading.replace('%s', () => file.name);
 		show(label, false);
-		let answer = await sendUpload(form.dataset.uploadUrl, data, (fraction) =>
+		let answer = await sendUpload(dialog.dataset.uploadUrl, data, (fraction) =>
 		{
 			show(label + ' (' + Math.round(fraction * 100) + ' %)', false);
 		});
 		if (!answer)
 		{
-			throw new Error(form.dataset.msgBadAnswer);
+			throw new Error(dialog.dataset.msgBadAnswer);
 		}
 		if (!answer.success)
 		{
-			throw new Error(answer.message || form.dataset.msgError);
+			throw new Error(answer.message || dialog.dataset.msgError);
 		}
 		return answer;
 	}
@@ -442,13 +458,15 @@ function setupUpload(form, textArea)
 				links.push(answer.link);
 			}
 			busy = false;
+			// (the name was for this file: the next one keeps its own)
+			newNameInput.value = '';
 			next();
 		}
 		catch (e)
 		{
 			// (the file stays in the dialog: the error can be fixed, e.g. by another size, or the file is cancelled)
 			busy = false;
-			show(e.message === 'network' ? form.dataset.msgError : e.message, true);
+			show(e.message === 'network' ? dialog.dataset.msgError : e.message, true);
 		}
 		startButton.disabled = cancelButton.disabled = false;
 	});
@@ -471,7 +489,14 @@ function setupUpload(form, textArea)
 		showPreview({ type: '' });
 		if (uploaded.length > 0)
 		{
-			insertAtCursor(uploaded.join('\n'));
+			if (textArea)
+			{
+				insertAtCursor(uploaded.join('\n'));
+			}
+			else
+			{
+				window.location.reload();
+			}
 		}
 	});
 
@@ -485,6 +510,7 @@ function setupUpload(form, textArea)
 			current = null;
 			links = [];
 			nameLabel.textContent = countLabel.textContent = '';
+			newNameInput.value = '';
 			show('', false);
 			dialog.showModal();
 		}
@@ -495,43 +521,47 @@ function setupUpload(form, textArea)
 		fileInput.value = '';
 	});
 
-	let box = textArea.parentNode;
-	let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
-	textArea.addEventListener('dragover', (event) =>
+	// (dropping files and pasting images need the text)
+	if (textArea)
 	{
-		if (hasFiles(event))
+		let box = textArea.parentNode;
+		let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+		textArea.addEventListener('dragover', (event) =>
 		{
+			if (hasFiles(event))
+			{
+				event.preventDefault();
+				box.classList.add('dropping');
+			}
+		});
+		textArea.addEventListener('dragleave', () => box.classList.remove('dropping'));
+		textArea.addEventListener('drop', (event) =>
+		{
+			box.classList.remove('dropping');
+			if (hasFiles(event) && event.dataTransfer.files.length > 0)
+			{
+				event.preventDefault();
+				chooseFiles(Array.from(event.dataTransfer.files));
+			}
+		});
+		textArea.addEventListener('paste', (event) =>
+		{
+			let clipboard = event.clipboardData;
+			// (only an image without text: copied cells or formatted text come with a picture of themselves)
+			if (!clipboard || clipboard.files.length === 0 || Array.from(clipboard.types).includes('text/plain'))
+			{
+				return;
+			}
 			event.preventDefault();
-			box.classList.add('dropping');
-		}
-	});
-	textArea.addEventListener('dragleave', () => box.classList.remove('dropping'));
-	textArea.addEventListener('drop', (event) =>
-	{
-		box.classList.remove('dropping');
-		if (hasFiles(event) && event.dataTransfer.files.length > 0)
-		{
-			event.preventDefault();
-			chooseFiles(Array.from(event.dataTransfer.files));
-		}
-	});
-	textArea.addEventListener('paste', (event) =>
-	{
-		let clipboard = event.clipboardData;
-		// (only an image without text: copied cells or formatted text come with a picture of themselves)
-		if (!clipboard || clipboard.files.length === 0 || Array.from(clipboard.types).includes('text/plain'))
-		{
-			return;
-		}
-		event.preventDefault();
-		let stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-		chooseFiles(Array.from(clipboard.files).map((file, i) =>
-		{
-			// (a pasted image is always called "image.png")
-			let match = /^image\.(\w+)$/.exec(file.name);
-			return match ? new File([file], 'image-' + stamp + (i > 0 ? '-' + (i + 1) : '') + '.' + match[1], { type: file.type }) : file;
-		}));
-	});
+			let stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+			chooseFiles(Array.from(clipboard.files).map((file, i) =>
+			{
+				// (a pasted image is always called "image.png")
+				let match = /^image\.(\w+)$/.exec(file.name);
+				return match ? new File([file], 'image-' + stamp + (i > 0 ? '-' + (i + 1) : '') + '.' + match[1], { type: file.type }) : file;
+			}));
+		});
+	}
 }
 
 document.addEventListener('DOMContentLoaded', () =>
@@ -541,6 +571,8 @@ document.addEventListener('DOMContentLoaded', () =>
 	{
 		removeDraft(document.body.dataset.savedDraft);
 	}
+	// (the editor has the text area, the upload page only the button)
+	setupUpload(document.getElementById('uploaddialog'), document.getElementById('text'));
 	let form = document.getElementById("edit");
 	if (!form)
 	{
@@ -681,7 +713,6 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	}
 
-	setupUpload(form, textArea);
 	setupBacklinks(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
