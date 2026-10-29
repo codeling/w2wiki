@@ -17,12 +17,14 @@ final class NoImagickTest extends AppTestCase
 		return ['IMAGE_EXTS_TO_CONVERT' => 'heic,heif,gif', 'IMAGE_PROCESSING_ENABLED' => false];
 	}
 
-	public function testUploadFormOffersNoShrinkingWithoutImagick(): void
+	public function testUploadDialogOffersNoShrinkingOrCroppingWithoutImagick(): void
 	{
-		$form = $this->http->get('/index.php', ['action' => 'upload', 'page' => 'Home'])->body;
-		$this->assertStringContainsString('name="userfile"', $form);
-		$this->assertStringNotContainsString('name="resize"', $form);
-		$this->assertStringNotContainsString('name="maxsize"', $form);
+		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => 'Home'])->body;
+		$this->assertStringContainsString('id="uploadfile"', $body);
+		$this->assertStringContainsString('id="uploadnewname"', $body);
+		$this->assertStringNotContainsString('id="uploadresize"', $body);
+		$this->assertStringNotContainsString('id="uploadmaxsize"', $body);
+		$this->assertStringNotContainsString('id="cropbox"', $body);
 	}
 
 	public function testImageIsStoredAsItIsAndMessageSaysSo(): void

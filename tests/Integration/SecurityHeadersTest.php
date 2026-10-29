@@ -36,11 +36,19 @@ final class SecurityHeadersTest extends AppTestCase
 		$this->assertDoesNotMatchRegularExpression("/script-src[^;]*'unsafe-eval'/", $csp);
 	}
 
-	public function testInlineScriptOfTheUploadPageIsAllowedByNonceOnly(): void
+	public function testPagesHaveNoInlineScripts(): void
+	{
+		// (the upload page used to have one, for its form: the dialog to upload files is the same as in the editor)
+		foreach (['/index.php?action=upload', '/index.php?action=new', '/index.php'] as $url) {
+			$this->assertStringNotContainsString('<script>', $this->http->get($url)->body, $url);
+			$this->assertStringNotContainsString('<script type=', $this->http->get($url)->body, $url);
+		}
+	}
+
+	public function testNonceOfTheContentSecurityPolicyIsNewForEveryRequest(): void
 	{
 		$first = $this->http->get('/index.php?action=upload');
 		$this->assertSame(1, preg_match("/script-src [^;]*'nonce-([A-Za-z0-9+\/=]+)'/", (string)$first->header('content-security-policy'), $nonce));
-		$this->assertStringContainsString('<script type="application/javascript" nonce="' . $nonce[1] . '">', $first->body);
 
 		$second = $this->http->get('/index.php?action=upload');
 		preg_match("/'nonce-([A-Za-z0-9+\/=]+)'/", (string)$second->header('content-security-policy'), $nonce2);

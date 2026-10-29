@@ -139,7 +139,6 @@ final class CsrfTest extends AppTestCase
 			'edit' => [['action' => 'edit', 'page' => 'Home']],
 			'rename' => [['action' => 'rename', 'page' => 'Home']],
 			'delete' => [['action' => 'delete', 'page' => 'Home']],
-			'upload' => [['action' => 'upload']],
 			'image rename' => [['action' => 'imgRename', 'imgName' => 'a.gif']],
 			'image delete' => [['action' => 'imgDelete', 'imgName' => 'a.gif']],
 		];
@@ -151,6 +150,15 @@ final class CsrfTest extends AppTestCase
 		$token = $this->csrfToken();
 		$body = $this->http->get('/index.php', $query)->body;
 		$this->assertStringContainsString('name="csrf_token" value="' . $token . '"', $body);
+	}
+
+	public function testUploadDialogContainsTheSessionToken(): void
+	{
+		// (the script sends it with the files: the dialog is not a form)
+		$token = $this->csrfToken();
+		foreach (['/index.php?action=upload', '/index.php?action=new'] as $url) {
+			$this->assertStringContainsString('data-token="' . $token . '"', $this->http->get($url)->body, $url);
+		}
 	}
 
 	public function testLogoutNeedsToken(): void

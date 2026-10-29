@@ -38,7 +38,7 @@ final class PageFrameTest extends AppTestCase
 		preg_match('#<div class="toolbar">(.*?)<form#s', $body, $matches);
 		preg_match_all('#<a href="([^"]*)"><img src="[^"]*" alt="([^"]*)" title="\2" class="icon"></a>#', $matches[1], $items, PREG_SET_ORDER);
 		$this->assertSame(
-			[['/index.php', 'Home'], ['/index.php?action=all', 'All'], ['/index.php?action=new', 'New'], ['/index.php?action=upload&amp;page=Home', 'Upload']],
+			[['/index.php', 'Home'], ['/index.php?action=all', 'All'], ['/index.php?action=new', 'New'], ['/index.php?action=upload&amp;page=Home', 'Media']],
 			array_map(fn($item) => [$item[1], $item[2]], $items)
 		);
 		$this->assertStringNotContainsString('action=logout', $body, 'no way to log out without a password');

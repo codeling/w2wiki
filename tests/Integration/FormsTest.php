@@ -224,26 +224,35 @@ final class FormsTest extends AppTestCase
 
 	// --- upload -------------------------------------------------------------------------
 
-	public function testUploadForm(): void
+	public function testUploadPageHasTheDialogOfTheEditor(): void
 	{
 		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => 'Home'])->body;
-		$form = $this->form($body, 'upload');
-		$this->assertSame('multipart/form-data', $form->getAttribute('enctype'));
-		$names = array_keys($this->fields($form));
-		foreach (['csrf_token', 'action', 'prevpage', 'overwrite', 'userfile', 'newname'] as $name) {
-			$this->assertContains($name, $names);
+		// (no form of its own and no script in the page: the same dialog as in the editor, opened by the script of the wiki)
+		$this->assertStringNotContainsString('<form id="upload"', $body);
+		$this->assertStringContainsString('<input id="uploadbutton" type="button" value="Upload" />', $body);
+		$this->assertStringContainsString('<dialog id="uploaddialog"', $body);
+		$this->assertStringContainsString('<script src="/wiki.js', $body);
+		$this->assertNoActiveContent($body);
+		foreach (['uploadfile', 'uploadnewname', 'uploadstart', 'uploadcancel'] as $id) {
+			$this->assertStringContainsString("id=\"$id\"", $body);
 		}
-		// (images can be shrunk where the Imagick extension is available)
-		$this->assertSame(extension_loaded('imagick'), in_array('resize', $names, true));
-		$this->assertSame(extension_loaded('imagick'), in_array('maxsize', $names, true));
-		$fields = $this->fields($form);
-		$this->assertSame('uploaded', $fields['action']);
-		$this->assertSame('Home', $fields['prevpage']);
-		$this->assertStringContainsString('<input id="newname" type="text" name="newname" placeholder="Keep file name" />', $body);
-		$this->assertStringContainsString('<input id="upload" type="submit" value="Upload" />', $body);
-		$this->assertStringContainsString('function processForm(e) {', $body);
-		$this->assertStringContainsString('alert("No file selected!");', $body);
-		$this->assertStringContainsString('window.confirm("File %s already exists. Overwrite?".replace("%s", () => filename))', $body);
-		$this->assertSame(1, substr_count($body, '</script>'));
+		// (images can be cropped and shrunk where the Imagick extension is available)
+		foreach (['cropbox', 'uploadresize', 'uploadmaxsize'] as $id) {
+			$this->assertSame(extension_loaded('imagick'), str_contains($body, "id=\"$id\""), $id);
+		}
+		$this->assertStringContainsString('data-upload-url="/index.php?action=uploaded&amp;json=1"', $body);
+		$this->assertStringContainsString('data-check-url="/api.php?task=checkupload"', $body);
+		$this->assertMatchesRegularExpression('/data-token="[^"]+"/', $body);
+	}
+
+	public function testEditorAndUploadPageHaveTheSameDialog(): void
+	{
+		$dialog = function (string $url): string {
+			$body = $this->http->get($url)->body;
+			$this->assertSame(1, preg_match('#<dialog id="uploaddialog".*?</dialog>#s', $body, $match), $url);
+			// (the token is the one of the session, the same in both)
+			return $match[0];
+		};
+		$this->assertSame($dialog('/index.php?action=upload'), $dialog('/index.php?action=new'));
 	}
 }

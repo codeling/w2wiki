@@ -136,11 +136,12 @@ final class UploadTest extends AppTestCase
 		$this->assertSame(['shell.php.gif'], $this->uploadedFiles());
 	}
 
-	public function testUploadFormOnlyAsksForOverwriteConfirmationViaScript(): void
+	public function testUploadDialogOnlyAsksForOverwriteConfirmationViaScript(): void
 	{
+		// (the script asks the server whether the name exists, and sends "overwrite" only if the user confirms)
 		$body = $this->http->get('/index.php', ['action' => 'upload'])->body;
-		$this->assertStringContainsString('name="overwrite"', $body);
-		$this->assertStringContainsString('/api.php?task=checkupload&filename="+encodeURIComponent(filename)', $body);
+		$this->assertStringContainsString('data-check-url="/api.php?task=checkupload"', $body);
+		$this->assertStringContainsString('data-msg-overwrite="File %s already exists. Overwrite?"', $body);
 	}
 
 	// --- rename ----------------------------------------------------------------------

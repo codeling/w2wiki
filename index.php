@@ -113,7 +113,7 @@ if ( !isLoggedIn() )
 		// (the page may show a hash of the password, see above)
 		header("Cache-Control: no-store");
 		print templates()->render('layout', array(
-			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'savedDraft' => '',
+			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'script' => false, 'savedDraft' => '',
 			'content' => templates()->render('login', array(
 				'heading' => translate('Log In'), 'notes' => $notes, 'passwordLabel' => translate('Password'),
 				'buttonLabel' => translate('Log In'), 'csrfField' => \W2\Html::raw(csrfField())
@@ -124,6 +124,16 @@ if ( !isLoggedIn() )
 }
 
 // Support functions
+
+/**
+ * The dialog to upload files, which the editor and the upload page have (the script of the page opens it)
+ */
+function uploadDialog()
+{
+	return templates()->render('upload-dialog', array(
+		'shrink' => imageProcessingAvailable(), 'csrfToken' => csrfToken(), 'apiUrl' => BASE_URI . '/api.php'
+	));
+}
 
 // Reads a "page to go back to" value from $_REQUEST[$paramName], restricted
 // to the name of a page that actually exists. Denies the request entirely
@@ -445,7 +455,7 @@ if ( isEditorAction($action) )
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
 		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff,
-		'uploads' => !DISABLE_UPLOADS, 'shrink' => imageProcessingAvailable(), 'apiUrl' => BASE_URI . '/api.php'
+		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog()
 	));
 }
 else if ( $action === 'logout' )
@@ -459,18 +469,9 @@ else if ( $action === 'upload' )
 	$lists = new \W2\Lists();
 	$sortBy = $lists->sortKey($_REQUEST['sortBy'] ?? 'name');
 	$prevpage = requireValidPreviousPage('page');
-	$form = null;
-	if ( !DISABLE_UPLOADS )
-	{
-		// (texts in the script are JavaScript string literals, not HTML; BASE_URI is the inside of one)
-		$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
-		$form = templates()->render('upload-form', array(
-			'csrfField' => \W2\Html::raw(csrfField()), 'prevPage' => $prevpage, 'shrink' => imageProcessingAvailable(),
-			'nonce' => cspNonce(), 'baseUri' => \W2\Html::raw(substr(json_encode(BASE_URI, $jsonFlags), 1, -1)),
-			'noFileText' => \W2\Html::raw(__js('No file selected!')), 'overwriteText' => \W2\Html::raw(__js('File %s already exists. Overwrite?'))
-		));
-	}
-	$content = templates()->render('upload-page', array('form' => $form, 'list' => $lists->uploads($sortBy, $prevpage)));
+	$content = templates()->render('upload-page', array(
+		'dialog' => DISABLE_UPLOADS ? null : uploadDialog(), 'list' => $lists->uploads($sortBy, $prevpage)
+	));
 }
 else if ( $action === 'uploaded' )
 {
@@ -590,7 +591,7 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/upload.svg"), 'label' => translate('Upload'));
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/media.svg"), 'label' => translate('Media'));
 }
 if ( REQUIRE_PASSWORD )
 {
@@ -617,7 +618,8 @@ unset($_SESSION['savedDraft']);
 header("Cache-Control: no-store");
 print templates()->render('layout', array(
 	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
-	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'savedDraft' => $savedDraft,
+	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action),
+	'script' => isEditorAction($action) || ($action === 'upload' && !DISABLE_UPLOADS) || $savedDraft !== '', 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')

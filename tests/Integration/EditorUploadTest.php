@@ -103,6 +103,7 @@ final class EditorUploadTest extends AppTestCase
 			$body = $this->http->get('/index.php', $query)->body;
 			$this->assertStringContainsString('id="uploadbutton"', $body);
 			$this->assertStringContainsString('id="uploaddialog"', $body);
+			$this->assertStringContainsString('id="uploadnewname"', $body);
 			$this->assertStringContainsString('data-upload-url="/index.php?action=uploaded&amp;json=1"', $body);
 			$this->assertStringContainsString('data-check-url="/api.php?task=checkupload"', $body);
 		}
