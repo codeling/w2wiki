@@ -228,15 +228,97 @@ body.editor .note {
 	background-color: #eeeeee;
 }
 
-/* the upload button and options below the text, with the progress or error of an upload */
-.uploadbar input[type="number"] {
-	width: 5em;
+/* the dialog to upload files from the editor, with the part of an image to keep (the frame on the image) */
+[hidden] {
+	display: none !important;
 }
-#uploadstatus {
-	margin-left: .5em;
+#uploaddialog {
+	width: 40em;
+	max-width: 95vw;
+	max-height: 95vh;
+	box-sizing: border-box;
+	overflow: auto;
+	margin: auto;
+	padding: .5em 1em 1em;
+	border: 1px solid black;
+	border-radius: 5px;
+	background-color: #eeeeee;
+}
+#uploaddialog h5 {
+	margin: 0 0 .5em;
+}
+#uploaddialog p {
+	margin: .5em 0;
+}
+#resultsize {
+	display: block;
+}
+#uploaddialog::backdrop {
+	background-color: rgba(0, 0, 0, .4);
+}
+#uploaddialog .hint {
+	font-size: smaller;
+}
+#uploaddialog input[type="number"] {
+	width: 5em;
 }
 #uploadstatus.error {
 	font-weight: bold;
+}
+#uploadname {
+	overflow-wrap: anywhere;
+}
+#cropstage {
+	position: relative;
+	display: inline-block;
+	max-width: 100%;
+	overflow: hidden;
+	line-height: 0;
+	user-select: none;
+	-webkit-user-select: none;
+}
+#cropimage {
+	display: block;
+	max-width: 100%;
+	max-height: 50vh;
+	width: auto;
+	height: auto;
+}
+#cropbox {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px solid white;
+	outline: 1px dashed black;
+	/* (darkens the image around the frame; the stage hides what is beyond it) */
+	box-shadow: 0 0 0 9999px rgba(0, 0, 0, .5);
+	cursor: move;
+	touch-action: none;
+}
+#cropbox:focus-visible {
+	outline: 2px solid #4466cc;
+}
+#cropbox .handle {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	box-sizing: border-box;
+	border: 1px solid black;
+	background-color: white;
+}
+/* (inside of the frame, so that they are not cut off at the border of the image) */
+#cropbox .nw { left: 0; top: 0; cursor: nwse-resize; }
+#cropbox .n { left: 50%; top: 0; transform: translateX(-50%); cursor: ns-resize; }
+#cropbox .ne { right: 0; top: 0; cursor: nesw-resize; }
+#cropbox .e { right: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+#cropbox .se { right: 0; bottom: 0; cursor: nwse-resize; }
+#cropbox .s { left: 50%; bottom: 0; transform: translateX(-50%); cursor: ns-resize; }
+#cropbox .sw { left: 0; bottom: 0; cursor: nesw-resize; }
+#cropbox .w { left: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+@media (pointer: coarse) {
+	#cropbox .handle {
+		width: 22px;
+		height: 22px;
+	}
 }
 .editorbox.dropping textarea {
 	outline: dashed 2px #666644;

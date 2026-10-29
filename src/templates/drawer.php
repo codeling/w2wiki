@@ -5,7 +5,8 @@
  * The help for the Markdown syntax next to the editor, and the buttons to show it (inside the toolbar).
  * The texts are translated, and the examples show the syntax as it is written.
  *
- * Values: uploadUrl (text: the address of the uploads folder, with slashes at both ends)
+ * Values: uploadUrl (text: the address of the uploads folder, with slashes at both ends),
+ *         uploads (bool: files can be uploaded from the editor, which adds the button for that)
  */
 ?>
       <div id="drawer" class="inactive">
@@ -30,3 +31,8 @@
 <?php endforeach ?>
         </span>
       </a>
+<?php if ($this->uploads): ?>
+      <a id="uploadbutton" href="" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)') ?>">
+        <img src="<?= $this->e(assetURL("w2-icons/upload.svg")) ?>" alt="<?= __('Upload') ?>" class="icon"/>
+      </a>
+<?php endif ?>

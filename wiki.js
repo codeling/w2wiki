@@ -114,23 +114,46 @@ function sendUpload(url, formData, onProgress)
 }
 
 /**
- * Uploading files from the editor: the Upload button, files dropped on the text and images pasted into it.
- * The link to each file is inserted at the cursor; the text of the editor is not touched otherwise.
+ * Uploading files from the editor. The button of the symbol bar opens a dialog to choose a file; files dropped on the
+ * text and images pasted into it open the dialog with the files already chosen. Images can be cropped in the dialog
+ * (the server does it, with the part to keep sent as fractions of the image) and shrunk, which is shown as the size
+ * the image will have. The link to each file is inserted at the cursor; the text of the editor is not touched otherwise.
  */
 function setupUpload(form, textArea)
 {
-	let button = document.getElementById('uploadbutton');
-	if (!button)
+	let openButton = document.getElementById('uploadbutton');
+	let dialog = document.getElementById('uploaddialog');
+	if (!openButton || !dialog || !dialog.showModal)
 	{
 		return;
 	}
 	let fileInput = document.getElementById('uploadfile');
+	let nameLabel = document.getElementById('uploadname');
+	let countLabel = document.getElementById('uploadcount');
 	let status = document.getElementById('uploadstatus');
+	let startButton = document.getElementById('uploadstart');
+	let cancelButton = document.getElementById('uploadcancel');
 	let resizeInput = document.getElementById('uploadresize');
 	let maxSizeInput = document.getElementById('uploadmaxsize');
+	let resultSize = document.getElementById('resultsize');
+	let cropSection = document.getElementById('cropsection');
+	let cropStage = document.getElementById('cropstage');
+	let cropImage = document.getElementById('cropimage');
+	let cropBox = document.getElementById('cropbox');
+	let cropReset = document.getElementById('cropreset');
+	// (without image processing on the server, the dialog has no options for images)
+	let hasImageOptions = !!cropSection;
 	let tokenInput = form.querySelector('input[name="csrf_token"]');
+	const MIN_CROP = 0.02;
+	const WHOLE = { x: 0, y: 0, w: 1, h: 1 };
+	// (the formats which browsers show, so that the part to keep can be chosen)
+	const PREVIEW_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 	let queue = [];
+	let total = 0;
+	let current = null;
+	let links = [];
 	let busy = false;
+	let crop = Object.assign({}, WHOLE);
 
 	function show(text, isError)
 	{
@@ -149,6 +172,185 @@ function setupUpload(form, textArea)
 		}
 	}
 
+	function isWhole()
+	{
+		return crop.x < 0.0005 && crop.y < 0.0005 && crop.w > 0.9995 && crop.h > 0.9995;
+	}
+
+	function updateCropBox()
+	{
+		if (!hasImageOptions)
+		{
+			return;
+		}
+		cropBox.style.left = (crop.x * 100) + '%';
+		cropBox.style.top = (crop.y * 100) + '%';
+		cropBox.style.width = (crop.w * 100) + '%';
+		cropBox.style.height = (crop.h * 100) + '%';
+		updateResultSize();
+	}
+
+	/** The size the image will have after cropping and shrinking (as the server does it) */
+	function updateResultSize()
+	{
+		if (!hasImageOptions)
+		{
+			return;
+		}
+		if (cropSection.hidden || !cropImage.naturalWidth)
+		{
+			resultSize.textContent = '';
+			return;
+		}
+		let width = Math.max(1, Math.round(crop.w * cropImage.naturalWidth));
+		let height = Math.max(1, Math.round(crop.h * cropImage.naturalHeight));
+		let maxSize = Math.max(20, Math.min(8192, parseInt(maxSizeInput.value, 10) || 1200));
+		if (resizeInput.checked && Math.max(width, height) > maxSize)
+		{
+			let scale = maxSize / Math.max(width, height);
+			width = Math.round(width * scale);
+			height = Math.round(height * scale);
+		}
+		resultSize.textContent = form.dataset.msgResultSize.replace('%s', () => width + ' × ' + height);
+	}
+
+	function setCrop(rect)
+	{
+		crop = rect;
+		updateCropBox();
+	}
+
+	/** The new part to keep when a border (or the whole frame, for "move") is dragged by dx and dy (fractions of the image) */
+	function dragged(mode, start, dx, dy)
+	{
+		let left = start.x, top = start.y, right = start.x + start.w, bottom = start.y + start.h;
+		let clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+		if (mode === 'move')
+		{
+			left = clamp(start.x + dx, 0, 1 - start.w);
+			top = clamp(start.y + dy, 0, 1 - start.h);
+			right = left + start.w;
+			bottom = top + start.h;
+		}
+		else
+		{
+			if (mode.includes('w')) { left = clamp(left + dx, 0, right - MIN_CROP); }
+			if (mode.includes('e')) { right = clamp(right + dx, left + MIN_CROP, 1); }
+			if (mode.includes('n')) { top = clamp(top + dy, 0, bottom - MIN_CROP); }
+			if (mode.includes('s')) { bottom = clamp(bottom + dy, top + MIN_CROP, 1); }
+		}
+		return { x: left, y: top, w: right - left, h: bottom - top };
+	}
+
+	if (hasImageOptions)
+	{
+		cropBox.addEventListener('pointerdown', (event) =>
+		{
+			if (busy)
+			{
+				return;
+			}
+			event.preventDefault();
+			cropBox.focus();
+			let mode = event.target.dataset.handle || 'move';
+			let start = Object.assign({}, crop);
+			let bounds = cropStage.getBoundingClientRect();
+			let x0 = event.clientX, y0 = event.clientY;
+			cropBox.setPointerCapture(event.pointerId);
+			let move = (e) => setCrop(dragged(mode, start, (e.clientX - x0) / bounds.width, (e.clientY - y0) / bounds.height));
+			let end = () =>
+			{
+				cropBox.removeEventListener('pointermove', move);
+				cropBox.removeEventListener('pointerup', end);
+				cropBox.removeEventListener('pointercancel', end);
+			};
+			cropBox.addEventListener('pointermove', move);
+			cropBox.addEventListener('pointerup', end);
+			cropBox.addEventListener('pointercancel', end);
+		});
+		cropBox.addEventListener('keydown', (event) =>
+		{
+			let step = 0.01;
+			let moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+			if (!moves[event.key])
+			{
+				return;
+			}
+			event.preventDefault();
+			// (Shift changes the size: the right and bottom borders move)
+			setCrop(dragged(event.shiftKey ? 'se' : 'move', crop, moves[event.key][0], moves[event.key][1]));
+		});
+		cropReset.addEventListener('click', () => setCrop(Object.assign({}, WHOLE)));
+		resizeInput.addEventListener('change', updateResultSize);
+		maxSizeInput.addEventListener('input', updateResultSize);
+	}
+
+	function showPreview(file)
+	{
+		if (!hasImageOptions)
+		{
+			return;
+		}
+		cropSection.hidden = true;
+		cropImage.removeAttribute('src');
+		resultSize.textContent = '';
+		crop = Object.assign({}, WHOLE);
+		if (!PREVIEW_TYPES.includes(file.type))
+		{
+			return;
+		}
+		// (as data: address; the Content-Security-Policy does not allow blob: addresses for images)
+		let reader = new FileReader();
+		reader.addEventListener('load', () =>
+		{
+			if (file !== current)
+			{
+				return;
+			}
+			cropImage.onload = () =>
+			{
+				cropSection.hidden = false;
+				setCrop(Object.assign({}, WHOLE));
+			};
+			cropImage.src = reader.result;
+		});
+		reader.readAsDataURL(file);
+	}
+
+	function next()
+	{
+		current = queue.shift() || null;
+		show('', false);
+		nameLabel.textContent = current ? current.name : '';
+		countLabel.textContent = (current && total > 1)
+			? form.dataset.msgCount.replace('%1$s', total - queue.length).replace('%2$s', total) : '';
+		if (current)
+		{
+			showPreview(current);
+		}
+		else
+		{
+			// (all files are done, or were skipped)
+			dialog.close();
+		}
+	}
+
+	function chooseFiles(files)
+	{
+		if (busy || files.length === 0)
+		{
+			return;
+		}
+		queue = files;
+		total = files.length;
+		if (!dialog.open)
+		{
+			dialog.showModal();
+		}
+		next();
+	}
+
+	/** Sends the chosen file; returns the answer of the server, or null when the file already exists and is not replaced */
 	async function uploadOne(file)
 	{
 		let overwrite = false;
@@ -165,10 +367,14 @@ function setupUpload(form, textArea)
 		let data = new FormData();
 		data.append('csrf_token', tokenInput ? tokenInput.value : '');
 		data.append('overwrite', overwrite ? 'true' : '');
-		if (resizeInput)
+		if (hasImageOptions)
 		{
 			data.append('resize', resizeInput.checked ? 'true' : '');
 			data.append('maxsize', maxSizeInput.value);
+		}
+		if (hasImageOptions && !cropSection.hidden && !isWhole())
+		{
+			data.append('crop', [crop.x, crop.y, crop.w, crop.h].map((value) => value.toFixed(5)).join(','));
 		}
 		data.append('userfile', file, file.name);
 		let label = form.dataset.msgUploading.replace('%s', () => file.name);
@@ -188,55 +394,77 @@ function setupUpload(form, textArea)
 		return answer;
 	}
 
-	async function processQueue()
+	startButton.addEventListener('click', async () =>
 	{
 		if (busy)
 		{
 			return;
 		}
+		if (!current)
+		{
+			fileInput.click();
+			return;
+		}
 		busy = true;
-		button.disabled = true;
-		let links = [];
+		startButton.disabled = cancelButton.disabled = true;
 		try
 		{
-			while (queue.length > 0)
+			let answer = await uploadOne(current);
+			if (answer)
 			{
-				let answer = await uploadOne(queue.shift());
-				if (answer)
-				{
-					links.push(answer.link);
-				}
+				links.push(answer.link);
 			}
-			if (links.length > 0)
-			{
-				insertAtCursor(links.join('\n'));
-				show(form.dataset.msgInserted.replace('%s', () => links.join(' ')), false);
-			}
+			busy = false;
+			next();
 		}
 		catch (e)
 		{
-			queue = [];
-			// (the files which were stored before the error are still linked)
-			if (links.length > 0)
-			{
-				insertAtCursor(links.join('\n'));
-			}
+			// (the file stays in the dialog: the error can be fixed, e.g. by another size, or the file is cancelled)
+			busy = false;
 			show(e.message === 'network' ? form.dataset.msgError : e.message, true);
 		}
-		busy = false;
-		button.disabled = false;
-	}
-
-	function addFiles(files)
+		startButton.disabled = cancelButton.disabled = false;
+	});
+	cancelButton.addEventListener('click', () => dialog.close());
+	dialog.addEventListener('cancel', (event) =>
 	{
-		queue.push(...files);
-		processQueue();
-	}
+		// (Escape does not close the dialog while a file is sent)
+		if (busy)
+		{
+			event.preventDefault();
+		}
+	});
+	// (however the dialog is closed: the files which were stored are linked)
+	dialog.addEventListener('close', () =>
+	{
+		queue = [];
+		current = null;
+		let uploaded = links;
+		links = [];
+		showPreview({ type: '' });
+		if (uploaded.length > 0)
+		{
+			insertAtCursor(uploaded.join('\n'));
+		}
+	});
 
-	button.addEventListener('click', () => fileInput.click());
+	openButton.addEventListener('click', (event) =>
+	{
+		event.preventDefault();
+		if (!dialog.open)
+		{
+			queue = [];
+			total = 0;
+			current = null;
+			links = [];
+			nameLabel.textContent = countLabel.textContent = '';
+			show('', false);
+			dialog.showModal();
+		}
+	});
 	fileInput.addEventListener('change', () =>
 	{
-		addFiles(Array.from(fileInput.files));
+		chooseFiles(Array.from(fileInput.files));
 		fileInput.value = '';
 	});
 
@@ -257,7 +485,7 @@ function setupUpload(form, textArea)
 		if (hasFiles(event) && event.dataTransfer.files.length > 0)
 		{
 			event.preventDefault();
-			addFiles(Array.from(event.dataTransfer.files));
+			chooseFiles(Array.from(event.dataTransfer.files));
 		}
 	});
 	textArea.addEventListener('paste', (event) =>
@@ -270,7 +498,7 @@ function setupUpload(form, textArea)
 		}
 		event.preventDefault();
 		let stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-		addFiles(Array.from(clipboard.files).map((file, i) =>
+		chooseFiles(Array.from(clipboard.files).map((file, i) =>
 		{
 			// (a pasted image is always called "image.png")
 			let match = /^image\.(\w+)$/.exec(file.name);
