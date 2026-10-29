@@ -80,7 +80,7 @@ final class LocaleTest extends AppTestCase
 	{
 		$words = self::words($locale);
 		$body = $this->http->get('/index.php')->body;
-		foreach (['All', 'New', 'Images'] as $key) {
+		foreach (['All', 'New', 'Media'] as $key) {
 			$text = htmlspecialchars($words[$key] ?? $key, ENT_QUOTES, 'UTF-8');
 			$this->assertStringContainsString("title=\"$text\"", $body, "$locale: tooltip '$key'");
 		}

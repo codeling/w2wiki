@@ -591,7 +591,7 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/images.svg"), 'label' => translate('Images'));
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/media.svg"), 'label' => translate('Media'));
 }
 if ( REQUIRE_PASSWORD )
 {
