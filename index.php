@@ -285,7 +285,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LEN
 		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
 }
 $saveRefused = false;
-if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) &&
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted', 'linkMention'), true) &&
 	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null)))
 {
 	if ($uploadJson)
@@ -301,7 +301,7 @@ if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRename
 	// again with the text (and the new token), so that the text isn't lost
 	$saveRefused = true;
 }
-if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted'), true) && !$saveRefused)
+if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted', 'linkMention'), true) && !$saveRefused)
 {
 	// (before anything is changed: a pull must not run between a change and its commit)
 	gitLockForChange();
@@ -433,14 +433,16 @@ if ( $action == 'save' )
 
 if ( isEditorAction($action) )
 {
-	$similarPages = ($action === 'new' && $newPage != "" && !$triedSave) ? (new \W2\Lists())->similarPages($newPage) : null;
+	$showContext = ($action === 'new' && $newPage != "" && !$triedSave);
+	$similarPages = $showContext ? (new \W2\Lists())->similarPages($newPage) : null;
+	$pageContext = $showContext ? (new \W2\Lists())->pageContext($newPage) : null;
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
 	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
 		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
 	$content = templates()->render('editor', array(
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
-		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages,
+		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
 		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff,
 		'uploads' => !DISABLE_UPLOADS, 'shrink' => imageProcessingAvailable(), 'apiUrl' => BASE_URI . '/api.php'
@@ -511,6 +513,12 @@ else if ( $action === 'renamed' || $action === 'deleted')
 	$result = ($action === 'deleted')
 		? $changes->deletePage($oldPageName)
 		: $changes->renamePage($oldPageName, sanitizeFilename($_POST['newName'] ?? ''));
+	redirectWithNote($result->page, $result->note);
+}
+else if ( $action === 'linkMention' )
+{
+	$baseHash = is_string($_POST['baseHash'] ?? null) ? $_POST['baseHash'] : '';
+	$result = (new \W2\Changes())->linkMention(sanitizeFilename($_POST['page'] ?? ''), sanitizeFilename($_POST['target'] ?? ''), $baseHash);
 	redirectWithNote($result->page, $result->note);
 }
 else if ( $action === 'imgDeleted' || $action === 'imgRenamed' )

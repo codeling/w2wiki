@@ -170,6 +170,39 @@ final class Lists
 	}
 
 	/**
+	 * What the other pages say about a page which does not exist yet: the pages which already link to it (under the
+	 * file name only: "Firefox" for "Software/Firefox"), and the pages which write the name without a link
+	 *
+	 * @param int $limit	the most pages to return in each list
+	 * @return array{links: array[], mentions: array[]}	links: href, name; mentions: href, name, snippet (the text around
+	 *		the name), baseHash (of the text of the page, see Changes::textHash())
+	 */
+	public function pageContext(string $newPage, int $limit = 20): array
+	{
+		$context = array('links' => array(), 'mentions' => array());
+		$term = Mentions::fileName($newPage);
+		if ($term === '')
+		{
+			return $context;
+		}
+		foreach (getAllPageNames() as $searchPage)
+		{
+			$text = pageStore()->read($searchPage) ?? '';
+			if (Mentions::hasLinkTo($text, $term, 'isExistingPage'))
+			{
+				$context['links'][] = array('href' => pageURL($searchPage), 'name' => $searchPage);
+			}
+			else if (count($context['mentions']) < $limit && ($found = Mentions::find($text, $term)) !== null)
+			{
+				$context['mentions'][] = array('href' => pageURL($searchPage), 'name' => $searchPage,
+					'snippet' => $found['snippet'], 'baseHash' => Changes::textHash($text));
+			}
+		}
+		$context['links'] = array_slice($context['links'], 0, $limit);
+		return $context;
+	}
+
+	/**
 	 * Pages with a name similar to the given one (a new page which might be a typing error)
 	 *
 	 * @return array[] the pages: href, name

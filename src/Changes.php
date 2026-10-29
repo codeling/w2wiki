@@ -100,6 +100,41 @@ final class Changes
 		return new ChangeResult(true, DEFAULT_PAGE, $note);
 	}
 
+	/**
+	 * Makes the first mention of a page name in another page a link to the page (which may not exist yet)
+	 *
+	 * @param string $sourcePage	the page with the mention
+	 * @param string $target	the page to link to; the file name of it is what is looked for in the text
+	 * @param string $baseHash	{@see textHash()} of the text of $sourcePage when the mention was shown
+	 * @return ChangeResult	the page to show afterwards is the target
+	 */
+	public function linkMention(string $sourcePage, string $target, string $baseHash): ChangeResult
+	{
+		$note = new Note();
+		$text = isExistingPage($sourcePage) ? pageStore()->read($sourcePage) : null;
+		if ($text === null || !isValidPageName($target) || !hash_equals(self::textHash($text), $baseHash))
+		{
+			$note->format(translate('The page %s was changed or deleted since the list was shown. Nothing was changed.'), array($sourcePage));
+			return new ChangeResult(false, $target, $note);
+		}
+		$newText = Mentions::link($text, Mentions::fileName($target), $target);
+		if ($newText === null)
+		{
+			$note->format(translate('No place to add a link to %s was found in the page %s. Nothing was changed.'), array($target, $sourcePage));
+			return new ChangeResult(false, $target, $note);
+		}
+		if (!writePage($sourcePage, $newText))
+		{
+			$note->text(translate('Error saving changes! Make sure your web server has write access to the pages folder.'));
+			w2Log("error saving " . fileNameForPage($sourcePage));
+			return new ChangeResult(false, $target, $note);
+		}
+		$message = sprintf(translate('Linked %s in the page %s'), $target, $sourcePage);
+		$note->text($message);
+		gitChangeHandler($message, $note);
+		return new ChangeResult(true, $target, $note);
+	}
+
 	/** Replaces the links to a page in all pages, then commits */
 	private function updatePageLinks(string $oldName, string $replacement, string $message, Note $note): void
 	{

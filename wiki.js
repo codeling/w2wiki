@@ -114,6 +114,27 @@ function sendUpload(url, formData, onProgress)
 }
 
 /**
+ * The buttons of the pages which link to the new page or mention it: they insert a link to that page at the cursor.
+ */
+function setupBacklinks(textArea)
+{
+	for (let button of document.querySelectorAll('button.backlink'))
+	{
+		button.addEventListener('click', () =>
+		{
+			textArea.focus();
+			let text = '[[' + button.dataset.page + ']]';
+			// (as typed text: it can be undone, and counts as a change)
+			if (!document.execCommand || !document.execCommand('insertText', false, text))
+			{
+				textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
+				textArea.dispatchEvent(new Event('input', { bubbles: true }));
+			}
+		});
+	}
+}
+
+/**
  * Uploading files from the editor. The button of the symbol bar opens a dialog to choose a file; files dropped on the
  * text and images pasted into it open the dialog with the files already chosen. Images can be cropped in the dialog
  * (the server does it, with the part to keep sent as fractions of the image) and shrunk, which is shown as the size
@@ -655,6 +676,7 @@ document.addEventListener('DOMContentLoaded', () =>
 	}
 
 	setupUpload(form, textArea);
+	setupBacklinks(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	form.addEventListener('submit', () =>
