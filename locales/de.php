@@ -55,6 +55,7 @@ $w2_word_set = array(
 	'Shrink if larger than ' => 'Verkleinern wenn größer als ',
 	'Pixels' => 'Pixel',
 	'Save as' => 'Speichern als',
+	'Images' => 'Bilder',
 	'Keep file name' => 'Dateiname beibehalten',
 	'What links here:' => 'Seiten die hierher linken:',
 	'Close' => 'Schließen',
