@@ -217,7 +217,9 @@ location ^~ /images/ {
 The scripts of the wiki send security headers with every response (Content-Security-Policy, which only allows
 scripts and styles from the wiki itself and forbids framing, `X-Content-Type-Options`, `X-Frame-Options`,
 `Referrer-Policy`, `Permissions-Policy`, and `Strict-Transport-Security` for requests over HTTPS). Don't add
-headers of the same names in the web server, they would apply to the same responses twice. The rules above
+headers of the same names in the web server, they would apply to the same responses twice (for a
+Content-Security-Policy that means the strictest rules of both apply, e.g. a `default-src 'self'` without `img-src`
+stops pages from showing images of other sites; the preview of the image to crop in the upload dialog needs no exception). The rules above
 additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`
 and `api.php`, the `tests`, `locales`, `Michelf` and `src` folders, `composer.json`, the documentation and so on).
 

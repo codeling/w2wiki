@@ -95,7 +95,7 @@
 <?php if ($this->shrink): ?>
 <div id="cropsection" hidden="hidden">
 <p class="hint"><?= __('Drag the borders of the frame to crop the image (or use the arrow keys, with Shift to change the size).') ?></p>
-<div id="cropstage"><img id="cropimage" alt="" /><div id="cropbox" tabindex="0" role="group" aria-label="<?= __('Part of the image to keep') ?>"><?php foreach (array('nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w') as $handle): ?><span class="handle <?= $handle ?>" data-handle="<?= $handle ?>"></span><?php endforeach ?></div></div>
+<div id="cropstage"><canvas id="cropimage" aria-hidden="true"></canvas><div id="cropbox" tabindex="0" role="group" aria-label="<?= __('Part of the image to keep') ?>"><?php foreach (array('nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w') as $handle): ?><span class="handle <?= $handle ?>" data-handle="<?= $handle ?>"></span><?php endforeach ?></div></div>
 <p><input id="cropreset" type="button" value="<?= __('Whole image') ?>" /></p>
 </div>
 <p id="shrinkoptions"><input id="uploadresize" type="checkbox" checked="checked" /><label for="uploadresize"><?= __('Shrink if larger than ') ?></label><input id="uploadmaxsize" type="number" min="20" max="8192" value="1200" /> <label for="uploadmaxsize"><?= __('Pixels') ?></label> <span id="resultsize"></span></p>
