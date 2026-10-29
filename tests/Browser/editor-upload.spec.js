@@ -192,4 +192,26 @@ test.describe('cropping', () => {
     expect((await page.request.get('/images/cancelled.png')).status()).toBe(404);
     await expect(page.locator('#text')).toHaveValue('');
   });
+
+  test('the preview also works when the web server adds a stricter Content-Security-Policy', async ({ page }) => {
+    // (all policies of a response apply: this one has no img-src, so images can only come from the wiki itself;
+    // neither a data: nor a blob: address may be used to show the file which was chosen)
+    await page.route('**/index.php?action=new', async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': response.headers()['content-security-policy'] + ', default-src \'self\'' } });
+    });
+    const violations = [];
+    page.on('console', (message) => { if (/content security policy|content-security-policy/i.test(message.text())) violations.push(message.text()); });
+    await choose(page, 'strict.png', 400, 200);
+    const size = await page.locator('#cropimage').boundingBox();
+    expect(size.width).toBeGreaterThan(50);
+    expect(size.height).toBeGreaterThan(20);
+    await page.locator('#cropbox').focus();
+    for (let i = 0; i < 50; i++) await page.keyboard.press('Shift+ArrowLeft');
+    await expect(page.locator('#resultsize')).toContainText('200 × 200');
+    await page.click('#uploadstart');
+    await expect(page.locator('#uploaddialog')).toBeHidden();
+    expect(await storedSize(page, 'strict.png')).toEqual([200, 200]);
+    expect(violations).toEqual([]);
+  });
 });

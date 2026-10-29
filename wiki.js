@@ -160,6 +160,9 @@ function setupUpload(form, textArea)
 	let cropSection = document.getElementById('cropsection');
 	let cropStage = document.getElementById('cropstage');
 	let cropImage = document.getElementById('cropimage');
+	// (the size of the image in pixels; the canvas of the preview shows it smaller)
+	let imageSize = { width: 0, height: 0 };
+	const PREVIEW_PIXELS = 1200;
 	let cropBox = document.getElementById('cropbox');
 	let cropReset = document.getElementById('cropreset');
 	// (without image processing on the server, the dialog has no options for images)
@@ -218,13 +221,13 @@ function setupUpload(form, textArea)
 		{
 			return;
 		}
-		if (cropSection.hidden || !cropImage.naturalWidth)
+		if (cropSection.hidden || !imageSize.width)
 		{
 			resultSize.textContent = '';
 			return;
 		}
-		let width = Math.max(1, Math.round(crop.w * cropImage.naturalWidth));
-		let height = Math.max(1, Math.round(crop.h * cropImage.naturalHeight));
+		let width = Math.max(1, Math.round(crop.w * imageSize.width));
+		let height = Math.max(1, Math.round(crop.h * imageSize.height));
 		let maxSize = Math.max(20, Math.min(8192, parseInt(maxSizeInput.value, 10) || 1200));
 		if (resizeInput.checked && Math.max(width, height) > maxSize)
 		{
@@ -313,29 +316,32 @@ function setupUpload(form, textArea)
 			return;
 		}
 		cropSection.hidden = true;
-		cropImage.removeAttribute('src');
+		imageSize = { width: 0, height: 0 };
 		resultSize.textContent = '';
 		crop = Object.assign({}, WHOLE);
-		if (!PREVIEW_TYPES.includes(file.type))
+		if (!PREVIEW_TYPES.includes(file.type) || !window.createImageBitmap)
 		{
 			return;
 		}
-		// (as data: address; the Content-Security-Policy does not allow blob: addresses for images)
-		let reader = new FileReader();
-		reader.addEventListener('load', () =>
+		// (decoded from the file itself, and drawn: not loaded from a data: or blob: address, which a
+		// Content-Security-Policy without img-src for them, e.g. one added by the web server, would block)
+		createImageBitmap(file, { imageOrientation: 'from-image' }).then((bitmap) =>
 		{
-			if (file !== current)
+			if (file === current)
 			{
-				return;
-			}
-			cropImage.onload = () =>
-			{
+				let scale = Math.min(1, PREVIEW_PIXELS / Math.max(bitmap.width, bitmap.height));
+				cropImage.width = Math.max(1, Math.round(bitmap.width * scale));
+				cropImage.height = Math.max(1, Math.round(bitmap.height * scale));
+				cropImage.getContext('2d').drawImage(bitmap, 0, 0, cropImage.width, cropImage.height);
+				imageSize = { width: bitmap.width, height: bitmap.height };
 				cropSection.hidden = false;
 				setCrop(Object.assign({}, WHOLE));
-			};
-			cropImage.src = reader.result;
+			}
+			bitmap.close();
+		}).catch(() =>
+		{
+			// (a file which the browser can't show, e.g. a damaged one: it is uploaded as it is)
 		});
-		reader.readAsDataURL(file);
 	}
 
 	function next()
