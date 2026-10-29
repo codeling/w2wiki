@@ -60,7 +60,7 @@ final class MentionsTest extends TestCase
 	{
 		$text = str_repeat('é', 100) . ' Firefox ' . str_repeat('ü', 100);
 		$found = Mentions::find($text, 'Firefox');
-		$this->assertSame('…' . str_repeat('é', 40) . ' Firefox ' . str_repeat('ü', 60) . '…', $found['snippet']);
+		$this->assertSame('…' . str_repeat('é', 39) . ' Firefox ' . str_repeat('ü', 59) . '…', $found['snippet']);
 	}
 
 	public function testFirstMentionBecomesALinkWithTheWrittenTextAsLabel(): void
