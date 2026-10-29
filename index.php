@@ -481,7 +481,7 @@ else if ( $action === 'uploaded' )
 		die(__('Invalid access. Uploads are disabled in the configuration.'));
 	}
 	$result = (new \W2\Uploads())->store($_FILES['userfile'] ?? array(), $_POST['newname'] ?? '', ($_POST['overwrite'] ?? '') === 'true',
-		isset($_POST['resize']) && $_POST['resize'] === 'true', intval($_POST['maxsize'] ?? 1200));
+		isset($_POST['resize']) && $_POST['resize'] === 'true', intval($_POST['maxsize'] ?? 1200), parseCropRect($_POST['crop'] ?? ''));
 	if ($uploadJson)
 	{
 		$stored = $result->file !== '';
@@ -615,7 +615,7 @@ print templates()->render('layout', array(
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
 			? getPageActions($page, $action, "") : null,
 		'toolbar' => $toolbar,
-		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
+		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
 		'content' => $content

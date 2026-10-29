@@ -161,4 +161,11 @@ final class SvgSanitizingTest extends SvgAppTestCase
 		$this->assertStringContainsString("File 'a.svg' uploaded", $note);
 		$this->assertSame(['a.svg'], $this->uploadedFiles());
 	}
+
+	public function testSvgFilesCannotBeCroppedAndAreNotStoredWhole(): void
+	{
+		$note = $this->noteAfter($this->uploadSvg('a.svg', $this->svgFixture('benign'), ['crop' => '0,0,0.5,0.5']));
+		$this->assertStringContainsString('a.svg can not be cropped', $note);
+		$this->assertSame([], $this->uploadedFiles());
+	}
 }

@@ -102,8 +102,37 @@ final class EditorUploadTest extends AppTestCase
 		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Pic']] as $query) {
 			$body = $this->http->get('/index.php', $query)->body;
 			$this->assertStringContainsString('id="uploadbutton"', $body);
+			$this->assertStringContainsString('id="uploaddialog"', $body);
 			$this->assertStringContainsString('data-upload-url="/index.php?action=uploaded&amp;json=1"', $body);
 			$this->assertStringContainsString('data-check-url="/api.php?task=checkupload"', $body);
 		}
+	}
+
+	public function testUploadControlsAreNotShownInTheEditorItself(): void
+	{
+		// (they are in the dialog after the form, which the script opens from the button of the toolbar)
+		$body = $this->http->get('/index.php', ['action' => 'new'])->body;
+		$formEnd = strpos($body, '</form>', strpos($body, 'id="edit"'));
+		$this->assertNotFalse($formEnd);
+		$this->assertStringNotContainsString('id="uploadfile"', substr($body, 0, $formEnd));
+		$this->assertGreaterThan($formEnd, strpos($body, 'id="uploaddialog"'));
+		$this->assertGreaterThan($formEnd, strpos($body, 'id="cropbox"'));
+	}
+
+	public function testUploadWithCropAnswersWithTheSizeInTheMessage(): void
+	{
+		if (!extension_loaded('imagick')) {
+			$this->markTestSkipped('The Imagick extension is not installed');
+		}
+		$png = (function () {
+			$img = new \Imagick();
+			$img->newImage(40, 20, new \ImagickPixel('red'), 'png');
+			return $img->getImagesBlob();
+		})();
+		[$response, $json] = $this->jsonUpload('c.png', $png, ['crop' => '0,0,0.5,1'], null, 'image/png');
+		$this->assertSame(200, $response->status);
+		$this->assertTrue($json['success']);
+		$this->assertStringContainsString('Cropped to 20x20.', $json['message']);
+		$this->assertSame([20, 20], array_slice(getimagesize($this->imageFile('c.png')), 0, 2));
 	}
 }

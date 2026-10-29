@@ -22,4 +22,12 @@ final class UploadsDisabledTest extends AppTestCase
 		$this->assertStringContainsString('Uploads are disabled', $response->body);
 		$this->assertSame([], $this->uploadedFiles());
 	}
+
+	public function testEditorHasNoUploadButtonOrDialog(): void
+	{
+		$body = $this->http->get('/index.php', ['action' => 'new'])->body;
+		$this->assertStringContainsString('id="drawer-control"', $body);
+		$this->assertStringNotContainsString('id="uploadbutton"', $body);
+		$this->assertStringNotContainsString('id="uploaddialog"', $body);
+	}
 }

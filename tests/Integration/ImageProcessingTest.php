@@ -200,9 +200,79 @@ final class ImageProcessingTest extends AppTestCase
 	public function testResizeAndRotationCanBeCombined(): void
 	{
 		$note = $this->noteAfter($this->upload('photo.jpg', file_get_contents(self::FIXTURES . '/orientation-6.jpg'), 'image/jpeg', ['resize' => 'true', 'maxsize' => '40']));
-		$this->assertStringContainsString('resized to 40x20', $note);
+		// (the sizes are the ones of the image as it is shown, which is rotated first: 30x60 for the 60x30 file)
+		$this->assertStringContainsString('Original size was 30x60, resized to 20x40.', $note);
 		$this->assertStringContainsString('rotated by +90°', $note);
 		$this->assertSame([20, 40], $this->sizeOf('photo.jpg'));
+	}
+
+	// --- crop ------------------------------------------------------------------------
+
+	public function testImageIsCroppedToTheGivenPart(): void
+	{
+		$note = $this->noteAfter($this->upload('wide.png', self::image(100, 50), 'image/png', ['crop' => '0.1,0.2,0.5,0.4']));
+		$this->assertStringContainsString('Cropped to 50x20.', $note);
+		$this->assertSame([50, 20], $this->sizeOf('wide.png'));
+		$this->assertSame(['wide.png'], $this->uploadedFiles());
+	}
+
+	public function testCropNeedsNoShrinking(): void
+	{
+		$this->upload('plain.png', self::image(100, 50), 'image/png', ['crop' => '0,0,0.5,1']);
+		$this->assertSame([50, 50], $this->sizeOf('plain.png'));
+	}
+
+	public function testPartOfTheImageIsKept(): void
+	{
+		// the fixture is red on the left and blue on the right (60x30)
+		$this->upload('part.jpg', file_get_contents(self::FIXTURES . '/orientation-1.jpg'), 'image/jpeg', ['crop' => '0.5,0,0.5,1']);
+		$img = new \Imagick($this->imageFile('part.jpg'));
+		$this->assertSame([30, 30], [$img->getImageWidth(), $img->getImageHeight()]);
+		$this->assertSame('blue', $this->dominantColor($img->getImagePixelColor(2, 15)));
+		$this->assertSame('blue', $this->dominantColor($img->getImagePixelColor(27, 15)));
+	}
+
+	public function testImageIsCroppedBeforeItIsShrunk(): void
+	{
+		// 100x50 -> 50x50 -> 20x20 (not 20x10 first and then a part of that)
+		$note = $this->uploadResized('both.png', self::image(100, 50), ['maxsize' => '20', 'crop' => '0,0,0.5,1']);
+		$this->assertStringContainsString('Cropped to 50x50.', $note);
+		$this->assertStringContainsString('Original size was 50x50, resized to 20x20.', $note);
+		$this->assertSame([20, 20], $this->sizeOf('both.png'));
+	}
+
+	public function testCroppedImageIsNotShrunkWhenItFits(): void
+	{
+		$note = $this->uploadResized('fits.png', self::image(100, 50), ['maxsize' => '40', 'crop' => '0,0,0.4,0.8']);
+		$this->assertStringNotContainsString('resized', $note);
+		$this->assertSame([40, 40], $this->sizeOf('fits.png'));
+	}
+
+	public function testCropIsAPartOfTheRotatedImage(): void
+	{
+		// orientation 6: stored as 60x30, shown as 30x60 with red above and blue below
+		$note = $this->noteAfter($this->upload('rot.jpg', file_get_contents(self::FIXTURES . '/orientation-6.jpg'), 'image/jpeg', ['crop' => '0,0.5,1,0.5']));
+		$this->assertStringContainsString('rotated by +90°', $note);
+		$this->assertStringContainsString('Cropped to 30x30.', $note);
+		$img = new \Imagick($this->imageFile('rot.jpg'));
+		$this->assertSame([30, 30], [$img->getImageWidth(), $img->getImageHeight()]);
+		$this->assertSame('blue', $this->dominantColor($img->getImagePixelColor(15, 2)));
+		$this->assertSame('blue', $this->dominantColor($img->getImagePixelColor(15, 27)));
+	}
+
+	public function testCropAndConversionCanBeCombined(): void
+	{
+		$this->upload('anim.gif', self::image(100, 50, 'gif'), 'image/gif', ['crop' => '0,0,0.5,0.5']);
+		$this->assertSame([50, 25], $this->sizeOf('anim.jpg'));
+		$this->assertSame(['anim.jpg'], $this->uploadedFiles());
+	}
+
+	public function testInvalidCropIsIgnored(): void
+	{
+		foreach (['x', '0,0,1,1', '0.5,0.5,0,0'] as $i => $crop) {
+			$this->upload("ignored$i.png", self::image(100, 50), 'image/png', ['crop' => $crop]);
+			$this->assertSame([100, 50], $this->sizeOf("ignored$i.png"));
+		}
 	}
 
 	// --- conversion ------------------------------------------------------------------
