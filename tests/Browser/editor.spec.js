@@ -62,6 +62,28 @@ test('new page: saving does not ask for confirmation', async ({ page }) => {
   expect(dialogs).toEqual([]);
 });
 
+test('new page: linking a mention in another page does not ask for confirmation and keeps the typed text', async ({ page, request }) => {
+  await savePage(request, 'Page with a mention', 'I like Gadgetname a lot.');
+  const dialogs = [];
+  page.on('dialog', async (dialog) => { dialogs.push(dialog.type()); await dialog.dismiss(); });
+  await page.goto('/index.php/' + encodeURIComponent('Software/Gadgetname'));
+  await page.click('#text');
+  await page.keyboard.type('text typed before linking');
+  await page.click('form.linkmention input[type=submit]');
+  await expect(page.locator('.note').first()).toContainText('Linked Software/Gadgetname in the page Page with a mention');
+  await expect(page.locator('#text')).toHaveValue('text typed before linking');
+  expect(dialogs).toEqual([]);
+});
+
+test('new page: the backlink button inserts a link to the page at the cursor', async ({ page, request }) => {
+  await savePage(request, 'Page linking to it', 'See [[Gadgetlink]] here.');
+  await page.goto('/index.php/' + encodeURIComponent('Software/Gadgetlink'));
+  await page.click('#text');
+  await page.keyboard.type('start ');
+  await page.click('button.backlink');
+  await expect(page.locator('#text')).toHaveValue('start [[Page linking to it]]');
+});
+
 test('existing page: leaving with changes asks for confirmation', async ({ page, request }) => {
   await savePage(request, 'Page to edit', 'old text');
   await page.goto('/index.php?action=edit&page=' + encodeURIComponent('Page to edit'));

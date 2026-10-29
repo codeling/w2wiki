@@ -679,11 +679,17 @@ document.addEventListener('DOMContentLoaded', () =>
 	setupBacklinks(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
-	form.addEventListener('submit', () =>
+	function leaveWithDraft()
 	{
 		saveDraft();
 		modified = false;
-	});
+	}
+	form.addEventListener('submit', leaveWithDraft);
+	// (the forms which link a mention in another page reload this page, which restores the draft: no warning needed)
+	for (let linkForm of document.querySelectorAll('form.linkmention'))
+	{
+		linkForm.addEventListener('submit', leaveWithDraft);
+	}
 	document.getElementById("cancel").addEventListener('click', () =>
 	{
 		removeDraft(key);
