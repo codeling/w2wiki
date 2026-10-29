@@ -329,6 +329,24 @@ input#gitmsg {
 	padding: 4px;
 	border: solid 1px #666644;
 }
+.pagecontext {
+	padding: 4px;
+	margin: .5em 0;
+	border: solid 1px #666644;
+}
+.pagecontext p {
+	margin: .3em 0;
+}
+.pagecontext ul {
+	margin-top: 0;
+	padding-left: 1.5em;
+}
+.pagecontext .snippet {
+	color: #555;
+}
+.pagecontext form.linkmention {
+	display: inline;
+}
 .sidebar ul {
 	margin-top: 0;
 	margin-left: 4px;
