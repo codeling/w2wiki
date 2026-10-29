@@ -11,7 +11,8 @@
  *         pageContext (null, or what other pages say about the new page, see Lists::pageContext(): links (href, name) are the
  *         pages which link to it, mentions (href, name, snippet, baseHash) the pages which write its name without a link),
  *         text (text), rows (number), gitEnabled (bool), gitMessage (text),
- *         uploads (bool: files can be uploaded from the editor), shrink (bool: uploaded images can be shrunk),
+ *         uploads (bool: files can be uploaded from the editor, with the dialog after the form), shrink (bool: uploaded
+ *         images can be shrunk and cropped, which needs image processing),
  *         apiUrl (text: the address of api.php, which tells whether an uploaded file exists already),
  *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save()),
  *         diff (null, or the lines which differ between the current text of the page and the text in the editor, with some
@@ -44,7 +45,7 @@
 <?php endif ?>
 </div>
 <?php endif ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>"<?php if ($this->uploads): ?> data-upload-url="<?= $this->e(SELF) ?>?action=uploaded&amp;json=1" data-check-url="<?= $this->e($this->apiUrl) ?>?task=checkupload" data-msg-uploading="<?= __('Uploading %s') ?>" data-msg-overwrite="<?= __('File %s already exists. Overwrite?') ?>" data-msg-inserted="<?= __('Inserted %s') ?>" data-msg-error="<?= __('Upload error') ?>" data-msg-bad-answer="<?= __('The server did not answer as expected (maybe the session has expired). Please reload the page; the text is kept as a draft.') ?>"<?php endif ?>>
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>"<?php if ($this->uploads): ?> data-upload-url="<?= $this->e(SELF) ?>?action=uploaded&amp;json=1" data-check-url="<?= $this->e($this->apiUrl) ?>?task=checkupload" data-msg-uploading="<?= __('Uploading %s') ?>" data-msg-overwrite="<?= __('File %s already exists. Overwrite?') ?>" data-msg-error="<?= __('Upload error') ?>" data-msg-result-size="<?= __('Result: %s pixels') ?>" data-msg-count="<?= __('File %1$s of %2$s') ?>" data-msg-bad-answer="<?= __('The server did not answer as expected (maybe the session has expired). Please reload the page; the text is kept as a draft.') ?>"<?php endif ?>>
 <?= $this->csrfField ?>
 
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
@@ -77,13 +78,6 @@
 <?php endif ?>
 <?php endforeach ?></pre></div>
 <?php endif ?>
-<?php if ($this->uploads): ?>
-<p class="uploadbar"><input id="uploadbutton" type="button" value="<?= __('Upload') ?>" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)') ?>" /><input id="uploadfile" type="file" multiple="multiple" hidden="hidden" />
-<?php if ($this->shrink): ?>
-<input id="uploadresize" type="checkbox" checked="checked" /><label for="uploadresize"><?= __('Shrink if larger than ') ?></label><input id="uploadmaxsize" type="number" min="20" max="8192" value="1200" /> <label for="uploadmaxsize"><?= __('Pixels') ?></label>
-<?php endif ?>
-<span id="uploadstatus" role="status"></span></p>
-<?php endif ?>
 <p class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><?= $this->text ?></textarea></p>
 <?php if ($this->gitEnabled): ?>
 <p><?= __('Message') ?>: <input type="text" id="gitmsg" name="gitmsg" value="<?= $this->gitMessage ?>" /></p>
@@ -93,3 +87,20 @@
 <input id="save" type="submit" value="<?= __('Save') ?>" />
 <input id="cancel" type="button" onclick="<?= HANDLER_GO_BACK ?>" value="<?= __('Cancel') ?>" />
 </p></form>
+<?php if ($this->uploads): ?>
+<?php /* (outside the form: pressing Enter in the dialog must not save the page, and the files are not part of it) */ ?>
+<dialog id="uploaddialog" aria-labelledby="uploadtitle">
+<h5 id="uploadtitle"><?= __('Upload') ?> <span id="uploadcount"></span></h5>
+<p><input id="uploadfile" type="file" multiple="multiple" /> <span id="uploadname"></span></p>
+<?php if ($this->shrink): ?>
+<div id="cropsection" hidden="hidden">
+<p class="hint"><?= __('Drag the borders of the frame to crop the image (or use the arrow keys, with Shift to change the size).') ?></p>
+<div id="cropstage"><img id="cropimage" alt="" /><div id="cropbox" tabindex="0" role="group" aria-label="<?= __('Part of the image to keep') ?>"><?php foreach (array('nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w') as $handle): ?><span class="handle <?= $handle ?>" data-handle="<?= $handle ?>"></span><?php endforeach ?></div></div>
+<p><input id="cropreset" type="button" value="<?= __('Whole image') ?>" /></p>
+</div>
+<p id="shrinkoptions"><input id="uploadresize" type="checkbox" checked="checked" /><label for="uploadresize"><?= __('Shrink if larger than ') ?></label><input id="uploadmaxsize" type="number" min="20" max="8192" value="1200" /> <label for="uploadmaxsize"><?= __('Pixels') ?></label> <span id="resultsize"></span></p>
+<?php endif ?>
+<p id="uploadstatus" role="status"></p>
+<p class="dialogactions"><input id="uploadstart" type="button" value="<?= __('Upload') ?>" /> <input id="uploadcancel" type="button" value="<?= __('Cancel') ?>" /></p>
+</dialog>
+<?php endif ?>

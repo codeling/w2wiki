@@ -425,6 +425,37 @@ function getFileExt($fileName)
 }
 
 /**
+ * The part of an uploaded image to keep, from the "crop" field of the upload: "x,y,w,h", the position and size as
+ * fractions (0 to 1) of the width and height of the image (as it is shown, i.e. after rotating it by its EXIF orientation).
+ *
+ * @return float[]|null	x, y, width, height (inside the image, at least 0.001 wide and high); null for no crop: nothing given,
+ *						something else than four numbers, or the whole image
+ */
+function parseCropRect($text)
+{
+	if (!is_string($text) || !preg_match('/^\s*(-?[0-9.]+(?:e-?[0-9]+)?(?:\s*,\s*-?[0-9.]+(?:e-?[0-9]+)?){3})\s*$/i', $text, $match))
+	{
+		return null;
+	}
+	$values = array_map('floatval', preg_split('/\s*,\s*/', $match[1]));
+	list($x, $y, $w, $h) = $values;
+	$x = max(0.0, min(1.0, $x));
+	$y = max(0.0, min(1.0, $y));
+	$w = min($w, 1.0 - $x);
+	$h = min($h, 1.0 - $y);
+	if (!is_finite($x + $y + $w + $h) || $w < 0.001 || $h < 0.001)
+	{
+		return null;
+	}
+	// (a rectangle which covers everything but a pixel or two of a large image is a click on the whole image)
+	if ($x < 0.0005 && $y < 0.0005 && $w > 0.9995 && $h > 0.9995)
+	{
+		return null;
+	}
+	return array($x, $y, $w, $h);
+}
+
+/**
  * The name under which an uploaded file gets stored: the name of the uploaded file,
  * or the (optional) name the user chose instead. The chosen name keeps the extension
  * of the uploaded file, as the content must match it (so "cat" becomes "cat.jpg").

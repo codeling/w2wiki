@@ -242,10 +242,10 @@ text, and the next save works.
 
 ### Image processing
 
-Shrinking uploaded images, applying their EXIF rotation and converting formats
+Cropping and shrinking uploaded images, applying their EXIF rotation and converting formats
 (`IMAGE_EXTS_TO_CONVERT`, by default HEIC/HEIF to JPEG) need the PHP extension
 `imagick`. Without it, or with `IMAGE_PROCESSING_ENABLED` set to `false`, W2
-stores images as they are and the upload form has no shrink option; images
+stores images as they are, and the upload dialog has no options to shrink or crop them; images
 which have to be converted (HEIC/HEIF by default) are refused with a message.
 
 W2 always tells ImageMagick the format of an upload (it never lets it guess from

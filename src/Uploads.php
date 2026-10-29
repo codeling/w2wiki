@@ -24,8 +24,9 @@ final class Uploads
 	 * @param bool $overwrite	whether an existing file may be replaced
 	 * @param bool $resize		whether images which are too large are shrunk
 	 * @param int $maxSize		the most pixels of the longer side of a shrunk image
+	 * @param float[]|null $crop	the part of an image to keep, see parseCropRect(); it is cut out before the image is shrunk
 	 */
-	public function store(array $file, string $newName, bool $overwrite, bool $resize, int $maxSize): ChangeResult
+	public function store(array $file, string $newName, bool $overwrite, bool $resize, int $maxSize, ?array $crop = null): ChangeResult
 	{
 		$uploadError = $file['error'] ?? UPLOAD_ERR_NO_FILE;
 		if ( $uploadError === UPLOAD_ERR_NO_FILE )
@@ -64,10 +65,13 @@ final class Uploads
 			$doResize = $resize;
 			$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
 			// never let ImageMagick parse SVG files (external references, delegates)
-			$doProcess = in_array($fileExt, \ImageExtensions, true) && $fileExt !== 'svg' && ($doConvert || $doResize);
+			$isBitmap = in_array($fileExt, \ImageExtensions, true) && $fileExt !== 'svg';
+			$doCrop = ($crop !== null);
+			$doProcess = $isBitmap && ($doConvert || $doResize || $doCrop);
 			// (without the imagick extension, images are stored as they are, unless they have to be converted)
 			$resizeSkipped = false;
 			$conversionImpossible = false;
+			$cropImpossible = $doCrop && !($isBitmap && imageProcessingAvailable());
 			if ($doProcess && !imageProcessingAvailable())
 			{
 				$conversionImpossible = $doConvert;
@@ -81,7 +85,14 @@ final class Uploads
 			{
 				$path = $pathNoExt . "-tmp-process." . $fileExt;
 			}
-			if ( $conversionImpossible )
+			if ( $cropImpossible )
+			{
+				// (storing the whole image would not be what was asked for)
+				w2Log("can't crop the upload $dstName: not a bitmap image, or image processing is not available");
+				$note->text(translate('Upload error').": ")
+					->format(translate('%s can not be cropped: only bitmap images can be, and only if image processing (the PHP extension imagick) is available on this server.'), array($dstName));
+			}
+			else if ( $conversionImpossible )
 			{
 				w2Log("can't convert the upload $dstName: image processing is not available");
 				$note->text(translate('Upload error').": ")
@@ -116,29 +127,7 @@ final class Uploads
 							throw new \ImagickException('image has too many pixels');
 						}
 						$img = new \Imagick($source);
-						if ($doResize)
-						{
-							$size = array($img->getImageWidth(), $img->getImageHeight());
-							$maxsize = max(20, min(8192, $maxSize));
-							$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
-						}
-						if ($doResize)
-						{
-							$newSize = array(0, 0);
-							$idx0 = ($size[0] > $size[1]) ? 0 : 1;
-							$idx1 = ($idx0 == 0) ? 1 : 0;
-							$newSize[$idx0] = $maxsize;
-							$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
-							try
-							{
-								$img->resizeImage($newSize[0], $newSize[1], \Imagick::FILTER_LANCZOS, 1);
-								$note->format(translate('Original size was %s, resized to %s.'), array("$size[0]x$size[1]", "$newSize[0]x$newSize[1]"))->text(" ");
-							}
-							catch (\ImagickException $e)
-							{
-								$note->text(translate('Resizing file failed!')." ");
-							}
-						}
+						// (first rotated as the camera wants it: the crop is a part of the image as it is shown)
 						$ori = $img->getImageOrientation();
 						if($ori)
 						{
@@ -161,6 +150,42 @@ final class Uploads
 	//							break;
 							}
 							$img->setImageOrientation(\Imagick::ORIENTATION_TOPLEFT);
+						}
+						if ($doCrop)
+						{
+							$width = $img->getImageWidth();
+							$height = $img->getImageHeight();
+							$left = min($width - 1, (int)round($crop[0] * $width));
+							$top = min($height - 1, (int)round($crop[1] * $height));
+							$cropWidth = max(1, min($width - $left, (int)round($crop[2] * $width)));
+							$cropHeight = max(1, min($height - $top, (int)round($crop[3] * $height)));
+							$img->cropImage($cropWidth, $cropHeight, $left, $top);
+							// (forget the position on the canvas the image had before: it would show as empty space)
+							$img->setImagePage(0, 0, 0, 0);
+							$note->format(translate('Cropped to %s.'), array("{$cropWidth}x{$cropHeight}"))->text(" ");
+						}
+						if ($doResize)
+						{
+							$size = array($img->getImageWidth(), $img->getImageHeight());
+							$maxsize = max(20, min(8192, $maxSize));
+							$doResize = ($size[0] > $maxsize || $size[1] > $maxsize);
+						}
+						if ($doResize)
+						{
+							$newSize = array(0, 0);
+							$idx0 = ($size[0] > $size[1]) ? 0 : 1;
+							$idx1 = ($idx0 == 0) ? 1 : 0;
+							$newSize[$idx0] = $maxsize;
+							$newSize[$idx1] = (int)round($size[$idx1] * $maxsize / $size[$idx0]);
+							try
+							{
+								$img->resizeImage($newSize[0], $newSize[1], \Imagick::FILTER_LANCZOS, 1);
+								$note->format(translate('Original size was %s, resized to %s.'), array("$size[0]x$size[1]", "$newSize[0]x$newSize[1]"))->text(" ");
+							}
+							catch (\ImagickException $e)
+							{
+								$note->text(translate('Resizing file failed!')." ");
+							}
 						}
 						if ($doConvert)
 						{

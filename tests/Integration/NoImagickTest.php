@@ -54,6 +54,24 @@ final class NoImagickTest extends AppTestCase
 		$this->assertStringContainsString("can't convert the upload anim.gif", $this->server->logSince($logOffset));
 	}
 
+	public function testCroppedImageIsRefusedInsteadOfStoredWhole(): void
+	{
+		$logOffset = $this->server->logSize();
+		$note = $this->noteAfter($this->upload('pic.png', self::png(), 'image/png', ['crop' => '0,0,0.5,0.5']));
+		$this->assertStringContainsString('Upload error', $note);
+		$this->assertStringContainsString('pic.png can not be cropped', $note);
+		$this->assertSame([], $this->uploadedFiles());
+		$this->assertStringContainsString("can't crop the upload pic.png", $this->server->logSince($logOffset));
+	}
+
+	public function testEditorOffersNoCropWithoutImagick(): void
+	{
+		$body = $this->http->get('/index.php', ['action' => 'new'])->body;
+		$this->assertStringContainsString('id="uploaddialog"', $body);
+		$this->assertStringNotContainsString('id="cropbox"', $body);
+		$this->assertStringNotContainsString('id="uploadresize"', $body);
+	}
+
 	public function testPdfIsStoredWithoutProcessing(): void
 	{
 		$note = $this->noteAfter($this->upload('doc.pdf', "%PDF-1.4\n%%EOF\n", 'application/pdf', ['resize' => 'true']));
