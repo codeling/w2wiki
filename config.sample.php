@@ -31,16 +31,28 @@ define('PAGES_PATH', dirname(__FILE__). '/pages');
 
 // UPLOAD_FOLDER
 //
-// The subfolder in PAGES_PATH that uploads get stored to: a single folder name
-// (no slashes). It is not part of the wiki: Markdown files within it are not pages,
-// and pages cannot be created there. The web server has to serve it under
-// UPLOAD_URL (see "Uploaded images" in INSTALL.md).
+// The name of the folder in PAGES_PATH that uploads get stored to (a single folder
+// name, no slashes), unless UPLOAD_PATH names another folder. The uploads folder is
+// not part of the wiki: Markdown files within it are not pages, and pages cannot be
+// created there.
 define('UPLOAD_FOLDER', 'images');
+
+// UPLOAD_PATH
+//
+// The folder that uploads get stored to (no trailing slash). By default it is
+// UPLOAD_FOLDER within PAGES_PATH, but it can be anywhere, e.g. next to the pages
+// folder: define('UPLOAD_PATH', '/srv/wiki/media'); with the pages in /srv/wiki/pages.
+// With the git integration it has to be in the same git repository as the pages,
+// otherwise uploads are not committed. Uploads are served by the wiki (file.php, with
+// the same password and IP checks as the pages), so the web server must not serve
+// this folder (see "Uploaded files" in INSTALL.md).
+define('UPLOAD_PATH', PAGES_PATH . '/' . UPLOAD_FOLDER);
 
 // UPLOAD_URL
 //
-// The URL path, relative to BASE_URI, under which the web server serves UPLOAD_FOLDER.
-// This is what links to uploads in pages look like: BASE_URI/UPLOAD_URL/name
+// How links to uploads in pages look like: BASE_URI/UPLOAD_URL/name. The wiki shows
+// these links with the address of file.php, which serves the files; the web server
+// doesn't have to serve anything under this URL.
 define('UPLOAD_URL', UPLOAD_FOLDER);
 
 // PAGES_EXT

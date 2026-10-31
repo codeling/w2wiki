@@ -113,7 +113,7 @@ final class XssTest extends AppTestCase
 		$this->assertContains('/index.php/Home#x', $hrefs);
 		$this->assertTrue(count(array_filter($hrefs, fn($h) => str_starts_with($h, 'mailto:'))) === 1);
 		$sources = array_map(fn($i) => $i->getAttribute('src'), $this->elements($html, 'img'));
-		$this->assertContains('/images/a.png', $sources);
+		$this->assertContains('/file.php?name=a.png', $sources);
 	}
 
 	public function testUploadedFileNameIsEscapedInUploadListAndMessage(): void

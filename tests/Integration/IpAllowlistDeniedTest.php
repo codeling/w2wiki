@@ -16,7 +16,8 @@ final class IpAllowlistDeniedTest extends AppTestCase
 
 	public function testOtherAddressesAreRefused(): void
 	{
-		foreach (['/index.php', '/index.php/Home', '/api.php?task=checkupload&filename=a.png'] as $url) {
+		file_put_contents($this->imageFile('a.png'), self::png());
+		foreach (['/index.php', '/index.php/Home', '/api.php?task=checkupload&filename=a.png', '/file.php?name=a.png'] as $url) {
 			$response = $this->http->get($url);
 			$this->assertSame(403, $response->status, $url);
 			$this->assertStringContainsString('127.0.0.1 is not allowed', $response->body);

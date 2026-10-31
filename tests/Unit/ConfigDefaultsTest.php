@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ConfigDefaultsTest extends TestCase
 {
-	private const CODE_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php'];
+	private const CODE_FILES = ['index.php', 'api.php', 'file.php', 'auth.php', 'auth_functions.php', 'functions.php'];
 
 	/** @return array{constants: array<string, mixed>, variables: array<string, mixed>} what the file defines when loaded alone */
 	private static function settingsDefinedBy(string $file): array

@@ -12,8 +12,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class SourceGuardTest extends TestCase
 {
-	private const FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php',
-		'src/Html.php', 'src/Template.php', 'src/Changes.php', 'src/ChangeResult.php', 'src/Uploads.php', 'src/Lists.php', 'src/LineDiff.php', 'src/Git.php', 'src/GitResult.php',
+	private const FILES = ['index.php', 'api.php', 'file.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'src/PageStore.php', 'src/UploadReferences.php', 'src/Note.php',
+		'src/Html.php', 'src/Template.php', 'src/Changes.php', 'src/ChangeResult.php', 'src/Uploads.php', 'src/UploadResponse.php', 'src/Lists.php', 'src/LineDiff.php', 'src/Git.php', 'src/GitResult.php',
 		'webauth/webauth.php', 'webauth/src/ClientAddress.php', 'webauth/src/Csrf.php', 'webauth/src/Https.php', 'webauth/src/Ip.php',
 		'webauth/src/LoginThrottle.php', 'webauth/src/Password.php', 'webauth/src/ServerAuth.php', 'webauth/src/Session.php'];
 
@@ -194,7 +194,7 @@ final class SourceGuardTest extends TestCase
 	#[DataProvider('files')]
 	public function testRequestDataIsOnlyReadByEntryPoints(string $file): void
 	{
-		$allowed = ['index.php', 'api.php', 'auth.php'];
+		$allowed = ['index.php', 'api.php', 'file.php', 'auth.php'];
 		$superGlobals = ['$_REQUEST', '$_GET', '$_POST', '$_FILES', '$_COOKIE'];
 		foreach (self::tokens($file) as $token) {
 			if (is_array($token) && $token[0] === T_VARIABLE && in_array($token[1], $superGlobals, true)) {

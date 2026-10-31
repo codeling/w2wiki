@@ -125,10 +125,10 @@ final class ServerConfigTest extends TestCase
 		}
 
 		$page = $this->http->get('/index.php/Image%20Page')->body;
-		$this->assertSame(1, preg_match('/<img src="(' . preg_quote($this->prefix, '/') . '\/images\/sub\.gif\?v=\d+)"/', $page, $image), 'image URL');
-		$this->assertSame(200, $host->get($image[1])->status);
+		$this->assertSame(1, preg_match('/<img src="(' . preg_quote($this->prefix, '/') . '\/file\.php\?name=sub\.gif&amp;v=\d+)"/', $page, $image), 'image URL');
+		$this->assertSame(200, $host->get(html_entity_decode($image[1]))->status);
 		$this->assertContains($this->http->get('/pages/Image%20Page.md')->status, [403, 404], 'page source is protected');
-		$this->assertContains($host->get('/images/sub.gif')->status, [403, 404], 'the wiki is not available outside its folder');
+		$this->assertContains($host->get('/file.php?name=sub.gif')->status, [403, 404], 'the wiki is not available outside its folder');
 	}
 
 	#[DataProvider('publicFiles')]
@@ -154,7 +154,7 @@ final class ServerConfigTest extends TestCase
 		$this->place('pages/images/s.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
 		$this->place('pages/images/d.pdf', '%PDF-1.0');
 		foreach (['a.gif', 's.svg', 'd.pdf'] as $name) {
-			$this->assertSame('max-age=31536000, immutable', $this->http->get("/images/$name")->header('cache-control'), $name);
+			$this->assertSame('private, max-age=31536000, immutable', $this->http->get('/file.php', ['name' => $name, 'v' => '1'])->header('cache-control'), $name);
 		}
 	}
 
@@ -200,6 +200,7 @@ final class ServerConfigTest extends TestCase
 	{
 		$this->assertSame(200, $this->http->get('/index.php')->status);
 		$this->assertSame(200, $this->http->get('/api.php')->status);
+		$this->assertSame(404, $this->http->get('/file.php', ['name' => 'missing.gif'])->status);
 		$this->assertStringContainsString("frame-ancestors 'none'", (string)$this->http->get('/index.php')->header('content-security-policy'));
 		$this->assertSame('nosniff', strtolower((string)$this->http->get('/wiki.js')->header('x-content-type-options')));
 	}
@@ -220,15 +221,13 @@ final class ServerConfigTest extends TestCase
 		];
 	}
 
-	/** The uploads are public, but they must have the same protection when fetched via the pages folder */
-	public function testUploadsInThePagesFolderHaveTheSameProtection(): void
+	/** The uploads are only served by file.php (with the checks of the wiki), not by the web server */
+	public function testUploadsAreNotServedDirectly(): void
 	{
-		$this->place('pages/images/a.gif', 'GIF89a');
-		$response = $this->http->get('/pages/images/a.gif');
-		$this->assertContains($response->status, [200, 403, 404]);
-		if ($response->status === 200) {
-			$this->assertSame('nosniff', strtolower((string)$response->header('x-content-type-options')));
-		}
+		$this->place('pages/images/a.gif', 'GIF89a-secret');
+		$this->assertNotServed($this->http->get('/pages/images/a.gif'), 'GIF89a-secret');
+		$this->assertNotServed($this->http->get('/images/a.gif'), 'GIF89a-secret');
+		$this->assertSame('GIF89a-secret', $this->http->get('/file.php', ['name' => 'a.gif'])->body);
 	}
 
 	#[DataProvider('folders')]
@@ -282,24 +281,27 @@ final class ServerConfigTest extends TestCase
 	public function testScriptsInTheUploadsFolderAreNeverExecuted(string $name): void
 	{
 		$this->place("pages/images/$name", '<?php echo 6 * 7, "-executed";');
-		$this->assertStringNotContainsString('42-executed', $this->http->get("/images/$name")->body, 'through the images link');
+		$this->assertStringNotContainsString('42-executed', $this->http->get('/file.php', ['name' => $name])->body, 'through file.php');
+		$this->assertStringNotContainsString('42-executed', $this->http->get("/images/$name")->body, 'under the address used in pages');
 		$this->assertStringNotContainsString('42-executed', $this->http->get("/pages/images/$name")->body, 'in the pages folder');
 	}
 
 	public function testUploadedFilesAreServedWithProtectiveHeaders(): void
 	{
 		$this->place('pages/images/a.gif', base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'));
-		$response = $this->http->get('/images/a.gif');
+		$response = $this->http->get('/file.php', ['name' => 'a.gif']);
 		$this->assertSame(200, $response->status);
 		$this->assertSame('nosniff', strtolower((string)$response->header('x-content-type-options')));
 		$this->assertStringContainsString('image/gif', (string)$response->header('content-type'));
+		$this->assertSame(1, count($response->headerValues('content-type')), 'one type');
 	}
 
 	public function testSvgFilesAreSandboxed(): void
 	{
 		$this->place('pages/images/s.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
-		$response = $this->http->get('/images/s.svg');
+		$response = $this->http->get('/file.php', ['name' => 's.svg']);
 		$this->assertSame(200, $response->status);
+		$this->assertCount(1, $response->headerValues('content-security-policy'), 'only the policy for SVG files');
 		$this->assertMatchesRegularExpression('/(^|[ ;])sandbox($|[ ;])/', (string)$response->header('content-security-policy'));
 		$this->assertStringContainsString("default-src 'none'", (string)$response->header('content-security-policy'));
 		$this->assertSame('nosniff', strtolower((string)$response->header('x-content-type-options')));
@@ -316,7 +318,7 @@ final class ServerConfigTest extends TestCase
 		$this->assertSame(303, $response->status, $response->body);
 		$this->created[] = "$this->root/pages/images/e2e.gif";
 
-		$image = $this->http->get('/images/e2e.gif');
+		$image = $this->http->get('/file.php', ['name' => 'e2e.gif']);
 		$this->assertSame(200, $image->status);
 		$this->assertStringContainsString('image/gif', (string)$image->header('content-type'));
 
@@ -324,7 +326,7 @@ final class ServerConfigTest extends TestCase
 		$this->assertStringContainsString('e2e.gif', $this->http->get('/index.php', ['action' => 'upload'])->body);
 		$response = $this->http->post('/index.php', ['action' => 'imgDeleted', 'csrf_token' => $matches[1], 'oldPageName' => 'e2e.gif', 'prevpage' => 'Home']);
 		$this->assertSame(303, $response->status);
-		$this->assertSame(404, $this->http->get('/images/e2e.gif')->status);
+		$this->assertSame(404, $this->http->get('/file.php', ['name' => 'e2e.gif'])->status);
 	}
 
 	public function testUploadedScriptsAreRefusedByTheWiki(): void
@@ -335,6 +337,6 @@ final class ServerConfigTest extends TestCase
 		$script = new CurlFileLike("GIF89a\x01\x00\x01\x00\x00\x00\x00;<?php echo 6 * 7, '-executed'; ?>", 'shell.php', 'image/gif');
 		$this->http->post('/index.php', ['action' => 'uploaded', 'csrf_token' => $matches[1], 'prevpage' => 'Home', 'userfile' => $script]);
 		$this->assertFileDoesNotExist("$this->root/pages/images/shell.php");
-		$this->assertStringNotContainsString('42-executed', $this->http->get('/images/shell.php')->body);
+		$this->assertStringNotContainsString('42-executed', $this->http->get('/file.php', ['name' => 'shell.php'])->body);
 	}
 }

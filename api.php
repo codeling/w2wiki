@@ -47,5 +47,5 @@ if ($task == 'checkupload')
 	$filename = uploadTargetName((string)($_REQUEST['filename'] ?? ''), (string)($_REQUEST['newname'] ?? ''));
 	// hidden files (like .htaccess) are not uploads, and "." / ".." are folders
 	$isUpload = $filename !== '' && !str_starts_with($filename, '.');
-	echo json_encode($isUpload && file_exists(PAGES_PATH . "/". UPLOAD_FOLDER . "/" . $filename));
+	echo json_encode($isUpload && file_exists(uploadPath($filename)));
 }

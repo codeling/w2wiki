@@ -1,9 +1,9 @@
 # Deny access to hidden files and folders such as .git (except .well-known)
 RedirectMatch 404 /\.(?!well-known/)
 
-# Only index.php and api.php are entry points; the other scripts are included by them and must not be
-# reachable (see also the .htaccess files in the folders which only have such files or nothing public)
-<FilesMatch "(?i)^(?!(index|api)\.php$).*\.(php[0-9]?|pht|phtml|phar)$">
+# Only index.php, api.php and file.php (which serves the uploads) are entry points; the other scripts are included
+# by them and must not be reachable (see also the .htaccess files in the folders which only have such files or nothing public)
+<FilesMatch "(?i)^(?!(index|api|file)\.php$).*\.(php[0-9]?|pht|phtml|phar)$">
 	Require all denied
 </FilesMatch>
 
@@ -12,7 +12,7 @@ RedirectMatch 404 /\.(?!well-known/)
 	Require all denied
 </FilesMatch>
 
-# Don't list the contents of folders (like the uploads) without index file
+# Don't list the contents of folders without index file
 Options -Indexes
 
 # The URLs of these files carry a version parameter (?v=...) which changes with the file,

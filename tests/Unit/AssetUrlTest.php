@@ -33,18 +33,35 @@ final class AssetUrlTest extends TestCase
 		$this->assertSame('/x?v=2000000', $second);
 	}
 
-	public function testUploadLinksInRenderedMarkdownAreVersioned(): void
+	public function testVersionIsAddedToAnExistingQuery(): void
 	{
-		$dir = PAGES_PATH . '/' . UPLOAD_FOLDER;
+		$file = tempnam(sys_get_temp_dir(), 'w2-asset-test');
+		touch($file, 1000000);
+		try {
+			$this->assertSame('/file.php?name=a&v=1000000', versionedURL('/file.php?name=a', $file));
+		} finally {
+			unlink($file);
+		}
+	}
+
+	/** Links to uploads in pages point to file.php, which serves them (with the version of the file, if it exists) */
+	public function testUploadLinksInRenderedMarkdownPointToFilePhp(): void
+	{
+		$dir = uploadPath();
 		@mkdir($dir, 0777, true);
 		$file = "$dir/w2-asset-test image.png";
 		file_put_contents($file, 'x');
 		touch($file, 1234567);
 		try {
-			$html = toHTML('![a](/images/w2-asset-test%20image.png) [f](/images/w2-asset-test%20image.png) ![n](/images/none.png) [e](http://example.com/images/a.png)');
-			$this->assertSame(2, substr_count($html, '/images/w2-asset-test%20image.png?v=1234567"'));
-			$this->assertStringContainsString('src="/images/none.png"', $html);
+			$html = toHTML('![a](/images/w2-asset-test%20image.png) [f](/images/w2-asset-test%20image.png) ![n](/images/none.png) [e](http://example.com/images/a.png)'
+				. ' [p](/images/w2-asset-test%20image.png#page=2) [q](/images/none.png?x=1) [h](/images/.htaccess)');
+			$this->assertSame(2, substr_count($html, '"/file.php?name=w2-asset-test%20image.png&amp;v=1234567"'));
+			$this->assertStringContainsString('src="/file.php?name=none.png"', $html);
 			$this->assertStringContainsString('href="http://example.com/images/a.png"', $html);
+			$this->assertStringContainsString('href="/file.php?name=w2-asset-test%20image.png&amp;v=1234567#page=2"', $html, 'the fragment is kept');
+			$this->assertStringContainsString('href="/file.php?name=none.png"', $html, 'the query is dropped');
+			$this->assertStringContainsString('href="/images/.htaccess"', $html, 'hidden files are not uploads');
+			$this->assertStringNotContainsString('src="/images/', $html);
 		} finally {
 			unlink($file);
 		}

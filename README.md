@@ -37,10 +37,8 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 		- Option to shrink uploaded images (based on maximum side length, after cropping)
 		- Fix rotation (based on EXIF data)
 		- List of uploaded images providing usage information and option to delete
-
-## TODO
-
-- Upload folder: the name is configurable (`UPLOAD_FOLDER`, `UPLOAD_URL`), but it still has to be a direct subfolder of PAGES\_PATH (to capture uploads in the git repository), and the web server has to serve it statically, e.g. via a soft link in the root folder (see INSTALL.md)
+		- Uploaded files are served by the wiki (`file.php`), with the same password and IP checks as the pages; the web server needs no setting for them
+		- The uploads folder can be anywhere (`UPLOAD_PATH`), e.g. next to the pages folder in one git repository
 
 ## Installation & Configuration
 
@@ -67,7 +65,7 @@ In its current form, W2 wiki is not security-hardened; it's recommended to only 
 - Always serve it over HTTPS.
 - Either set `REQUIRE_PASSWORD` to `true` and store a hash of your password (created with `password_hash`) in `W2_PASSWORD_HASH`, see the [installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md). There is only this one password for everybody. Failed logins are limited (lockouts that grow with every failure, and a limit over all clients). Passwords in plain text (`W2_PASSWORD`) and unsalted SHA-1 hashes are no longer accepted; the login page offers the hash to replace them with.
 - Or use the access control of your web server or a reverse proxy: an IP allowlist (`$allowedIPs`), HTTP Basic Authentication (which allows several users), or an authenticating proxy with single sign-on or a second factor. With `REQUIRE_WEB_SERVER_AUTH`, the wiki refuses every request which the web server did not authenticate, or which did not come over HTTPS, so a missing or ignored web server setting doesn't leave it open (see the [installation instructions](INSTALL.md#authentication-by-the-web-server)).
-- Uploaded files are served directly by the web server and are not protected by the wiki's password; only the web server's access control protects them.
+- Uploaded files are served by the wiki itself (`file.php`), so they are protected like the pages: by the password, the IP allowlist and the authentication of the web server. If you upgrade from a version which had the web server serve them, remove the `images` link or alias (see the [installation instructions](INSTALL.md#web-server-setup)).
 
 SVG uploads are disabled by default, since SVG files can contain scripts; they can be enabled with the optional [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) library, see the [installation instructions](https://github.com/codeling/w2wiki/blob/master/INSTALL.md).
 
