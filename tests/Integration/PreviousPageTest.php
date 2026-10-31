@@ -21,7 +21,7 @@ final class PreviousPageTest extends AppTestCase
 		];
 	}
 
-	public static function formActions(): array
+	public static function pageParameters(): array
 	{
 		return [
 			'upload (page)' => [['action' => 'upload'], 'page'],
@@ -30,7 +30,15 @@ final class PreviousPageTest extends AppTestCase
 		];
 	}
 
-	#[DataProvider('formActions')]
+	public static function formActions(): array
+	{
+		return [
+			'image rename' => [['action' => 'imgRename', 'imgName' => 'a.gif'], 'prevpage'],
+			'image delete' => [['action' => 'imgDelete', 'imgName' => 'a.gif'], 'prevpage'],
+		];
+	}
+
+	#[DataProvider('pageParameters')]
 	public function testFormsRefusePagesWhichDoNotExist(array $query, string $parameter): void
 	{
 		foreach (self::invalidPages() as $description => [$page]) {
@@ -58,6 +66,24 @@ final class PreviousPageTest extends AppTestCase
 		$response = $this->http->get('/index.php', $query);
 		$this->assertSame(200, $response->status);
 		$this->assertStringContainsString('name="prevpage" value="Home"', $response->body);
+	}
+
+	public function testUploadPageKeepsExistingPagesWithSpecialNamesForTheLinksOfTheList(): void
+	{
+		$this->upload('a.gif', self::gif());
+		foreach (['A+B', 'x%41y', 'C D', '100%', 'sub/page', 'Q-A?'] as $name) {
+			$this->savePage($name, 'text');
+			$response = $this->http->get('/index.php', ['action' => 'upload', 'page' => $name]);
+			$this->assertSame(200, $response->status, $name);
+			$this->assertStringContainsString('action=imgRename&amp;prevpage=' . htmlspecialchars(urlencode($name), ENT_QUOTES) . '&amp;imgName=a.gif', $response->body, $name);
+		}
+	}
+
+	public function testUploadPageUsesTheDefaultPageIfNoPageIsGiven(): void
+	{
+		$this->upload('a.gif', self::gif());
+		$body = $this->http->get('/index.php', ['action' => 'upload'])->body;
+		$this->assertStringContainsString('action=imgDelete&amp;prevpage=Home&amp;imgName=a.gif', $body);
 	}
 
 	public function testUploadReturnsToTheGivenPage(): void
@@ -92,7 +118,7 @@ final class PreviousPageTest extends AppTestCase
 		$this->assertSame(1, preg_match('/href="([^"]*action=upload[^"]*)"/', $page->body, $matches));
 		$upload = $this->http->get(html_entity_decode($matches[1]));
 		$this->assertSame(200, $upload->status);
-		$this->assertStringContainsString('type="file"', $upload->body);
+		$this->assertStringContainsString('id="uploaddialog"', $upload->body);
 	}
 
 	public function testUploadLinkOfExistingPagesReturnsThere(): void
@@ -100,8 +126,9 @@ final class PreviousPageTest extends AppTestCase
 		$this->savePage('Page with + sign', 'text');
 		$page = $this->http->get($this->pageUrl('Page with + sign'));
 		preg_match('/href="([^"]*action=upload[^"]*)"/', $page->body, $matches);
+		$this->upload('a.gif', self::gif());
 		$upload = $this->http->get(html_entity_decode($matches[1]));
 		$this->assertSame(200, $upload->status);
-		$this->assertStringContainsString('name="prevpage" value="Page with + sign"', $upload->body);
+		$this->assertStringContainsString('action=imgRename&amp;prevpage=Page+with+%2B+sign&amp;imgName=a.gif', $upload->body);
 	}
 }

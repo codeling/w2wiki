@@ -309,7 +309,8 @@ final class ServerConfigTest extends TestCase
 	{
 		$page = $this->http->get('/index.php', ['action' => 'upload']);
 		$this->assertSame(200, $page->status);
-		preg_match('/name="csrf_token" value="([^"]+)"/', $page->body, $matches);
+		// (the dialog of the upload page sends the token with the files, it is an attribute of it)
+		$this->assertSame(1, preg_match('/data-token="([^"]+)"/', $page->body, $matches), 'token of the upload dialog');
 		$gif = new CurlFileLike(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), 'e2e.gif', 'image/gif');
 		$response = $this->http->post('/index.php', ['action' => 'uploaded', 'csrf_token' => $matches[1], 'prevpage' => 'Home', 'userfile' => $gif]);
 		$this->assertSame(303, $response->status, $response->body);
@@ -329,7 +330,8 @@ final class ServerConfigTest extends TestCase
 	public function testUploadedScriptsAreRefusedByTheWiki(): void
 	{
 		$page = $this->http->get('/index.php', ['action' => 'upload']);
-		preg_match('/name="csrf_token" value="([^"]+)"/', $page->body, $matches);
+		// (the dialog of the upload page sends the token with the files, it is an attribute of it)
+		$this->assertSame(1, preg_match('/data-token="([^"]+)"/', $page->body, $matches), 'token of the upload dialog');
 		$script = new CurlFileLike("GIF89a\x01\x00\x01\x00\x00\x00\x00;<?php echo 6 * 7, '-executed'; ?>", 'shell.php', 'image/gif');
 		$this->http->post('/index.php', ['action' => 'uploaded', 'csrf_token' => $matches[1], 'prevpage' => 'Home', 'userfile' => $script]);
 		$this->assertFileDoesNotExist("$this->root/pages/images/shell.php");

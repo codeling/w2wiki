@@ -33,7 +33,7 @@ final class XssTest extends AppTestCase
 	{
 		foreach (['view', 'edit', 'rename', 'delete', 'upload'] as $action) {
 			$response = $this->http->get('/index.php', ['action' => $action, 'page' => '"><b onmouseover=alert(1)>x']);
-			$this->assertNoActiveContent($response->body, $action === 'upload');
+			$this->assertNoActiveContent($response->body);
 			$this->assertStringNotContainsString('<b onmouseover', $response->body, "action $action");
 		}
 	}
@@ -56,9 +56,15 @@ final class XssTest extends AppTestCase
 	{
 		$name = 'Say "hi" <b>';
 		$this->savePage($name, 'text');
-		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => $name])->body;
+		$this->upload('a.gif', self::gif());
+		$body = $this->http->get('/index.php', ['action' => 'imgRename', 'imgName' => 'a.gif', 'prevpage' => $name])->body;
 		$this->assertStringContainsString('name="prevpage" value="Say &quot;hi&quot; &lt;b&gt;"', $body);
 		$this->assertNoActiveContent($body, true);
+		// (the links of the list of the upload page have it in their address)
+		$list = $this->http->get('/index.php', ['action' => 'upload', 'page' => $name])->body;
+		$this->assertStringContainsString('prevpage=Say+%22hi%22+%3Cb%3E&amp;imgName=a.gif', $list);
+		$this->assertStringNotContainsString('<b>', $list);
+		$this->assertNoActiveContent($list);
 	}
 
 	public function testImageNameIsEscapedInRenameAndDeleteForms(): void

@@ -72,6 +72,46 @@ test('upload: an existing file is only replaced after confirmation', async ({ pa
   await expect(page.locator('#text')).toHaveValue('![Image Description](/images/twice.gif)');
 });
 
+test('upload: the name chosen under "Save as" is used, and it keeps the extension', async ({ page }) => {
+  await page.goto('/index.php?action=new');
+  await page.click('#uploadbutton');
+  await page.fill('#uploadnewname', 'holiday photo');
+  await page.setInputFiles('#uploadfile', upload('IMG_0001.gif'));
+  // (the name can be typed before or after the file is chosen)
+  await expect(page.locator('#uploadnewname')).toHaveValue('holiday photo');
+  await page.click('#uploadstart');
+  await expect(page.locator('#uploaddialog')).toBeHidden();
+  await expect(page.locator('#text')).toHaveValue('![Image Description](/images/holiday_photo.gif)');
+});
+
+test('upload: whether a file exists is checked for the name chosen under "Save as"', async ({ page }) => {
+  await page.goto('/index.php?action=new');
+  await uploadFromDialog(page, upload('taken-name.gif'));
+  const messages = [];
+  page.on('dialog', async (dialog) => { messages.push(dialog.message()); await dialog.dismiss(); });
+  await page.click('#uploadbutton');
+  await page.setInputFiles('#uploadfile', upload('other.gif'));
+  await page.fill('#uploadnewname', 'taken-name');
+  await page.click('#uploadstart');
+  await expect.poll(() => messages.length).toBe(1);
+  expect(messages[0]).toContain('taken-name.gif');
+  await expect(page.locator('#uploaddialog')).toBeHidden();
+  expect((await page.request.get('/images/other.gif')).status()).toBe(404);
+});
+
+test('upload: the name under "Save as" is for one file, the next file keeps its own name', async ({ page }) => {
+  await page.goto('/index.php?action=new');
+  await page.click('#uploadbutton');
+  await page.setInputFiles('#uploadfile', [upload('first.gif'), upload('second.gif')]);
+  await page.fill('#uploadnewname', 'renamed');
+  await page.click('#uploadstart');
+  await expect(page.locator('#uploadname')).toHaveText('second.gif');
+  await expect(page.locator('#uploadnewname')).toHaveValue('');
+  await page.click('#uploadstart');
+  await expect(page.locator('#uploaddialog')).toBeHidden();
+  await expect(page.locator('#text')).toHaveValue('![Image Description](/images/renamed.gif)\n![Image Description](/images/second.gif)');
+});
+
 test('drop: files dropped on the text are shown in the dialog, and uploaded from there', async ({ page }) => {
   await page.goto('/index.php?action=new');
   await page.fill('#text', 'x');

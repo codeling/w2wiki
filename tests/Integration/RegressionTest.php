@@ -158,8 +158,9 @@ final class RegressionTest extends AppTestCase
 	}
 
 	/**
-	 * wiki.js (which assumes the editor, its formatting help and the save button exist) must be loaded exactly
-	 * on the pages with an editor, and all of them must have the formatting help
+	 * wiki.js (which assumes the editor, its formatting help and the save button exist, if there is an editor) must be
+	 * loaded exactly on the pages with an editor or with the dialog to upload files, and the pages with an editor must
+	 * have the formatting help
 	 */
 	public function testEditorScriptFormattingHelpAndEditorAppearTogether(): void
 	{
@@ -175,7 +176,8 @@ final class RegressionTest extends AppTestCase
 			$hasEditor = str_contains($body, 'id="text"');
 			$hasSave = str_contains($body, 'id="save"');
 			$this->assertSame($hasEditor, $hasSave, $url);
-			$this->assertSame($hasEditor, str_contains($body, '/wiki.js'), "$url: script");
+			$hasUploadDialog = str_contains($body, 'id="uploaddialog"');
+			$this->assertSame($hasEditor || $hasUploadDialog, str_contains($body, '/wiki.js'), "$url: script");
 			$this->assertSame($hasEditor, str_contains($body, 'id="drawer"'), "$url: formatting help");
 		}
 		$this->assertStringContainsString('id="text"', $this->http->get('/index.php?action=new')->body);

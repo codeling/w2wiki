@@ -39,8 +39,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `FileHeaderTest` makes sure that every source file has an `SPDX-License-Identifier` (see "License" in `README.md`).
   `TemplateTest` tests `W2\Template` and `W2\Html` (text is escaped by default) with templates of its own;
   `PageFrameTest` (integration) the frame around every page.
-  `FormsTest` and `UploadFormBaseUriTest` (integration) the forms: editor, rename and delete, upload;
-  `EditorUploadTest` the JSON answer of the upload action which the editor uses.
+  `FormsTest` and `UploadFormBaseUriTest` (integration) the forms: editor, rename and delete, and the dialog to upload files
+  (the same in the editor and on the upload page); `EditorUploadTest` the JSON answer of the upload action which the dialog uses.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
   `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
@@ -111,7 +111,7 @@ browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
 The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`)
-the search box of the toolbar (`search.spec.js`) and uploading from the editor, with the dialog and the crop frame (`editor-upload.spec.js`).
+the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`).
 
 ```
 cd tests/Browser
