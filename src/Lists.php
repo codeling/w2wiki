@@ -57,7 +57,7 @@ final class Lists
 	 */
 	public function uploads(string $sortBy, string $prevPage): Html
 	{
-		$imgNames = array_filter(glob(PAGES_PATH . "/" . UPLOAD_FOLDER . "/*") ?: array(), 'is_file');
+		$imgNames = array_filter(glob(uploadPath() . "/*") ?: array(), 'is_file');
 		$items = array();
 		foreach($imgNames as $imgName)
 		{

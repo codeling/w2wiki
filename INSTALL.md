@@ -5,8 +5,8 @@
    
 2. Upload the files from this repository to this directory.
 
-3. Make sure that the "pages" directory and its uploads folder ("images" by
-   default, see `UPLOAD_FOLDER`) are writable by your web server process.
+3. Make sure that the "pages" directory and the uploads folder (`pages/images`
+   by default, see `UPLOAD_PATH`) are writable by your web server process.
    
 4. W2 works without any configuration. To change settings, copy
    `config.sample.php` to `config.php` and edit the copy; the sample lists all
@@ -48,19 +48,32 @@ define('VIEW', '?action=view&page=');
 W2 then links to `/index.php?action=view&page=Page`; the page name is appended
 to `VIEW` as is, without a slash.
 
-**Uploaded images.** Uploads are stored in `pages/images` (the folder named by
-`UPLOAD_FOLDER` in `config.php`, a single folder name), which must not be served
-directly, but pages refer to them as `<W2 URL>/images/<name>` (the URL path is
-`UPLOAD_URL`, which is the folder name unless you set it otherwise). So the web
-server has to serve `pages/images` under the URL `images` inside the W2 folder:
-either create a link (on Linux/macOS: `ln -s pages/images images` in the W2
-folder) or, for nginx, an alias such as
-`location ^~ /images/ { alias /path/to/w2/pages/images/; }` (see the rules
-below, which belong in the same location). If you rename the folder, rename the
-link/location accordingly (or keep the old URL by setting `UPLOAD_URL`). The
-uploads folder is not part of the wiki: Markdown files in it are not pages, and
-pages cannot be created there. Existing links in pages are not changed when you
-change the setting.
+**Uploaded files.** Uploads are stored in `pages/images` (`UPLOAD_PATH` in
+`config.php`; by default the folder `UPLOAD_FOLDER` in the pages folder) and are
+served by the wiki itself, with `file.php`: it sends a file only after the same
+checks as for the pages (password, allowed IP addresses, authentication by the
+web server, see "Security" below). The web server needs no setting for them, and
+must not serve the uploads folder. Pages refer to uploads as
+`<W2 URL>/images/<name>` (the URL path is `UPLOAD_URL`, which is the folder name
+unless you set it otherwise); the wiki shows these links with the address of
+`file.php`. Existing links in pages are not changed when you change `UPLOAD_URL`.
+
+The uploads folder can be anywhere, for example next to the pages folder:
+`define('UPLOAD_PATH', '/srv/wiki/media');` with `PAGES_PATH` set to
+`/srv/wiki/pages`. Neither folder has to be in the web root. With the git
+integration (see "Git Integration" below), the uploads folder has to be in the same
+repository as the pages, otherwise uploads are not committed (the wiki logs a
+warning when the list of uploads is shown); in the example, `/srv/wiki` would
+be the repository. If the uploads folder is within the pages folder, it is not
+part of the wiki: Markdown files in it are not pages, and pages cannot be
+created there.
+
+**Upgrading from a version which had the web server serve the uploads:** remove
+the `images` link in the W2 folder, or the nginx `location ^~ /images/` with its
+`alias`. Otherwise the uploads stay reachable for everybody under the old
+address. (The wiki logs a warning as long as the link exists; with Apache, the
+`pages/images/.htaccess` of this version refuses such requests anyway.) Links in
+pages need no change.
 
 **Subfolders and base URL.** W2 can be installed in a subfolder of the web
 root. It derives its base URL (`BASE_URI`, used for the style sheet, icons,
@@ -167,13 +180,14 @@ features described below might be removed in the near future in this fork!
 
 ### Web server configuration
 
-The `pages` folder must not be served directly by the web server (otherwise the
-password and IP restrictions could be bypassed), and nothing in the uploads
-folder (`pages/images` by default, served statically via an `images` link in the
-W2 root folder; adapt the names below if you changed `UPLOAD_FOLDER`/`UPLOAD_URL`) may ever be executed. For Apache, the included `.htaccess` files take
+The `pages` folder (with the uploads, `pages/images` by default) must not be
+served directly by the web server (otherwise the password and IP restrictions
+could be bypassed), and nothing in it may ever be executed. If you keep the
+uploads elsewhere (`UPLOAD_PATH`), keep that folder outside the web root, or deny
+access to it like to `pages`. For Apache, the included `.htaccess` files take
 care of this; they require `AllowOverride All` (or at least `AuthConfig`,
-`FileInfo` and `Options`) and `mod_headers`. Without it the headers for uploads
-and static files are silently left out, and the stock Apache of Debian/Ubuntu and
+`FileInfo` and `Options`) and `mod_headers`. Without it the cache headers of
+static files are silently left out, and the stock Apache of Debian/Ubuntu and
 the `php:apache` image have `AllowOverride None` and don't load `mod_headers`. For nginx, add rules like the following (adapt the
 W2 location prefix if W2 is not installed in the web root):
 
@@ -202,16 +216,6 @@ location ~* \.(js|css|svg|png)$ {
     add_header Cache-Control "max-age=31536000, immutable";
     add_header X-Content-Type-Options nosniff;
 }
-location ^~ /images/ {
-    location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
-    add_header X-Content-Type-Options nosniff;
-    add_header Cache-Control "max-age=31536000, immutable";
-    location ~* \.svg$ {
-        add_header X-Content-Type-Options nosniff;
-        add_header Cache-Control "max-age=31536000, immutable";
-        add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
-    }
-}
 ```
 
 The scripts of the wiki send security headers with every response (Content-Security-Policy, which only allows
@@ -220,8 +224,8 @@ scripts and styles from the wiki itself and forbids framing, `X-Content-Type-Opt
 headers of the same names in the web server, they would apply to the same responses twice (for a
 Content-Security-Policy that means the strictest rules of both apply, e.g. a `default-src 'self'` without `img-src`
 stops pages from showing images of other sites; the preview of the image to crop in the upload dialog needs no exception). The rules above
-additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`
-and `api.php`, the `tests`, `locales`, `Michelf` and `src` folders, `composer.json`, the documentation and so on).
+additionally deny access to files which are not needed by visitors (the included scripts other than `index.php`,
+`api.php` and `file.php`, the `tests`, `locales`, `Michelf` and `src` folders, `composer.json`, the documentation and so on).
 
 ### Upload size limits
 
@@ -287,34 +291,25 @@ Files that are not valid SVG files, or larger than 1 MB, are rejected. As long
 as the library is not installed, SVG uploads stay disabled even if
 `SVG_UPLOADS_ENABLED` is set. Note that the library is licensed under the
 GPL-2.0-or-later and therefore not bundled with W2. SVG files uploaded
-earlier (or placed in the uploads folder otherwise) are not modified; the
-web server rules above still protect against scripts in them.
+earlier (or placed in the uploads folder otherwise) are not modified; `file.php`
+sends SVG files with a Content-Security-Policy which keeps scripts in them from
+running (see "Protection of uploaded files").
 
-### Uploaded files
+### Protection of uploaded files
 
-Uploaded files are served directly by the web server (that is what the `images` link or alias is for), so
-neither the password nor the list of allowed IP addresses of W2 applies to them: everybody who knows
-or guesses the URL of an uploaded file can fetch it, even if the pages are protected. File names are not
-secret (they appear in the page sources and the list of uploads), so if uploads must be private,
-let the web server ask for credentials for them too. For example with Basic Authentication
-(create the file with `htpasswd -c /path/to/.htpasswd user`), in nginx:
-
-```
-location ^~ /images/ {
-    auth_basic "W2";
-    auth_basic_user_file /path/to/.htpasswd;
-    # ... and the rules shown above for this location
-}
-```
-
-and in Apache in `pages/images/.htaccess`, in place of the line `Require all granted` (several `Require` lines would be combined with "or"):
-
-```
-AuthType Basic
-AuthName "W2"
-AuthUserFile /path/to/.htpasswd
-Require valid-user
-```
+Uploaded files are served by `file.php`, after the same checks as the pages: the
+password, the list of allowed IP addresses and the authentication by the web server
+apply to them (see "Uploaded files" under "Web server setup"). `file.php` only sends
+regular files directly in the uploads folder (no hidden files such as `.htaccess`, no
+links, which could point anywhere), and takes their type from the extension, never
+from the content: images, PDF, text, audio and video files are shown by the browser,
+all others (e.g. HTML files or scripts) are only offered for download, as
+`application/octet-stream`. SVG files get a Content-Security-Policy with `sandbox`,
+which keeps scripts in them from running when they are opened directly. Only the
+browser may keep a copy (`Cache-Control: private`): for a long time for the links
+in pages, which carry a version parameter (`&v=...`) that changes with the file.
+Requests for the same file are answered with "not modified" when it hasn't changed.
+Large files are sent by PHP as a whole (without support for range requests).
 
 ### Authentication by the web server
 
@@ -354,7 +349,7 @@ auth_basic_user_file /path/to/.htpasswd;
 # in the location for PHP:
 fastcgi_param REMOTE_USER $remote_user;
 ```
-Protect the uploads in the same way, see "Uploaded files" above. Behind a proxy
+The uploads are protected in the same way, as `file.php` serves them. Behind a proxy
 which terminates TLS, W2 sees plain HTTP: let the web server set `HTTPS` for the
 requests of that proxy (in Apache e.g. `SetEnvIfExpr "%{REMOTE_ADDR} -ipmatch '10.0.0.5' && %{HTTP:X-Forwarded-Proto} == 'https'" HTTPS=on`,
 in nginx `fastcgi_param HTTPS on;`), or set `WEB_SERVER_AUTH_REQUIRE_HTTPS` to
@@ -390,12 +385,11 @@ on the login page as before: instead of logging you in, the wiki shows a
 `password_hash` hash of it (and the error log says why). Put that hash into
 `W2_PASSWORD_HASH` (replacing the SHA-1 hash), remove `W2_PASSWORD`, and log in again.
 
-Uploaded files are served statically by the web server (see "Uploaded images"
-above) and are therefore **not** protected by the password. If that matters,
-use authentication of the web server instead (below).
+Uploaded files are protected by the password too, as `file.php` serves them
+(see "Protection of uploaded files" above).
 
-For several users, a login with a second factor (e.g. an identity provider with
-passkeys, such as Pocket ID), or protecting the uploaded files, let the web
+For several users, or a login with a second factor (e.g. an identity provider with
+passkeys, such as Pocket ID), let the web
 server or a reverse proxy handle the login: HTTP Basic Authentication over
 HTTPS, or an authenticating proxy such as oauth2-proxy in front of the wiki.
 W2 then doesn't need `REQUIRE_PASSWORD`.

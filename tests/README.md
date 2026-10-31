@@ -41,6 +41,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `PageFrameTest` (integration) the frame around every page.
   `FormsTest` and `UploadFormBaseUriTest` (integration) the forms: editor, rename and delete, and the dialog to upload files
   (the same in the editor and on the upload page); `EditorUploadTest` the JSON answer of the upload action which the dialog uses.
+  `UploadResponseTest` tests `W2\UploadResponse`, which decides how `file.php` answers requests for uploaded files
+  (types, refused names, headers, caching) in a temporary folder; `UploadServingTest` and `UploadServingAuthTest` (integration)
+  `file.php` itself, also with a password.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
   `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
@@ -55,7 +58,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
 
 The git integration is tested with the server options `git` and `gitRemote` (see `AppServer::get()`):
 they make the pages folder of the test copy a git repository (with a local bare repository as `origin`),
-and `pagesFolder` renames the pages folder, e.g. to a path with spaces and quotes. The `Git*Test` classes
+and `pagesFolder` renames the pages folder, e.g. to a path with spaces and quotes. `uploadsFolder` puts the
+uploads elsewhere (`UPLOAD_PATH`, e.g. `data/media` next to `data/pages`, see `UploadPathTest`), and `gitRoot`
+makes another folder the repository, e.g. `data` with both of them (`GitUploadPathTest`). The `Git*Test` classes
 check commits (`git log`), pushes, shell escaping and the generic error messages. They need `git` (2.28+).
 
 ## Running the tests against another version of the wiki
@@ -67,8 +72,8 @@ for versions that log PHP warnings.
 ## Web server rules
 
 The protection which depends on the web server (`.htaccess` files for Apache, the rules from
-INSTALL.md for nginx: no access to page sources, `.git` and `vendor`, no scripts in the uploads,
-sandboxed SVGs, no directory listings) is tested against real servers in containers (Docker or Podman):
+INSTALL.md for nginx: no access to page sources, uploads (except through `file.php`), `.git` and `vendor`,
+no scripts in the uploads, sandboxed SVGs, no directory listings) is tested against real servers in containers (Docker or Podman):
 
 ```
 tests/Server/run.sh apache      # php:apache
@@ -98,8 +103,9 @@ What the container tests found out (and the Containerfile does, see "Running in 
   are ignored (pages, `.git` and uploads would be served, and PHP files in the uploads executed), and the
   headers for uploads (nosniff, SVG sandbox, caching) are missing. `tests/Server/apache.conf` is the
   settings of a typical Apache installation which make them work; the image has the same.
-- Uploads are served from the `images` link in the wiki folder, so the pages folder must be inside it:
-  a volume at another path (like `/pages`) is not served, and `PAGES_PATH` is a constant in `config.php`.
+- Uploads are served by `file.php`, not by the web server: the uploads under the address used in pages (`/images/...`)
+  and in the pages folder are not reachable. (`PAGES_PATH` is a constant in the image's `config.php`, so the pages
+  volume has to stay at `/var/www/html/pages`.)
 - Files which the web server user creates in a mounted folder belong to another user than the tests:
   the folder has to be writable for everybody, and git needs `safe.directory` for such a folder.
 - With a read-only root file system, only `/tmp` and the pages folder have to be writable.

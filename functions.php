@@ -85,7 +85,7 @@ function descLengthSort($val_1, $val_2)
 function pageStore()
 {
 	static $store = null;
-	return $store ??= new W2\PageStore(PAGES_PATH, PAGES_EXT, UPLOAD_FOLDER);
+	return $store ??= new W2\PageStore(PAGES_PATH, PAGES_EXT, uploadFolderInPages());
 }
 
 function getAllPageNames()
@@ -144,7 +144,8 @@ function w2Log($message)
 function hasMalformedRequestData(array $get, array $post, array $server, array $files = array())
 {
 	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
-		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p', 'draftKey', 'baseHash', 'json');
+		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p', 'draftKey', 'baseHash', 'json',
+		'name', 'v');
 	foreach ( array($get, $post) as $values )
 	{
 		foreach ( $textParameters as $name )
@@ -363,7 +364,9 @@ function isExistingPage($page)
 }
 
 /**
- * URL prefix of uploaded files, including the trailing slash: BASE_URI/UPLOAD_URL/
+ * How links in pages refer to uploaded files, including the trailing slash: BASE_URI/UPLOAD_URL/ (followed by the
+ * name of the file). This address is only used in the text of pages: the rendered pages link to file.php instead,
+ * which serves the files (see uploadURL() and rewriteUploadLinks()).
  */
 function uploadUrlPrefix()
 {
@@ -371,12 +374,72 @@ function uploadUrlPrefix()
 }
 
 /**
- * Whether the page name is within the uploads folder (which is served statically,
- * and not part of the wiki)
+ * The uploads folder (UPLOAD_PATH), or the path of an uploaded file in it (name without folder)
+ */
+function uploadPath($name = '')
+{
+	return rtrim(UPLOAD_PATH, '/\\') . ($name === '' ? '' : "/" . $name);
+}
+
+/**
+ * The path of the uploads folder relative to the pages folder ("images" by default), if it is inside it (the folder
+ * then holds no pages); null if it is somewhere else
+ */
+function uploadFolderInPages()
+{
+	// (real paths if the folders exist, so that links and ".." don't matter)
+	$normalized = function($path) {
+		$path = rtrim($path, '/\\');
+		$real = file_exists($path) ? realpath($path) : false;
+		return str_replace('\\', '/', $real === false ? $path : $real);
+	};
+	$pages = $normalized(PAGES_PATH);
+	$uploads = $normalized(UPLOAD_PATH);
+	if ( !str_starts_with($uploads, $pages . '/') )
+	{
+		return null;
+	}
+	$relative = trim(substr($uploads, strlen($pages) + 1), '/');
+	return $relative === '' ? null : $relative;
+}
+
+/**
+ * Whether the page name is within the uploads folder (which is not part of the wiki)
  */
 function isInUploadFolder($page)
 {
-	return explode('/', $page)[0] === UPLOAD_FOLDER;
+	$folder = uploadFolderInPages();
+	return $folder !== null && ($page === $folder || str_starts_with($page, $folder . '/'));
+}
+
+/**
+ * Problems with the setup of the uploads which the administrator should know about (text for the log): a link or
+ * folder of the web server which still serves the uploads without the checks of the wiki, and an uploads folder
+ * outside the git repository of the pages (its files would not be committed)
+ *
+ * @return string[]
+ */
+function uploadSetupProblems()
+{
+	$problems = array();
+	$static = __DIR__ . "/" . UPLOAD_URL;
+	if ( UPLOAD_URL !== '' && (is_link($static) || file_exists($static)) )
+	{
+		$problems[] = $static . " may let the web server serve the uploads without the password and IP checks of the wiki;"
+			. " the wiki serves them itself now (file.php): remove it, see \"Uploaded files\" in INSTALL.md";
+	}
+	if ( GIT_COMMIT_ENABLED && is_dir(PAGES_PATH) )
+	{
+		$top = (new W2\Git(PAGES_PATH))->run(array('rev-parse', '--show-toplevel'));
+		$repository = rtrim(str_replace('\\', '/', trim($top->output)), '/');
+		$uploads = is_dir(uploadPath()) ? realpath(uploadPath()) : false;
+		if ( $top->succeeded() && $repository !== '' && $uploads !== false && !str_starts_with(str_replace('\\', '/', $uploads) . '/', $repository . '/') )
+		{
+			$problems[] = "the uploads folder " . uploadPath() . " (UPLOAD_PATH) is not in the git repository of the pages (" . $repository
+				. "): uploads are not committed";
+		}
+	}
+	return $problems;
 }
 
 /**
@@ -401,7 +464,7 @@ function pregReplacementQuote($str)
 /**
  * Whether a page with the given name may be created: page names may contain
  * subfolders, but no hidden or empty path segments, and pages must not be
- * stored within the (statically served) uploads folder
+ * stored within the uploads folder
  */
 function isValidPageName($page)
 {
@@ -803,7 +866,7 @@ function toHTML($inText)
 		$outHTML = str_replace("$prefix$caption$suffix",
 			"$prefix<a id=\"".toHTMLID($caption)."\">$caption</a>$suffix", $outHTML);
 	}
-	return versionUploadLinks($outHTML);
+	return rewriteUploadLinks($outHTML);
 }
 
 /**
@@ -817,34 +880,36 @@ function assetURL($path)
 }
 
 /**
- * URL of an uploaded file (name without folder), versioned like assetURL(), as uploads can be overwritten
+ * URL of an uploaded file (name without folder): file.php, which serves it. Versioned like assetURL(), as uploads
+ * can be overwritten.
  */
 function uploadURL($name)
 {
-	return versionedURL(uploadUrlPrefix() . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name);
+	return versionedURL(BASE_URI . "/file.php?name=" . rawurlencode($name), uploadPath($name));
 }
 
 function versionedURL($url, $file)
 {
 	$mtime = is_file($file) ? filemtime($file) : false;
-	return $mtime === false ? $url : $url . "?v=" . $mtime;
+	return $mtime === false ? $url : $url . (str_contains($url, '?') ? '&' : '?') . "v=" . $mtime;
 }
 
 /**
- * Add the version parameter to links and images in rendered Markdown which point to uploaded files
+ * Point the links and images in rendered Markdown which refer to uploaded files (BASE_URI/UPLOAD_URL/name, see
+ * uploadUrlPrefix()) to file.php, which serves them (see uploadURL()). A query is dropped, a fragment (like the page of
+ * a PDF file, "#page=2") is kept.
  */
-function versionUploadLinks($html)
+function rewriteUploadLinks($html)
 {
-	$prefix = uploadUrlPrefix();
-	return preg_replace_callback('/\b(src|href)="' . preg_quote(h($prefix), '/') . '([^"?#\/]+)"/',
-		function($m) use ($prefix)
+	return preg_replace_callback('/\b(src|href)="' . preg_quote(h(uploadUrlPrefix()), '/') . '([^"?#\/]+)(?:\?[^"#]*)?(#[^"]*)?"/',
+		function($m)
 		{
 			$name = rawurldecode(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, W2_CHARSET));
 			if ( $name === '' || $name[0] === '.' || str_contains($name, "\0") )
 			{
 				return $m[0];
 			}
-			return $m[1] . '="' . h(versionedURL($prefix . rawurlencode($name), PAGES_PATH . "/" . UPLOAD_FOLDER . "/" . $name)) . '"';
+			return $m[1] . '="' . h(uploadURL($name)) . ($m[3] ?? '') . '"';
 		}, $html);
 }
 
