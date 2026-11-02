@@ -20,6 +20,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Rudimentary, optional git integration to commit (and push) each page edit, and to pull changes made elsewhere
     - Support for renaming and deleting pages
     - Markdown formatting syntax help on edit page
+    - Insert the text of Markdown or text files into the editor (button below the text, or drag & drop on the text); a new page gets the file's name
     - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
     - Optional sidebar fed by a special page (shown when viewing pages, in the page list and in search results, but not when editing)

@@ -29,5 +29,8 @@ final class UploadsDisabledTest extends AppTestCase
 		$this->assertStringContainsString('id="drawer-control"', $body);
 		$this->assertStringNotContainsString('id="uploadbutton"', $body);
 		$this->assertStringNotContainsString('id="uploaddialog"', $body);
+		// (inserting a text file into the text stores nothing: it stays available)
+		$this->assertStringContainsString('id="importbutton"', $body);
+		$this->assertStringContainsString('id="importfile"', $body);
 	}
 }

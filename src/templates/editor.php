@@ -44,7 +44,7 @@
 <?php endif ?>
 </div>
 <?php endif ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>" data-msg-import-too-large="<?= __('The file %s is larger than 2 MB and was not inserted.') ?>" data-msg-import-not-text="<?= __('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.') ?>">
 <?= $this->csrfField ?>
 
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
@@ -85,5 +85,7 @@
 <input type="hidden" name="isNew" value="<?= $this->isNew ? 'true' : '' ?>" />
 <input id="save" type="submit" value="<?= __('Save') ?>" />
 <input id="cancel" type="button" onclick="<?= HANDLER_GO_BACK ?>" value="<?= __('Cancel') ?>" />
+<input id="importbutton" type="button" value="<?= __('Insert text from file…') ?>" title="<?= __('Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)') ?>" />
+<input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />
 </p></form>
 <?= $this->uploadDialog ?>

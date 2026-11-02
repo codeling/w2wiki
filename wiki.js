@@ -4,7 +4,7 @@
  * W2
  *
  * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes, indenting lines with Tab).
+ * (local drafts, warning about unsaved changes, indenting lines with Tab, inserting text files).
  */
 
 function toggleDrawer()
@@ -135,6 +135,92 @@ function setupBacklinks(textArea)
 	{
 		button.addEventListener('click', () => insertTyped(textArea, '[[' + button.dataset.page + ']]'));
 	}
+}
+
+const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Whether the file is one of the text files which can be inserted into the text of the editor */
+function isTextFile(file)
+{
+	return /\.(md|markdown|txt)$/i.test(file.name);
+}
+
+/**
+ * Inserting Markdown and text files into the text of the editor, at the cursor: chosen with the button below the text,
+ * or dropped on the text. A new page without a title gets the name of the (first) file. The text is then saved like
+ * typed text, so nothing is stored before the page is saved.
+ */
+function setupImport(form, textArea, titleInput)
+{
+	let button = document.getElementById('importbutton');
+	let fileInput = document.getElementById('importfile');
+
+	async function insertFiles(files)
+	{
+		let texts = [];
+		let names = [];
+		for (let file of files)
+		{
+			if (!isTextFile(file))
+			{
+				window.alert(form.dataset.msgImportNotText.replace('%s', () => file.name));
+				continue;
+			}
+			if (file.size > IMPORT_MAX_BYTES)
+			{
+				window.alert(form.dataset.msgImportTooLarge.replace('%s', () => file.name));
+				continue;
+			}
+			let text = await file.text();
+			// (a NUL character is not in text files: e.g. an image renamed to .txt)
+			if (text.includes('\u0000'))
+			{
+				window.alert(form.dataset.msgImportNotText.replace('%s', () => file.name));
+				continue;
+			}
+			texts.push(text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n'));
+			names.push(file.name);
+		}
+		if (texts.length === 0)
+		{
+			return;
+		}
+		insertTyped(textArea, texts.join('\n\n'));
+		if (titleInput && titleInput.value.trim() === '')
+		{
+			titleInput.value = names[0].replace(/\.(md|markdown|txt)$/i, '');
+			titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+		}
+	}
+
+	if (button && fileInput)
+	{
+		button.addEventListener('click', () => fileInput.click());
+		fileInput.addEventListener('change', () =>
+		{
+			let files = Array.from(fileInput.files);
+			fileInput.value = '';
+			insertFiles(files);
+		});
+	}
+	let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+	// (also without uploads, when there is no other handler for dropped files)
+	textArea.addEventListener('dragover', (event) =>
+	{
+		if (hasFiles(event))
+		{
+			event.preventDefault();
+		}
+	});
+	textArea.addEventListener('drop', (event) =>
+	{
+		let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter(isTextFile) : [];
+		if (files.length > 0)
+		{
+			event.preventDefault();
+			insertFiles(files);
+		}
+	});
 }
 
 const INDENT = '    ';
@@ -632,10 +718,12 @@ function setupUpload(dialog, textArea)
 		textArea.addEventListener('drop', (event) =>
 		{
 			box.classList.remove('dropping');
-			if (hasFiles(event) && event.dataTransfer.files.length > 0)
+			// (Markdown and text files are inserted into the text instead, see setupImport())
+			let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter((file) => !isTextFile(file)) : [];
+			if (files.length > 0)
 			{
 				event.preventDefault();
-				chooseFiles(Array.from(event.dataTransfer.files));
+				chooseFiles(files);
 			}
 		});
 		textArea.addEventListener('paste', (event) =>
@@ -809,6 +897,7 @@ document.addEventListener('DOMContentLoaded', () =>
 
 	setupBacklinks(textArea);
 	setupIndent(textArea);
+	setupImport(form, textArea, titleInput);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	function leaveWithDraft()
