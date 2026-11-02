@@ -4,7 +4,7 @@
  * W2
  *
  * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes).
+ * (local drafts, warning about unsaved changes, Ctrl+S to save).
  */
 
 function toggleDrawer()
@@ -564,6 +564,37 @@ function setupUpload(dialog, textArea)
 	}
 }
 
+/**
+ * Ctrl+S (Cmd+S on a Mac) in the editor saves the page, as the Save button does (instead of saving the HTML of the
+ * page in the browser). The form is sent like with the button, so the draft is kept until the page is saved.
+ */
+function setupSaveShortcut(form)
+{
+	document.addEventListener('keydown', (event) =>
+	{
+		if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 's')
+		{
+			return;
+		}
+		event.preventDefault();
+		let dialog = document.getElementById('uploaddialog');
+		// (not while files are chosen or sent: their links are not in the text yet)
+		if (event.repeat || event.isComposing || (dialog && dialog.open))
+		{
+			return;
+		}
+		let saveButton = document.getElementById('save');
+		if (form.requestSubmit)
+		{
+			form.requestSubmit(saveButton);
+		}
+		else
+		{
+			saveButton.click();
+		}
+	});
+}
+
 document.addEventListener('DOMContentLoaded', () =>
 {
 	// the server has saved the text of this draft (the page after saving loads this script for that):
@@ -722,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () =>
 		modified = false;
 	}
 	form.addEventListener('submit', leaveWithDraft);
+	setupSaveShortcut(form);
 	// (the forms which link a mention in another page reload this page, which restores the draft: no warning needed)
 	for (let linkForm of document.querySelectorAll('form.linkmention'))
 	{

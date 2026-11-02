@@ -83,7 +83,7 @@
 <?php endif ?>
 <p class="editactions"><input type="hidden" name="action" value="save" />
 <input type="hidden" name="isNew" value="<?= $this->isNew ? 'true' : '' ?>" />
-<input id="save" type="submit" value="<?= __('Save') ?>" />
+<input id="save" type="submit" value="<?= __('Save') ?>" title="<?= __('Save (Ctrl+S)') ?>" />
 <input id="cancel" type="button" onclick="<?= HANDLER_GO_BACK ?>" value="<?= __('Cancel') ?>" />
 </p></form>
 <?= $this->uploadDialog ?>
