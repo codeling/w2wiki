@@ -4,7 +4,7 @@
  * W2
  *
  * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes).
+ * (local drafts, warning about unsaved changes, indenting lines with Tab).
  */
 
 function toggleDrawer()
@@ -114,24 +114,129 @@ function sendUpload(url, formData, onProgress)
 }
 
 /**
+ * Replaces the selection of the text area with the text, as if it was typed: it can be undone, and counts as a change
+ */
+function insertTyped(textArea, text)
+{
+	textArea.focus();
+	if (!document.execCommand || !document.execCommand('insertText', false, text))
+	{
+		textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
+		textArea.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+}
+
+/**
  * The buttons of the pages which link to the new page or mention it: they insert a link to that page at the cursor.
  */
 function setupBacklinks(textArea)
 {
 	for (let button of document.querySelectorAll('button.backlink'))
 	{
-		button.addEventListener('click', () =>
-		{
-			textArea.focus();
-			let text = '[[' + button.dataset.page + ']]';
-			// (as typed text: it can be undone, and counts as a change)
-			if (!document.execCommand || !document.execCommand('insertText', false, text))
-			{
-				textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
-				textArea.dispatchEvent(new Event('input', { bubbles: true }));
-			}
-		});
+		button.addEventListener('click', () => insertTyped(textArea, '[[' + button.dataset.page + ']]'));
 	}
+}
+
+const INDENT = '    ';
+
+/**
+ * Indents (by INDENT) or outdents (by up to INDENT, or one tab) the lines of the text which the selection from start to
+ * end touches; empty lines are left as they are. Returns the part of the text to replace (start, end), its replacement,
+ * and the selection afterwards (selectionStart, selectionEnd); or null if no line changes.
+ */
+function indentLines(text, start, end, outdent)
+{
+	let blockStart = text.lastIndexOf('\n', start - 1) + 1;
+	// (a selection of whole lines ends after the line break of the last one: the next line is not part of it)
+	let lastPosition = (end > start && text[end - 1] === '\n') ? end - 1 : end;
+	let blockEnd = text.indexOf('\n', lastPosition);
+	if (blockEnd < 0)
+	{
+		blockEnd = text.length;
+	}
+	let lines = text.slice(blockStart, blockEnd).split('\n');
+	let changes = lines.map((line) =>
+	{
+		if (outdent)
+		{
+			let match = /^(\t| {1,4})/.exec(line);
+			return match ? -match[1].length : 0;
+		}
+		return line === '' ? 0 : INDENT.length;
+	});
+	if (changes.every((change) => change === 0))
+	{
+		return null;
+	}
+	let replacement = lines.map((line, i) => changes[i] > 0 ? INDENT + line : line.slice(-changes[i])).join('\n');
+	// where a position of the old text is in the new one
+	function moved(position, isStart)
+	{
+		let lineStart = blockStart;
+		let shift = 0;
+		for (let i = 0; i < lines.length; i++)
+		{
+			let lineEnd = lineStart + lines[i].length;
+			if (position <= lineEnd)
+			{
+				let column = position - lineStart;
+				// (a selection which starts at the beginning of a line keeps the whole line selected)
+				if (isStart && column === 0 && changes[i] > 0)
+				{
+					return lineStart + shift;
+				}
+				return lineStart + shift + Math.max(0, column + changes[i]);
+			}
+			shift += changes[i];
+			lineStart = lineEnd + 1;
+		}
+		return position + shift;
+	}
+	return { start: blockStart, end: blockEnd, replacement: replacement,
+		selectionStart: moved(start, start !== end), selectionEnd: moved(end, false) };
+}
+
+/**
+ * Tab in the text indents the lines of the selection (or inserts INDENT at the cursor), Shift+Tab outdents them.
+ * So that the text can still be left with the keyboard, Tab right after Escape moves the focus as usual.
+ */
+function setupIndent(textArea)
+{
+	let leaveOnTab = false;
+	textArea.addEventListener('blur', () => { leaveOnTab = false; });
+	textArea.addEventListener('keydown', (event) =>
+	{
+		if (event.key === 'Escape')
+		{
+			leaveOnTab = true;
+			return;
+		}
+		if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey || event.isComposing)
+		{
+			leaveOnTab = false;
+			return;
+		}
+		if (leaveOnTab)
+		{
+			leaveOnTab = false;
+			return;
+		}
+		event.preventDefault();
+		let start = textArea.selectionStart;
+		let end = textArea.selectionEnd;
+		if (!event.shiftKey && start === end)
+		{
+			insertTyped(textArea, INDENT);
+			return;
+		}
+		let change = indentLines(textArea.value, start, end, event.shiftKey);
+		if (change)
+		{
+			textArea.setSelectionRange(change.start, change.end);
+			insertTyped(textArea, change.replacement);
+			textArea.setSelectionRange(change.selectionStart, change.selectionEnd);
+		}
+	});
 }
 
 /**
@@ -185,17 +290,6 @@ function setupUpload(dialog, textArea)
 	{
 		status.textContent = text;
 		status.className = isError ? 'error' : '';
-	}
-
-	function insertAtCursor(text)
-	{
-		textArea.focus();
-		// (as typed text: it can be undone, and counts as a change)
-		if (!document.execCommand || !document.execCommand('insertText', false, text))
-		{
-			textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
-			textArea.dispatchEvent(new Event('input', { bubbles: true }));
-		}
 	}
 
 	function isWhole()
@@ -491,7 +585,7 @@ function setupUpload(dialog, textArea)
 		{
 			if (textArea)
 			{
-				insertAtCursor(uploaded.join('\n'));
+				insertTyped(textArea, uploaded.join('\n'));
 			}
 			else
 			{
@@ -714,6 +808,7 @@ document.addEventListener('DOMContentLoaded', () =>
 	}
 
 	setupBacklinks(textArea);
+	setupIndent(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	function leaveWithDraft()

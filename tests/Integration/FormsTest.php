@@ -75,6 +75,16 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('w2wiki-draft:/index.php:new:', $form->getAttribute('data-draft-key'));
 	}
 
+	public function testTextOfTheEditorIsDescribedWithTheKeysForIndenting(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
+			$body = $this->http->get('/index.php', $query)->body;
+			$this->assertStringContainsString('spellcheck="false" aria-describedby="texthint">', $body);
+			$this->assertStringContainsString('<span id="texthint" class="visuallyhidden">Tab indents lines, Shift+Tab outdents them. '
+				. 'To leave the text with Tab, press Esc first.</span>', $body);
+		}
+	}
+
 	public function testTextAndNamesInTheEditorAreEscaped(): void
 	{
 		$this->savePage('Hostile', self::HOSTILE_TEXT);
