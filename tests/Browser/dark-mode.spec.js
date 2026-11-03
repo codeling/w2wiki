@@ -49,6 +49,30 @@ async function expectReadable(page, selectors) {
   }
 }
 
+/**
+ * Contrast of the text of the title bar and of the toolbar against both ends of their gradients (the
+ * custom properties of the style sheet), which the check of expectReadable() can't see
+ */
+async function barContrasts(page) {
+  return page.evaluate(() => {
+    const style = getComputedStyle(document.documentElement);
+    const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.trim().slice(i, i + 2), 16));
+    const luminance = (c) => {
+      const [R, G, B] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    };
+    const ratio = (a, b) => { const [x, y] = [luminance(rgb(a)), luminance(rgb(b))]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const get = (name) => style.getPropertyValue(name);
+    const result = {};
+    for (const end of ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom']) {
+      result[`text on ${end}`] = ratio(get('--bar-fg'), get(end));
+    }
+    result['date on --title-top'] = ratio(get('--bar-fg-muted'), get('--title-top'));
+    result['date on --title-bottom'] = ratio(get('--bar-fg-muted'), get('--title-bottom'));
+    return result;
+  });
+}
+
 /** The brightness (0 to 1) of the background of the page */
 async function pageBrightness(page) {
   return page.evaluate(() => {
@@ -71,6 +95,18 @@ test.describe('dark color scheme', () => {
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light dark');
   });
 
+  test('the title bar and the toolbar are dark, with light text and light icons', async ({ page }) => {
+    await page.goto('/index.php');
+    const [titleTop, toolbarBottom] = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return [style.getPropertyValue('--title-top').trim(), style.getPropertyValue('--toolbar-bottom').trim()];
+    });
+    expect([titleTop, toolbarBottom]).toEqual(['#555555', '#444444']);
+    for (const [name, ratio] of Object.entries(await barContrasts(page))) expect(ratio, name).toBeGreaterThanOrEqual(4.5);
+    // (the icons are dark in their files, and inverted to light here)
+    expect(await page.locator('.toolbar img.icon').first().evaluate((e) => getComputedStyle(e).filter)).toContain('invert');
+  });
+
   test('view: page content, tables, code, red links, notes, the sidebar and the search box are readable', async ({ page, request }) => {
     await savePage(request, 'Dark view', text);
     await page.goto('/index.php/Dark%20view');
@@ -81,6 +117,18 @@ test.describe('dark color scheme', () => {
     expect(codeBackground).not.toBe('rgb(255, 255, 204)');
     await page.goto('/index.php/Dark%20view?linkshere=true');
     await expectReadable(page, ['.linkshere']);
+  });
+
+  test('view: the mark after external links is a mask in the color of the link, not an image', async ({ page, request }) => {
+    await savePage(request, 'Dark external', 'A [link](http://example.com/).');
+    await page.goto('/index.php/Dark%20external');
+    const mark = await page.locator('.main a[href^="http"]').evaluate((link) => {
+      const after = getComputedStyle(link, '::after');
+      return { mask: after.maskImage || after.webkitMaskImage, background: after.backgroundColor, link: getComputedStyle(link).color, width: after.width };
+    });
+    expect(mark.mask).toContain('internet.svg');
+    expect(mark.background).toBe(mark.link);
+    expect(parseFloat(mark.width)).toBeGreaterThan(8);
   });
 
   test('edit: the note about a new page is readable', async ({ page }) => {
@@ -115,16 +163,16 @@ test.describe('dark color scheme', () => {
     await expectReadable(page, ['.diff', '.diff .removed', '.diff .added', '.note']);
   });
 
-  test('all pages: the table is dark, and the icons for a light background are inverted', async ({ page, request }) => {
+  test('all pages: the table is dark, and the icons are inverted', async ({ page, request }) => {
     await savePage(request, 'Dark list', 'x');
     await page.goto('/index.php?action=all');
     expect(await pageBrightness(page)).toBeLessThan(0.3);
     await expectReadable(page, ['table td', 'table th', 'table a']);
-    const icons = page.locator('table img.icon[src*="edit-dark.svg"]');
+    const icons = page.locator('table img.icon[src*="edit.svg"]');
     expect(await icons.count()).toBeGreaterThan(0);
     expect(await icons.first().evaluate((e) => getComputedStyle(e).filter)).toContain('invert');
     // (the red delete icon shows on both, so it is kept as it is)
-    expect(await page.locator('table img.icon[src*="delete-dark.svg"]').first().evaluate((e) => getComputedStyle(e).filter)).toBe('none');
+    expect(await page.locator('table img.icon[src*="delete.svg"]').first().evaluate((e) => getComputedStyle(e).filter)).toBe('none');
   });
 
   test('upload: the list and the dialog with the crop frame', async ({ page, request }) => {
@@ -157,7 +205,19 @@ test.describe('dark color scheme', () => {
 test.describe('light color scheme', () => {
   test.use({ colorScheme: 'light' });
 
-  test('the colors and icons are the ones of the light scheme', async ({ page, request }) => {
+  test('the title bar and the toolbar are light, with dark text and dark icons', async ({ page }) => {
+    await page.goto('/index.php');
+    for (const [name, ratio] of Object.entries(await barContrasts(page))) expect(ratio, name).toBeGreaterThanOrEqual(4.5);
+    const colors = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom'].map((name) => style.getPropertyValue(name).trim());
+    });
+    for (const hex of colors) expect(parseInt(hex.slice(1, 3), 16), `${hex} is light`).toBeGreaterThan(0xc0);
+    expect(await page.locator('.toolbar img.icon').first().evaluate((e) => getComputedStyle(e).filter)).toBe('none');
+    expect(await page.locator('.titlebar').evaluate((e) => getComputedStyle(e).backgroundImage)).toContain('linear-gradient');
+  });
+
+  test('the colors of the page and the icons are the ones of the light scheme', async ({ page, request }) => {
     await savePage(request, 'Light view', text);
     await page.goto('/index.php/Light%20view');
     const style = (selector, property) => page.locator(selector).first().evaluate((e, p) => getComputedStyle(e)[p], property);
@@ -167,7 +227,7 @@ test.describe('light color scheme', () => {
     expect(await style('blockquote', 'backgroundColor')).toBe('rgb(240, 248, 240)');
     expect(await style('.main a.noexist', 'color')).toBe('rgb(187, 0, 0)');
     await page.goto('/index.php?action=all');
-    expect(await style('table img.icon[src*="edit-dark.svg"]', 'filter')).toBe('none');
+    expect(await style('table img.icon[src*="edit.svg"]', 'filter')).toBe('none');
     await page.goto('/index.php?action=edit&page=Light%20view');
     expect(await style('#text', 'backgroundColor')).toBe('rgb(255, 255, 238)');
   });

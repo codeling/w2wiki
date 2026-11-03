@@ -41,7 +41,7 @@ final class Lists
 		foreach ($items as $item)
 		{
 			$rows[] = array('href' => pageURL($item['name']), 'name' => $item['name'], 'modified' => date($date_format, $item['recent']),
-				'size' => humanFilesize($item['size']), 'actions' => getPageActions($item['name'], 'all', "-dark"));
+				'size' => humanFilesize($item['size']), 'actions' => getPageActions($item['name'], 'all'));
 		}
 		return templates()->render('all-pages', array(
 			'total' => count($pageNames), 'rows' => $rows,

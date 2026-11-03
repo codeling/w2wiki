@@ -10,13 +10,12 @@
  *
  * Written with Coda: <http://panic.com/coda/>
  *
- * colors icons:
- *          240,240,240
- *     dark: 15, 15, 15
- *
  * The colors are custom properties, with the values for a dark color scheme below
- * (@media (prefers-color-scheme: dark)). The title bar and the toolbar are dark in both.
- * The icons for a light background (w2-icons/*-dark.svg) are inverted in the dark scheme.
+ * (@media (prefers-color-scheme: dark)).
+ *
+ * The icons (w2-icons/*.svg) are drawn in 15, 15, 15 (the red ones in red), for a light background. In the dark
+ * scheme they are inverted (see "img.icon" below), so the same files work in both. Icons which are not images in
+ * the page (the one after external links) are masks, painted with the color of the text.
  */
 
 :root {
@@ -55,8 +54,15 @@
 	--drawer-bg: rgb(240, 240, 240);
 	--drawer-fg: #000000;
 	--drawer-border: black;
-	--icon-outline: white;
+	--icon-outline: #777777;
 	--icon-filter: none;
+	--bar-fg: #222222;
+	--bar-fg-muted: #555555;
+	--title-top: #fcfcfc;
+	--title-bottom: #d9d9d9;
+	--toolbar-top: #ebebeb;
+	--toolbar-bottom: #cfcfcf;
+	--bar-border: #aaaaaa;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -96,6 +102,13 @@
 		--drawer-border: #888888;
 		--icon-outline: #bbbbbb;
 		--icon-filter: invert(1) hue-rotate(180deg);
+		--bar-fg: #eeeeee;
+		--bar-fg-muted: #cccccc;
+		--title-top: #555555;
+		--title-bottom: #000000;
+		--toolbar-top: #666666;
+		--toolbar-bottom: #444444;
+		--bar-border: transparent;
 	}
 }
 
@@ -432,7 +445,16 @@ input#gitmsg {
 }
 
 .main a[href^="http"]::after {
-	content: url('w2-icons/internet.png');
+	/* (a globe, in the color of the link) */
+	content: "";
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-left: .2em;
+	vertical-align: -.15em;
+	background-color: currentColor;
+	-webkit-mask: url('w2-icons/internet.svg') center / contain no-repeat;
+	mask: url('w2-icons/internet.svg') center / contain no-repeat;
 }
 
 .main a.literalMatch {
@@ -465,9 +487,8 @@ input#gitmsg {
   }
 
 .titlebar {
-	background-color: #222222;
-	background: -webkit-gradient(linear, left top, left bottom, from(#555555), to(#000000));
-	color: #ffffff;
+	background: linear-gradient(to bottom, var(--title-top), var(--title-bottom));
+	color: var(--bar-fg);
 	padding: 4px 4px 4px 1em;
 }
 
@@ -478,21 +499,21 @@ input#gitmsg {
 
 .titledate {
 	font-size: 0.90em;
-	color: #999999;
+	color: var(--bar-fg-muted);
 	margin-left: 1em;
 	margin-right: 1em;
 }
 
 .toolbar {
-	background-color: #777777;
-	background: -webkit-gradient(linear, left top, left bottom, from(#666666), to(#444444));
+	background: linear-gradient(to bottom, var(--toolbar-top), var(--toolbar-bottom));
+	box-shadow: 0 1px 0 var(--bar-border);
 	padding: 4px 4px 4px 1em;
 }
 
 .toolbar > a, .titlebar > a {
 	font-size: 0.90em;
 	margin-right: 1em;
-	color: #eeeeee;
+	color: var(--bar-fg);
 	text-decoration: none;
 	font-weight: normal;
 }
@@ -628,9 +649,8 @@ a > img.icon:hover, a > span.icongroup:hover {
 a > img.icon:active, a > span.icongroup:active {
 	outline: 1px inset var(--icon-outline);
 }
-/* the icons for a light background, also the one in the drawer (the red delete icon shows on both) */
-img.icon[src*="-dark.svg"]:not([src*="delete"]),
-#drawer img.icon {
+/* (dark in the files, light in the dark scheme; the red delete icon shows on both) */
+img.icon:not([src*="delete"]) {
 	filter: var(--icon-filter);
 }
 .rightaligned {

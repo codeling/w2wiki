@@ -64,13 +64,13 @@ timed('modified() and size() of every page', function () use ($store, $names) {
 });
 timed('getPageActions() for every page (the icons of a row)', function () use ($names) {
 	foreach ($names as $page) {
-		getPageActions($page, 'all', '-dark');
+		getPageActions($page, 'all');
 	}
 });
 timed('assetURL() 4 times for every page (is_file + filemtime)', function () use ($names) {
 	foreach ($names as $page) {
 		foreach (['edit', 'delete', 'rename', 'link'] as $icon) {
-			assetURL("w2-icons/$icon-dark.svg");
+			assetURL("w2-icons/$icon.svg");
 		}
 	}
 });

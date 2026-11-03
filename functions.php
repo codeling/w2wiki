@@ -943,10 +943,9 @@ function sortableHeadings($action, $sortBy, $columns)
  * The icons to do something with a page (edit, delete, rename, show the pages which link to it), except for
  * the action which is being done, as links to the actions.
  *
- * @param string $imgSuffix	"-dark" for the icons on a light background
  * return W2\Html
  */
-function getPageActions($page, $action, $imgSuffix)
+function getPageActions($page, $action)
 {
 	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
 	$items = array();
@@ -955,10 +954,10 @@ function getPageActions($page, $action, $imgSuffix)
 		if ($action != $name)
 		{
 			$items[] = array('href' => SELF . "?action=" . $name . "&page=" . urlencode($page),
-				'icon' => assetURL("w2-icons/" . $name . $imgSuffix . ".svg"), 'label' => $label);
+				'icon' => assetURL("w2-icons/" . $name . ".svg"), 'label' => $label);
 		}
 	}
 	$items[] = array('href' => SELF . "?action=view&page=" . urlencode($page) . "&linkshere=true",
-		'icon' => assetURL("w2-icons/link" . $imgSuffix . ".svg"), 'label' => translate('Show links here'));
+		'icon' => assetURL("w2-icons/link.svg"), 'label' => translate('Show links here'));
 	return templates()->render('page-actions', array('items' => $items));
 }

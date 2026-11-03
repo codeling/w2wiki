@@ -632,7 +632,7 @@ print templates()->render('layout', array(
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
-			? getPageActions($page, $action, "") : null,
+			? getPageActions($page, $action) : null,
 		'toolbar' => $toolbar,
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
