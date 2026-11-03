@@ -43,7 +43,7 @@ final class LocaleEscapingTest extends AppTestCase
 			$this->assertStringNotContainsString('<img src=x', $response->body, $url);
 			$this->assertStringNotContainsString('onerror=alert(1)>', $response->body, $url);
 			$this->assertStringContainsString(
-				'title="' . htmlspecialchars(self::PAYLOAD . 'All', ENT_QUOTES, 'UTF-8') . '"',
+				'<title>' . htmlspecialchars(self::PAYLOAD . 'All', ENT_QUOTES, 'UTF-8') . '</title>',
 				$response->body,
 				"the text is shown, escaped: $url"
 			);
@@ -57,6 +57,13 @@ final class LocaleEscapingTest extends AppTestCase
 		foreach ($dom->getElementsByTagName('img') as $img) {
 			$this->assertFalse($img->hasAttribute('onerror'), 'an img element got an event handler');
 			$this->assertNotSame('x', $img->getAttribute('src'));
+		}
+		// (the icons are SVGs, with the text as the label and the title)
+		$this->assertGreaterThan(0, $dom->getElementsByTagName('svg')->length);
+		foreach ($dom->getElementsByTagName('svg') as $svg) {
+			foreach ($svg->attributes as $attribute) {
+				$this->assertStringStartsNotWith('on', $attribute->name, 'an svg element got an event handler');
+			}
 		}
 	}
 }
