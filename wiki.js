@@ -12,6 +12,44 @@ function toggleDrawer()
 	document.getElementById('drawer').classList.toggle('inactive');
 }
 
+// The buttons in the toolbar to choose the color scheme: the choice is applied at once and saved in the background,
+// so that the text in the editor stays as it is (the form alone, without this script, loads the page again)
+document.addEventListener('submit', function (event)
+{
+	const form = event.target;
+	if (!form.classList || !form.classList.contains('themeswitch') || !event.submitter)
+	{
+		return;
+	}
+	event.preventDefault();
+	const mode = event.submitter.value;
+	const data = new URLSearchParams();
+	for (const field of form.querySelectorAll('input[name]'))
+	{
+		data.append(field.name, field.value);
+	}
+	data.append('mode', mode);
+	fetch(form.action, {method: 'POST', body: data, credentials: 'same-origin', redirect: 'manual'}).then(function (response)
+	{
+		if (!response.ok && response.type !== 'opaqueredirect')
+		{
+			return;
+		}
+		if (mode === 'auto')
+		{
+			delete document.documentElement.dataset.theme;
+		}
+		else
+		{
+			document.documentElement.dataset.theme = mode;
+		}
+		for (const button of form.querySelectorAll('button'))
+		{
+			button.setAttribute('aria-pressed', button === event.submitter ? 'true' : 'false');
+		}
+	}, function () { /* no connection: the choice stays as it was */ });
+});
+
 // based on https://www.w3schools.com/howto/howto_js_draggable.asp
 function makeElementDraggable(elmnt)
 {

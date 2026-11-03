@@ -2,84 +2,7 @@
 
 // Dark mode: with a dark color scheme, every view has dark backgrounds and readable text. Light mode is unchanged.
 const { test, expect } = require('@playwright/test');
-const { savePage, csrfToken, gif, png, upload, loginBase } = require('./helpers');
-
-/**
- * Contrast ratios (WCAG) of the text of the elements found by the selectors, against the background behind them
- * (the first opaque background of the element or one of its ancestors), as a list of "selector: ratio".
- */
-async function contrasts(page, selectors) {
-  return page.evaluate((selectors) => {
-    const parse = (value) => {
-      const m = /rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:[,/ ]+([\d.]+%?))?\)/.exec(value);
-      if (!m) return null;
-      let alpha = m[4] === undefined ? 1 : parseFloat(m[4]) / (m[4].endsWith('%') ? 100 : 1);
-      return [Number(m[1]), Number(m[2]), Number(m[3]), alpha];
-    };
-    const luminance = ([r, g, b]) => {
-      const [R, G, B] = [r, g, b].map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
-      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
-    };
-    const backdrop = (element) => {
-      for (let e = element; e; e = e.parentElement) {
-        const c = parse(getComputedStyle(e).backgroundColor);
-        if (c && c[3] >= 0.99) return c;
-      }
-      return [255, 255, 255, 1]; // (the canvas: white, only if nothing sets a color)
-    };
-    const result = {};
-    for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (!element) { result[selector] = null; continue; }
-      const fg = parse(getComputedStyle(element).color);
-      const bg = backdrop(element);
-      const [a, b] = [luminance(fg), luminance(bg)];
-      result[selector] = Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 10) / 10;
-    }
-    return result;
-  }, selectors);
-}
-
-/** Every listed element exists and its text can be read: contrast 4.5 : 1, or 3 : 1 for the large text of headings */
-async function expectReadable(page, selectors) {
-  const ratios = await contrasts(page, selectors);
-  for (const selector of selectors) {
-    expect(ratios[selector], `${selector} is shown`).not.toBeNull();
-    expect(ratios[selector], `contrast of ${selector}`).toBeGreaterThanOrEqual(4.5);
-  }
-}
-
-/**
- * Contrast of the text of the title bar and of the toolbar against both ends of their gradients (the
- * custom properties of the style sheet), which the check of expectReadable() can't see
- */
-async function barContrasts(page) {
-  return page.evaluate(() => {
-    const style = getComputedStyle(document.documentElement);
-    const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.trim().slice(i, i + 2), 16));
-    const luminance = (c) => {
-      const [R, G, B] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
-      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
-    };
-    const ratio = (a, b) => { const [x, y] = [luminance(rgb(a)), luminance(rgb(b))]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-    const get = (name) => style.getPropertyValue(name);
-    const result = {};
-    for (const end of ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom']) {
-      result[`text on ${end}`] = ratio(get('--bar-fg'), get(end));
-    }
-    result['date on --title-top'] = ratio(get('--bar-fg-muted'), get('--title-top'));
-    result['date on --title-bottom'] = ratio(get('--bar-fg-muted'), get('--title-bottom'));
-    return result;
-  });
-}
-
-/** The brightness (0 to 1) of the background of the page */
-async function pageBrightness(page) {
-  return page.evaluate(() => {
-    const m = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.body).backgroundColor);
-    return (Number(m[1]) + Number(m[2]) + Number(m[3])) / (3 * 255);
-  });
-}
+const { savePage, csrfToken, gif, png, upload, loginBase, contrasts, expectReadable, barContrasts, barColors, pageBrightness, iconColor } = require('./helpers');
 
 const text = [
   '# Dark heading', '', 'Text with a [[Missing page]] and a [[Home]] link and `inline code`.', '',
@@ -97,14 +20,11 @@ test.describe('dark color scheme', () => {
 
   test('the title bar and the toolbar are dark, with light text and light icons', async ({ page }) => {
     await page.goto('/index.php');
-    const [titleTop, toolbarBottom] = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return [style.getPropertyValue('--title-top').trim(), style.getPropertyValue('--toolbar-bottom').trim()];
-    });
-    expect([titleTop, toolbarBottom]).toEqual(['#555555', '#444444']);
+    const colors = await barColors(page);
+    expect([colors[0], colors[3]]).toEqual([[85, 85, 85], [68, 68, 68]]);
     for (const [name, ratio] of Object.entries(await barContrasts(page))) expect(ratio, name).toBeGreaterThanOrEqual(4.5);
-    // (the icons are dark in their files, and inverted to light here)
-    expect(await page.locator('.toolbar img.icon').first().evaluate((e) => getComputedStyle(e).filter)).toContain('invert');
+    // (the icons are painted with the color of the text of the bar)
+    expect(await iconColor(page, '.toolbar svg.icon')).toEqual([238, 238, 238]);
   });
 
   test('view: page content, tables, code, red links, notes, the sidebar and the search box are readable', async ({ page, request }) => {
@@ -147,8 +67,8 @@ test.describe('dark color scheme', () => {
     await page.click('#drawer-control');
     await expect(page.locator('#drawer')).toBeVisible();
     await expectReadable(page, ['#drawer', '#drawer h5']);
-    // (the close icon is dark, and inverted to show on the dark drawer)
-    expect(await page.locator('#drawer img.icon').evaluate((e) => getComputedStyle(e).filter)).not.toBe('none');
+    // (the close icon has the color of the text of the drawer)
+    expect(await iconColor(page, '#drawer svg.icon')).toEqual([228, 228, 228]);
   });
 
   test('edit: the differences after a conflicting change are readable', async ({ page, request }) => {
@@ -163,16 +83,15 @@ test.describe('dark color scheme', () => {
     await expectReadable(page, ['.diff', '.diff .removed', '.diff .added', '.note']);
   });
 
-  test('all pages: the table is dark, and the icons are inverted', async ({ page, request }) => {
+  test('all pages: the table is dark, and the icons are light', async ({ page, request }) => {
     await savePage(request, 'Dark list', 'x');
     await page.goto('/index.php?action=all');
     expect(await pageBrightness(page)).toBeLessThan(0.3);
     await expectReadable(page, ['table td', 'table th', 'table a']);
-    const icons = page.locator('table img.icon[src*="edit.svg"]');
-    expect(await icons.count()).toBeGreaterThan(0);
-    expect(await icons.first().evaluate((e) => getComputedStyle(e).filter)).toContain('invert');
-    // (the red delete icon shows on both, so it is kept as it is)
-    expect(await page.locator('table img.icon[src*="delete.svg"]').first().evaluate((e) => getComputedStyle(e).filter)).toBe('none');
+    expect(await page.locator('table svg.icon-edit').count()).toBeGreaterThan(0);
+    expect(await iconColor(page, 'table svg.icon-edit')).toEqual([240, 240, 240]);
+    // (the delete icon is red, a lighter red in the dark scheme)
+    expect(await iconColor(page, 'table svg.icon-delete')).toEqual([255, 107, 122]);
   });
 
   test('upload: the list and the dialog with the crop frame', async ({ page, request }) => {
@@ -208,12 +127,8 @@ test.describe('light color scheme', () => {
   test('the title bar and the toolbar are light, with dark text and dark icons', async ({ page }) => {
     await page.goto('/index.php');
     for (const [name, ratio] of Object.entries(await barContrasts(page))) expect(ratio, name).toBeGreaterThanOrEqual(4.5);
-    const colors = await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom'].map((name) => style.getPropertyValue(name).trim());
-    });
-    for (const hex of colors) expect(parseInt(hex.slice(1, 3), 16), `${hex} is light`).toBeGreaterThan(0xc0);
-    expect(await page.locator('.toolbar img.icon').first().evaluate((e) => getComputedStyle(e).filter)).toBe('none');
+    for (const [red] of await barColors(page)) expect(red, 'the bars are light').toBeGreaterThan(0xc0);
+    expect(await iconColor(page, '.toolbar svg.icon')).toEqual([34, 34, 34]);
     expect(await page.locator('.titlebar').evaluate((e) => getComputedStyle(e).backgroundImage)).toContain('linear-gradient');
   });
 
@@ -227,7 +142,8 @@ test.describe('light color scheme', () => {
     expect(await style('blockquote', 'backgroundColor')).toBe('rgb(240, 248, 240)');
     expect(await style('.main a.noexist', 'color')).toBe('rgb(187, 0, 0)');
     await page.goto('/index.php?action=all');
-    expect(await style('table img.icon[src*="edit.svg"]', 'filter')).toBe('none');
+    expect(await iconColor(page, 'table svg.icon-edit')).toEqual([15, 15, 15]);
+    expect(await iconColor(page, 'table svg.icon-delete')).toEqual([218, 68, 83]);
     await page.goto('/index.php?action=edit&page=Light%20view');
     expect(await style('#text', 'backgroundColor')).toBe('rgb(255, 255, 238)');
   });

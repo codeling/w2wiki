@@ -32,7 +32,7 @@ final class UploadTest extends AppTestCase
 		$body = $this->http->get($this->pageUrl('Pic'))->body;
 		$this->assertMatchesRegularExpression('#<link type="text/css" rel="stylesheet" href="/index\.css\?v=\d+"#', $body);
 		$this->assertMatchesRegularExpression('#<link rel="icon" href="/w2-icons/w2-icon\.png\?v=\d+"#', $body);
-		$this->assertMatchesRegularExpression('#<img src="/w2-icons/home\.svg\?v=\d+"#', $body);
+		$this->assertMatchesRegularExpression('#<use href="/w2-icons/home\.svg\?v=\d+\#i"#', $body);
 		$this->assertMatchesRegularExpression('#<img src="/file\.php\?name=v\.gif&amp;v=\d+"#', $body);
 		$this->assertMatchesRegularExpression('#<a href="/file\.php\?name=v\.gif&amp;v=\d+"#', $body);
 

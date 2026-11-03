@@ -10,106 +10,71 @@
  *
  * Written with Coda: <http://panic.com/coda/>
  *
- * The colors are custom properties, with the values for a dark color scheme below
- * (@media (prefers-color-scheme: dark)).
+ * The colors are custom properties with a value for the light and one for the dark color scheme (light-dark()).
+ * The scheme is that of the system, or the one chosen with the buttons of the toolbar (data-theme of the root element).
  *
- * The icons (w2-icons/*.svg) are drawn in 15, 15, 15 (the red ones in red), for a light background. In the dark
- * scheme they are inverted (see "img.icon" below), so the same files work in both. Icons which are not images in
- * the page (the one after external links) are masks, painted with the color of the text.
+ * The icons (w2-icons/*.svg) are inline SVGs in the pages which show the shape in a file (<use>, see iconSvg()). The
+ * files draw with currentColor, so the color of the icons is set here (svg.icon), also for the dark scheme. The
+ * globe after external links is a mask, painted with the color of the text.
  */
 
 :root {
 	color-scheme: light dark;
-
-	--page-bg: #eeeeee;
-	--page-fg: #000000;
-	--blockquote-bg: #f0f8f0;
-	--rule: #cccccc;
-	--code-bg: #ffffcc;
-	--code-border: gray;
-	--row-even: #e4e4e4;
-	--row-odd: #eeeeee;
-	--table-rule: black;
-	--textarea-bg: #ffffee;
-	--textarea-fg: #000000;
-	--diff-border: #999999;
-	--diff-removed: #ffdddd;
-	--diff-added: #ddffdd;
-	--diff-gap: #888888;
-	--dialog-border: black;
-	--dialog-backdrop: rgba(0, 0, 0, .4);
-	--focus: #4466cc;
-	--drop-outline: #666644;
-	--link-literal: #0000ff;
-	--link-missing: #bb0000;
-	--note-bg: #ffffcc;
-	--note-fg: #666644;
-	--note-border: #666644;
-	--snippet: #555555;
-	--search-bg: #ffffff;
-	--search-fg: #000000;
-	--button-bg: rgb(220, 220, 220);
-	--button-bg-hover: rgb(200, 200, 200);
-	--button-fg: black;
-	--drawer-bg: rgb(240, 240, 240);
-	--drawer-fg: #000000;
-	--drawer-border: black;
-	--icon-outline: #777777;
-	--icon-filter: none;
-	--bar-fg: #222222;
-	--bar-fg-muted: #555555;
-	--title-top: #fcfcfc;
-	--title-bottom: #d9d9d9;
-	--toolbar-top: #ebebeb;
-	--toolbar-bottom: #cfcfcf;
-	--bar-border: #aaaaaa;
+}
+/* the color scheme chosen with the buttons of the toolbar (a cookie, see theme-switch.php), else that of the system */
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--page-bg: #1c1c1e;
-		--page-fg: #e4e4e4;
-		--blockquote-bg: #1f2d1f;
-		--rule: #555555;
-		--code-bg: #33321a;
-		--code-border: #777777;
-		--row-even: #2a2a2d;
-		--row-odd: #1c1c1e;
-		--table-rule: #aaaaaa;
-		--textarea-bg: #26261c;
-		--textarea-fg: #eeeeee;
-		--diff-border: #777777;
-		--diff-removed: #4a2326;
-		--diff-added: #1f4023;
-		--diff-gap: #999999;
-		--dialog-border: #888888;
-		--dialog-backdrop: rgba(0, 0, 0, .65);
-		--focus: #8ab4ff;
-		--drop-outline: #bbbb88;
-		--link-literal: #8ab4ff;
-		--link-missing: #ff7b7b;
-		--note-bg: #3a3a1c;
-		--note-fg: #e0e0b0;
-		--note-border: #8c8c5c;
-		--snippet: #aaaaaa;
-		--search-bg: #2c2c2e;
-		--search-fg: #eeeeee;
-		--button-bg: rgb(70, 70, 74);
-		--button-bg-hover: rgb(90, 90, 94);
-		--button-fg: #eeeeee;
-		--drawer-bg: rgb(44, 44, 46);
-		--drawer-fg: #e4e4e4;
-		--drawer-border: #888888;
-		--icon-outline: #bbbbbb;
-		--icon-filter: invert(1) hue-rotate(180deg);
-		--bar-fg: #eeeeee;
-		--bar-fg-muted: #cccccc;
-		--title-top: #555555;
-		--title-bottom: #000000;
-		--toolbar-top: #666666;
-		--toolbar-bottom: #444444;
-		--bar-border: transparent;
-	}
+/* (light-dark() takes the first color in the light scheme and the second in the dark one) */
+:root {
+	--page-bg: light-dark(#eeeeee, #1c1c1e);
+	--page-fg: light-dark(#000000, #e4e4e4);
+	--blockquote-bg: light-dark(#f0f8f0, #1f2d1f);
+	--rule: light-dark(#cccccc, #555555);
+	--code-bg: light-dark(#ffffcc, #33321a);
+	--code-border: light-dark(gray, #777777);
+	--row-even: light-dark(#e4e4e4, #2a2a2d);
+	--row-odd: light-dark(#eeeeee, #1c1c1e);
+	--table-rule: light-dark(black, #aaaaaa);
+	--textarea-bg: light-dark(#ffffee, #26261c);
+	--textarea-fg: light-dark(#000000, #eeeeee);
+	--diff-border: light-dark(#999999, #777777);
+	--diff-removed: light-dark(#ffdddd, #4a2326);
+	--diff-added: light-dark(#ddffdd, #1f4023);
+	--diff-gap: light-dark(#888888, #999999);
+	--dialog-border: light-dark(black, #888888);
+	--dialog-backdrop: light-dark(rgba(0, 0, 0, .4), rgba(0, 0, 0, .65));
+	--focus: light-dark(#4466cc, #8ab4ff);
+	--drop-outline: light-dark(#666644, #bbbb88);
+	--link-literal: light-dark(#0000ff, #8ab4ff);
+	--link-missing: light-dark(#bb0000, #ff7b7b);
+	--note-bg: light-dark(#ffffcc, #3a3a1c);
+	--note-fg: light-dark(#666644, #e0e0b0);
+	--note-border: light-dark(#666644, #8c8c5c);
+	--snippet: light-dark(#555555, #aaaaaa);
+	--search-bg: light-dark(#ffffff, #2c2c2e);
+	--search-fg: light-dark(#000000, #eeeeee);
+	--button-bg: light-dark(rgb(220, 220, 220), rgb(70, 70, 74));
+	--button-bg-hover: light-dark(rgb(200, 200, 200), rgb(90, 90, 94));
+	--button-fg: light-dark(black, #eeeeee);
+	--drawer-bg: light-dark(rgb(240, 240, 240), rgb(44, 44, 46));
+	--drawer-fg: light-dark(#000000, #e4e4e4);
+	--drawer-border: light-dark(black, #888888);
+	--icon-outline: light-dark(#777777, #bbbbbb);
+	--icon-fg: light-dark(#0f0f0f, #f0f0f0);
+	--danger: light-dark(#da4453, #ff6b7a);
+	--switch-active: light-dark(rgba(0, 0, 0, .18), rgba(255, 255, 255, .22));
+	--bar-fg: light-dark(#222222, #eeeeee);
+	--bar-fg-muted: light-dark(#555555, #cccccc);
+	--title-top: light-dark(#fcfcfc, #555555);
+	--title-bottom: light-dark(#d9d9d9, #000000);
+	--toolbar-top: light-dark(#ebebeb, #666666);
+	--toolbar-bottom: light-dark(#cfcfcf, #444444);
+	--bar-border: light-dark(#aaaaaa, transparent);
 }
 
 * {
@@ -639,19 +604,54 @@ img {
 .inactive {
 	display: none !important;
 }
-img.icon {
+svg.icon {
 	width: 1.5em;
+	height: 1.5em;
 	vertical-align: middle;
 }
-a > img.icon:hover, a > span.icongroup:hover {
+a > svg.icon:hover, a > span.icongroup:hover {
 	outline: 1px outset var(--icon-outline);
 }
-a > img.icon:active, a > span.icongroup:active {
+a > svg.icon:active, a > span.icongroup:active {
 	outline: 1px inset var(--icon-outline);
 }
-/* (dark in the files, light in the dark scheme; the red delete icon shows on both) */
-img.icon:not([src*="delete"]) {
-	filter: var(--icon-filter);
+svg.icon {
+	color: var(--icon-fg);
+}
+/* in the bars, the color of their text */
+.titlebar svg.icon, .toolbar svg.icon {
+	color: var(--bar-fg);
+}
+#drawer svg.icon {
+	color: var(--drawer-fg);
+}
+svg.icon.icon-delete {
+	color: var(--danger);
+}
+
+/* the buttons in the toolbar to choose the color scheme: the one of the system, light, dark (see theme-switch.php) */
+.themeswitch {
+	margin-right: 6px;
+}
+.themeswitch button {
+	background: none;
+	border: 0;
+	border-radius: 3px;
+	padding: 2px;
+	margin-left: 2px;
+	line-height: 0;
+	cursor: pointer;
+	color: var(--bar-fg);
+}
+.themeswitch button[aria-pressed="true"] {
+	background-color: var(--switch-active);
+}
+.themeswitch button:hover, .themeswitch button:focus-visible {
+	outline: 1px solid var(--icon-outline);
+}
+.themeswitch svg.icon {
+	width: 1.25em;
+	height: 1.25em;
 }
 .rightaligned {
 	float: right;

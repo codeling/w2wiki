@@ -36,7 +36,7 @@ final class PageFrameTest extends AppTestCase
 	{
 		$body = $this->http->get('/index.php/Home')->body;
 		preg_match('#<div class="toolbar">(.*?)<form#s', $body, $matches);
-		preg_match_all('#<a href="([^"]*)"><img src="[^"]*" alt="([^"]*)" title="\2" class="icon"></a>#', $matches[1], $items, PREG_SET_ORDER);
+		preg_match_all('#<a href="([^"]*)"><svg class="icon icon-[a-z-]+" viewBox="0 0 16 16" role="img" aria-label="([^"]*)"><title>\2</title><use href="[^"]*\#i"/></svg></a>#', $matches[1], $items, PREG_SET_ORDER);
 		$this->assertSame(
 			[['/index.php', 'Home'], ['/index.php?action=all', 'All'], ['/index.php?action=new', 'New'], ['/index.php?action=upload&amp;page=Home', 'Media']],
 			array_map(fn($item) => [$item[1], $item[2]], $items)

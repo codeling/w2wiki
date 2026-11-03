@@ -117,7 +117,7 @@ browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
 The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`)
-the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), and the dark color scheme (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was).
+the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
 
 ```
 cd tests/Browser
