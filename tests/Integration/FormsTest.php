@@ -75,6 +75,30 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('w2wiki-draft:/index.php:new:', $form->getAttribute('data-draft-key'));
 	}
 
+	public function testTextOfTheEditorIsDescribedWithTheKeysForIndenting(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
+			$body = $this->http->get('/index.php', $query)->body;
+			$this->assertStringContainsString('spellcheck="false" aria-describedby="texthint">', $body);
+			$this->assertStringContainsString('<span id="texthint" class="visuallyhidden">Tab indents lines, Shift+Tab outdents them. '
+				. 'To leave the text with Tab, press Esc first.</span>', $body);
+		}
+	}
+
+	public function testEditorHasTheButtonToInsertATextFile(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
+			$body = $this->http->get('/index.php', $query)->body;
+			$form = $this->form($body, 'edit');
+			$this->assertSame('The file %s is larger than 2 MB and was not inserted.', $form->getAttribute('data-msg-import-too-large'));
+			$this->assertSame('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.', $form->getAttribute('data-msg-import-not-text'));
+			$this->assertStringContainsString('<input id="importbutton" type="button" value="Insert text from file…"', $body);
+			// (the file is read by the script: the input has no name, so the form never sends it)
+			$this->assertStringContainsString('<input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />', $body);
+			$this->assertNotSame('multipart/form-data', $form->getAttribute('enctype'));
+		}
+	}
+
 	public function testTextAndNamesInTheEditorAreEscaped(): void
 	{
 		$this->savePage('Hostile', self::HOSTILE_TEXT);

@@ -44,7 +44,7 @@
 <?php endif ?>
 </div>
 <?php endif ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>">
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>" data-msg-import-too-large="<?= __('The file %s is larger than 2 MB and was not inserted.') ?>" data-msg-import-not-text="<?= __('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.') ?>">
 <?= $this->csrfField ?>
 
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />
@@ -77,7 +77,7 @@
 <?php endif ?>
 <?php endforeach ?></pre></div>
 <?php endif ?>
-<p class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><?= $this->text ?></textarea></p>
+<p class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="texthint"><?= $this->text ?></textarea><span id="texthint" class="visuallyhidden"><?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?></span></p>
 <?php if ($this->gitEnabled): ?>
 <p><?= __('Message') ?>: <input type="text" id="gitmsg" name="gitmsg" value="<?= $this->gitMessage ?>" /></p>
 <?php endif ?>
@@ -85,5 +85,7 @@
 <input type="hidden" name="isNew" value="<?= $this->isNew ? 'true' : '' ?>" />
 <input id="save" type="submit" value="<?= __('Save') ?>" title="<?= __('Save (Ctrl+S)') ?>" />
 <input id="cancel" type="button" onclick="<?= HANDLER_GO_BACK ?>" value="<?= __('Cancel') ?>" />
+<input id="importbutton" type="button" value="<?= __('Insert text from file…') ?>" title="<?= __('Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)') ?>" />
+<input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />
 </p></form>
 <?= $this->uploadDialog ?>

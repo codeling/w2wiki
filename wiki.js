@@ -4,7 +4,7 @@
  * W2
  *
  * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes, Ctrl+S to save).
+ * (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files).
  */
 
 function toggleDrawer()
@@ -114,24 +114,215 @@ function sendUpload(url, formData, onProgress)
 }
 
 /**
+ * Replaces the selection of the text area with the text, as if it was typed: it can be undone, and counts as a change
+ */
+function insertTyped(textArea, text)
+{
+	textArea.focus();
+	if (!document.execCommand || !document.execCommand('insertText', false, text))
+	{
+		textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
+		textArea.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+}
+
+/**
  * The buttons of the pages which link to the new page or mention it: they insert a link to that page at the cursor.
  */
 function setupBacklinks(textArea)
 {
 	for (let button of document.querySelectorAll('button.backlink'))
 	{
-		button.addEventListener('click', () =>
+		button.addEventListener('click', () => insertTyped(textArea, '[[' + button.dataset.page + ']]'));
+	}
+}
+
+const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Whether the file is one of the text files which can be inserted into the text of the editor */
+function isTextFile(file)
+{
+	return /\.(md|markdown|txt)$/i.test(file.name);
+}
+
+/**
+ * Inserting Markdown and text files into the text of the editor, at the cursor: chosen with the button below the text,
+ * or dropped on the text. A new page without a title gets the name of the (first) file. The text is then saved like
+ * typed text, so nothing is stored before the page is saved.
+ */
+function setupImport(form, textArea, titleInput)
+{
+	let button = document.getElementById('importbutton');
+	let fileInput = document.getElementById('importfile');
+
+	async function insertFiles(files)
+	{
+		let texts = [];
+		let names = [];
+		for (let file of files)
 		{
-			textArea.focus();
-			let text = '[[' + button.dataset.page + ']]';
-			// (as typed text: it can be undone, and counts as a change)
-			if (!document.execCommand || !document.execCommand('insertText', false, text))
+			if (!isTextFile(file))
 			{
-				textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
-				textArea.dispatchEvent(new Event('input', { bubbles: true }));
+				window.alert(form.dataset.msgImportNotText.replace('%s', () => file.name));
+				continue;
 			}
+			if (file.size > IMPORT_MAX_BYTES)
+			{
+				window.alert(form.dataset.msgImportTooLarge.replace('%s', () => file.name));
+				continue;
+			}
+			let text = await file.text();
+			// (a NUL character is not in text files: e.g. an image renamed to .txt)
+			if (text.includes('\u0000'))
+			{
+				window.alert(form.dataset.msgImportNotText.replace('%s', () => file.name));
+				continue;
+			}
+			texts.push(text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n'));
+			names.push(file.name);
+		}
+		if (texts.length === 0)
+		{
+			return;
+		}
+		insertTyped(textArea, texts.join('\n\n'));
+		if (titleInput && titleInput.value.trim() === '')
+		{
+			titleInput.value = names[0].replace(/\.(md|markdown|txt)$/i, '');
+			titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+		}
+	}
+
+	if (button && fileInput)
+	{
+		button.addEventListener('click', () => fileInput.click());
+		fileInput.addEventListener('change', () =>
+		{
+			let files = Array.from(fileInput.files);
+			fileInput.value = '';
+			insertFiles(files);
 		});
 	}
+	let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+	// (also without uploads, when there is no other handler for dropped files)
+	textArea.addEventListener('dragover', (event) =>
+	{
+		if (hasFiles(event))
+		{
+			event.preventDefault();
+		}
+	});
+	textArea.addEventListener('drop', (event) =>
+	{
+		let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter(isTextFile) : [];
+		if (files.length > 0)
+		{
+			event.preventDefault();
+			insertFiles(files);
+		}
+	});
+}
+
+const INDENT = '    ';
+
+/**
+ * Indents (by INDENT) or outdents (by up to INDENT, or one tab) the lines of the text which the selection from start to
+ * end touches; empty lines are left as they are. Returns the part of the text to replace (start, end), its replacement,
+ * and the selection afterwards (selectionStart, selectionEnd); or null if no line changes.
+ */
+function indentLines(text, start, end, outdent)
+{
+	let blockStart = text.lastIndexOf('\n', start - 1) + 1;
+	// (a selection of whole lines ends after the line break of the last one: the next line is not part of it)
+	let lastPosition = (end > start && text[end - 1] === '\n') ? end - 1 : end;
+	let blockEnd = text.indexOf('\n', lastPosition);
+	if (blockEnd < 0)
+	{
+		blockEnd = text.length;
+	}
+	let lines = text.slice(blockStart, blockEnd).split('\n');
+	let changes = lines.map((line) =>
+	{
+		if (outdent)
+		{
+			let match = /^(\t| {1,4})/.exec(line);
+			return match ? -match[1].length : 0;
+		}
+		return line === '' ? 0 : INDENT.length;
+	});
+	if (changes.every((change) => change === 0))
+	{
+		return null;
+	}
+	let replacement = lines.map((line, i) => changes[i] > 0 ? INDENT + line : line.slice(-changes[i])).join('\n');
+	// where a position of the old text is in the new one
+	function moved(position, isStart)
+	{
+		let lineStart = blockStart;
+		let shift = 0;
+		for (let i = 0; i < lines.length; i++)
+		{
+			let lineEnd = lineStart + lines[i].length;
+			if (position <= lineEnd)
+			{
+				let column = position - lineStart;
+				// (a selection which starts at the beginning of a line keeps the whole line selected)
+				if (isStart && column === 0 && changes[i] > 0)
+				{
+					return lineStart + shift;
+				}
+				return lineStart + shift + Math.max(0, column + changes[i]);
+			}
+			shift += changes[i];
+			lineStart = lineEnd + 1;
+		}
+		return position + shift;
+	}
+	return { start: blockStart, end: blockEnd, replacement: replacement,
+		selectionStart: moved(start, start !== end), selectionEnd: moved(end, false) };
+}
+
+/**
+ * Tab in the text indents the lines of the selection (or inserts INDENT at the cursor), Shift+Tab outdents them.
+ * So that the text can still be left with the keyboard, Tab right after Escape moves the focus as usual.
+ */
+function setupIndent(textArea)
+{
+	let leaveOnTab = false;
+	textArea.addEventListener('blur', () => { leaveOnTab = false; });
+	textArea.addEventListener('keydown', (event) =>
+	{
+		if (event.key === 'Escape')
+		{
+			leaveOnTab = true;
+			return;
+		}
+		if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey || event.isComposing)
+		{
+			leaveOnTab = false;
+			return;
+		}
+		if (leaveOnTab)
+		{
+			leaveOnTab = false;
+			return;
+		}
+		event.preventDefault();
+		let start = textArea.selectionStart;
+		let end = textArea.selectionEnd;
+		if (!event.shiftKey && start === end)
+		{
+			insertTyped(textArea, INDENT);
+			return;
+		}
+		let change = indentLines(textArea.value, start, end, event.shiftKey);
+		if (change)
+		{
+			textArea.setSelectionRange(change.start, change.end);
+			insertTyped(textArea, change.replacement);
+			textArea.setSelectionRange(change.selectionStart, change.selectionEnd);
+		}
+	});
 }
 
 /**
@@ -185,17 +376,6 @@ function setupUpload(dialog, textArea)
 	{
 		status.textContent = text;
 		status.className = isError ? 'error' : '';
-	}
-
-	function insertAtCursor(text)
-	{
-		textArea.focus();
-		// (as typed text: it can be undone, and counts as a change)
-		if (!document.execCommand || !document.execCommand('insertText', false, text))
-		{
-			textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
-			textArea.dispatchEvent(new Event('input', { bubbles: true }));
-		}
 	}
 
 	function isWhole()
@@ -491,7 +671,7 @@ function setupUpload(dialog, textArea)
 		{
 			if (textArea)
 			{
-				insertAtCursor(uploaded.join('\n'));
+				insertTyped(textArea, uploaded.join('\n'));
 			}
 			else
 			{
@@ -538,10 +718,12 @@ function setupUpload(dialog, textArea)
 		textArea.addEventListener('drop', (event) =>
 		{
 			box.classList.remove('dropping');
-			if (hasFiles(event) && event.dataTransfer.files.length > 0)
+			// (Markdown and text files are inserted into the text instead, see setupImport())
+			let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter((file) => !isTextFile(file)) : [];
+			if (files.length > 0)
 			{
 				event.preventDefault();
-				chooseFiles(Array.from(event.dataTransfer.files));
+				chooseFiles(files);
 			}
 		});
 		textArea.addEventListener('paste', (event) =>
@@ -745,6 +927,8 @@ document.addEventListener('DOMContentLoaded', () =>
 	}
 
 	setupBacklinks(textArea);
+	setupIndent(textArea);
+	setupImport(form, textArea, titleInput);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	function leaveWithDraft()
