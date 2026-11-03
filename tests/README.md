@@ -117,7 +117,7 @@ browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
 The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`)
-the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`).
+the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), and the dark color scheme (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was).
 
 ```
 cd tests/Browser
@@ -126,13 +126,13 @@ npx playwright install chromium    # not needed if the browsers are already inst
 npx playwright test                # or: composer test:browser
 ```
 
-The wiki is started by `tests/bin/serve-app.php` (on the ports 8090, and 8091 with SVG uploads).
-With `W2_BASE_URL` the tests use a wiki which is already running instead. `W2_BROWSER=1
+The wiki is started by `tests/bin/serve-app.php` (on the ports 8090, 8091 with SVG uploads, and 8092 with a password, hunter2).
+With `W2_BASE_URL` the tests use a wiki which is already running instead (and `W2_SVG_URL`, `W2_LOGIN_URL` for the other two). `W2_BROWSER=1
 tests/Server/run.sh apache` (or `nginx`) runs part of them against the real web servers, including
 the check that scripts in old SVG files of the uploads folder are blocked by their headers.
 
 Like the PHP tests, the browser tests can be run against another version with
-`W2_APP_ROOT=/path/to/checkout php tests/bin/serve-app.php --port=8092` and `W2_BASE_URL=http://127.0.0.1:8092`.
+`W2_APP_ROOT=/path/to/checkout php tests/bin/serve-app.php --port=8095` and `W2_BASE_URL=http://127.0.0.1:8095`.
 
 ## Performance baseline
 

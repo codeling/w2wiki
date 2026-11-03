@@ -19,6 +19,8 @@
     <link rel="icon" href="<?= $this->e(assetURL("w2-icons/w2-icon.png")) ?>"/>
 <?php /* (in the editor, the page shrinks to the space above the on-screen keyboard, to keep Save in reach) */ ?>
     <meta name="viewport" content="width=device-width, initial-scale=1<?= $this->editor ? ', interactive-widget=resizes-content' : '' ?>" />
+<?php /* (form controls and scrollbars follow the dark or light color scheme of the system, as the style sheet does) */ ?>
+    <meta name="color-scheme" content="light dark" />
     <link type="text/css" rel="stylesheet" href="<?= $this->e(assetURL(CSS_FILE)) ?>" />
     <title><?= $this->pageTitle ?><?= $this->title ?></title>
 <?php if ($this->script): ?>

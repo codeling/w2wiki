@@ -13,6 +13,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 - Filesystem storage (no database required) in plain Markdown text files.
 - Image uploading support
 - Optionally password-protected
+- Dark mode: the style sheet follows the color scheme of the system (`prefers-color-scheme`), with no setting or script
 - Unlike cloud / hosted solutions, you retain control of your data
 - Written in PHP for portability and hackability
 - Extremely compact (only a few .php files and a .css file)

@@ -3,6 +3,8 @@
 const { expect } = require('@playwright/test');
 
 const svgBase = () => process.env.W2_SVG_URL || 'http://127.0.0.1:8091';
+// (the wiki which asks for a password: hunter2)
+const loginBase = () => process.env.W2_LOGIN_URL || 'http://127.0.0.1:8092';
 
 /** Remember every dialog (alert, confirm, prompt) the page opens; scripts of the tests use alert() */
 function watchDialogs(page) {
@@ -112,4 +114,4 @@ function png(width, height, [red, green, blue] = [200, 30, 30]) {
 /** Width and height of a PNG file */
 const pngSize = (buffer) => [buffer.readUInt32BE(16), buffer.readUInt32BE(20)];
 
-module.exports = { watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase };
+module.exports = { watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase, loginBase };

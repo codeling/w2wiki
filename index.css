@@ -13,7 +13,91 @@
  * colors icons:
  *          240,240,240
  *     dark: 15, 15, 15
+ *
+ * The colors are custom properties, with the values for a dark color scheme below
+ * (@media (prefers-color-scheme: dark)). The title bar and the toolbar are dark in both.
+ * The icons for a light background (w2-icons/*-dark.svg) are inverted in the dark scheme.
  */
+
+:root {
+	color-scheme: light dark;
+
+	--page-bg: #eeeeee;
+	--page-fg: #000000;
+	--blockquote-bg: #f0f8f0;
+	--rule: #cccccc;
+	--code-bg: #ffffcc;
+	--code-border: gray;
+	--row-even: #e4e4e4;
+	--row-odd: #eeeeee;
+	--table-rule: black;
+	--textarea-bg: #ffffee;
+	--textarea-fg: #000000;
+	--diff-border: #999999;
+	--diff-removed: #ffdddd;
+	--diff-added: #ddffdd;
+	--diff-gap: #888888;
+	--dialog-border: black;
+	--dialog-backdrop: rgba(0, 0, 0, .4);
+	--focus: #4466cc;
+	--drop-outline: #666644;
+	--link-literal: #0000ff;
+	--link-missing: #bb0000;
+	--note-bg: #ffffcc;
+	--note-fg: #666644;
+	--note-border: #666644;
+	--snippet: #555555;
+	--search-bg: #ffffff;
+	--search-fg: #000000;
+	--button-bg: rgb(220, 220, 220);
+	--button-bg-hover: rgb(200, 200, 200);
+	--button-fg: black;
+	--drawer-bg: rgb(240, 240, 240);
+	--drawer-fg: #000000;
+	--drawer-border: black;
+	--icon-outline: white;
+	--icon-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--page-bg: #1c1c1e;
+		--page-fg: #e4e4e4;
+		--blockquote-bg: #1f2d1f;
+		--rule: #555555;
+		--code-bg: #33321a;
+		--code-border: #777777;
+		--row-even: #2a2a2d;
+		--row-odd: #1c1c1e;
+		--table-rule: #aaaaaa;
+		--textarea-bg: #26261c;
+		--textarea-fg: #eeeeee;
+		--diff-border: #777777;
+		--diff-removed: #4a2326;
+		--diff-added: #1f4023;
+		--diff-gap: #999999;
+		--dialog-border: #888888;
+		--dialog-backdrop: rgba(0, 0, 0, .65);
+		--focus: #8ab4ff;
+		--drop-outline: #bbbb88;
+		--link-literal: #8ab4ff;
+		--link-missing: #ff7b7b;
+		--note-bg: #3a3a1c;
+		--note-fg: #e0e0b0;
+		--note-border: #8c8c5c;
+		--snippet: #aaaaaa;
+		--search-bg: #2c2c2e;
+		--search-fg: #eeeeee;
+		--button-bg: rgb(70, 70, 74);
+		--button-bg-hover: rgb(90, 90, 94);
+		--button-fg: #eeeeee;
+		--drawer-bg: rgb(44, 44, 46);
+		--drawer-fg: #e4e4e4;
+		--drawer-border: #888888;
+		--icon-outline: #bbbbbb;
+		--icon-filter: invert(1) hue-rotate(180deg);
+	}
+}
 
 * {
 	font-family: Helvetica, sans-serif;
@@ -23,11 +107,12 @@
 }
 
 body {
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
 }
 
 blockquote {
-	background-color: #f0f8f0;
+	background-color: var(--blockquote-bg);
 	margin: 4px 4px 12px 20px;
 	padding: 4px 10px 4px 10px;
 }
@@ -56,7 +141,7 @@ h3 {
 	font-size: 1.2em;
 }
 hr {
-	border-top: 1px solid #cccccc;
+	border-top: 1px solid var(--rule);
 	border-bottom: 0;
 	border-left: 0;
 	border-right: 0;
@@ -90,14 +175,14 @@ pre {
 	margin-bottom: .5em;
 	margin-top: .5em;
 	text-wrap: wrap;
-	background: #ffc;
-	border: 1px dotted gray;
+	background: var(--code-bg);
+	border: 1px dotted var(--code-border);
 	padding: .2em .2em .2em .4em;
 }
 
 code {
 	font-family: Courier, monospace;
-	background: #ffc;
+	background: var(--code-bg);
 	padding: .1em .1em 0 .2em;
 	display: inline-block;
 }
@@ -115,7 +200,7 @@ table {
 	word-break: break-all;
   }
   thead {
-	border-bottom: 1px solid black;
+	border-bottom: 1px solid var(--table-rule);
 	font-weight: bold;
   }
   thead td a {
@@ -125,10 +210,10 @@ table {
 	content: "\25BC";
   }
   tr:nth-child(even) {
-	background: #e4e4e4;
+	background: var(--row-even);
   }
   tr:nth-child(odd) {
-	background: #eeeeee;
+	background: var(--row-odd);
   }
 .pageActions {
 	padding-left: 8px;
@@ -138,7 +223,8 @@ table {
 textarea {
 	font-family: Courier, monospace;
 	width: 75%;
-	background-color: #ffffee;
+	background-color: var(--textarea-bg);
+	color: var(--textarea-fg);
 }
   @media (max-width: 600px), (orientation: portrait) {
 	textarea {
@@ -197,7 +283,7 @@ body.editor .note {
 /* what saving would change in the page, after it was changed by somebody else */
 .diff {
 	margin: .5em 0;
-	border: solid 1px #999999;
+	border: solid 1px var(--diff-border);
 	padding: 4px;
 	overflow-x: auto;
 }
@@ -206,18 +292,18 @@ body.editor .note {
 	font-size: .9em;
 }
 .diff .removed {
-	background-color: #ffdddd;
+	background-color: var(--diff-removed);
 	display: block;
 }
 .diff .added {
-	background-color: #ddffdd;
+	background-color: var(--diff-added);
 	display: block;
 }
 .diff .same, .diff .gap {
 	display: block;
 }
 .diff .gap {
-	color: #888888;
+	color: var(--diff-gap);
 }
 
 /* keep Save and Cancel within reach, also on small screens where the form can be taller than the visible area */
@@ -225,7 +311,7 @@ body.editor .note {
 	position: sticky;
 	bottom: 0;
 	padding: .5em 0;
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
 }
 
 /* the dialog to upload files from the editor, with the part of an image to keep (the frame on the image) */
@@ -252,9 +338,10 @@ body.editor .note {
 	overflow: auto;
 	margin: auto;
 	padding: .5em 1em 1em;
-	border: 1px solid black;
+	border: 1px solid var(--dialog-border);
 	border-radius: 5px;
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
 }
 #uploaddialog h5 {
 	margin: 0 0 .5em;
@@ -266,7 +353,7 @@ body.editor .note {
 	display: block;
 }
 #uploaddialog::backdrop {
-	background-color: rgba(0, 0, 0, .4);
+	background-color: var(--dialog-backdrop);
 }
 #uploaddialog .hint {
 	font-size: smaller;
@@ -307,7 +394,7 @@ body.editor .note {
 	touch-action: none;
 }
 #cropbox:focus-visible {
-	outline: 2px solid #4466cc;
+	outline: 2px solid var(--focus);
 }
 #cropbox .handle {
 	position: absolute;
@@ -333,7 +420,7 @@ body.editor .note {
 	}
 }
 .editorbox.dropping textarea {
-	outline: dashed 2px #666644;
+	outline: dashed 2px var(--drop-outline);
 }
 
 input#gitmsg {
@@ -350,11 +437,11 @@ input#gitmsg {
 
 .main a.literalMatch {
 	font-weight: bold;
-	color: #00f;
+	color: var(--link-literal);
 }
 
 .main a.noexist {
-	color: #b00 !important;
+	color: var(--link-missing) !important;
 }
 
 .login {
@@ -364,11 +451,11 @@ input#gitmsg {
 }
 
 .note {
-	background-color: #ffffcc;
+	background-color: var(--note-bg);
 	padding: 4px;
 	margin: .5em 0 .5em 0;
-	color: #666644;
-	border: solid 1px #666644;
+	color: var(--note-fg);
+	border: solid 1px var(--note-border);
 	width: 75%;
 }
   @media (max-width: 600px), (orientation: portrait) {
@@ -421,12 +508,12 @@ input#gitmsg {
 	margin-right: 5px;
 	margin-top: 5px;
 	padding: 4px;
-	border: solid 1px #666644;
+	border: solid 1px var(--note-border);
 }
 .pagecontext {
 	padding: 4px;
 	margin: .5em 0;
-	border: solid 1px #666644;
+	border: solid 1px var(--note-border);
 }
 .pagecontext p {
 	margin: .3em 0;
@@ -436,7 +523,7 @@ input#gitmsg {
 	padding-left: 1.5em;
 }
 .pagecontext .snippet {
-	color: #555;
+	color: var(--snippet);
 }
 .pagecontext form.linkmention {
 	display: inline;
@@ -459,7 +546,8 @@ input#gitmsg {
 
 input.search {
 /*	font-size: 0.95em;*/
-	color: #000000;
+	background-color: var(--search-bg);
+	color: var(--search-fg);
 	width: 5em;
 	padding: .1em;
 }
@@ -489,14 +577,15 @@ input[type="submit"] {
 	color: white;
 }
 input[type="button"] {
-	background-color: rgb(220, 220, 220);
+	background-color: var(--button-bg);
+	color: var(--button-fg);
 }
 
 input[type="submit"]:hover {
 	background-color: rgb(69, 135, 226);
 }
 input[type="button"]:hover {
-	background-color: rgb(200, 200, 200);
+	background-color: var(--button-bg-hover);
 }
 
 img {
@@ -508,15 +597,16 @@ img {
 	display: inline-block;
 	position: absolute;
 	width: 300px;
-	background-color: rgb(240, 240, 240);
+	background-color: var(--drawer-bg);
+	color: var(--drawer-fg);
 	opacity: 0.5;
-	border: 1px solid black;
+	border: 1px solid var(--drawer-border);
 	border-radius: 5px;
 	padding: 0;
 	cursor: move;
 }
 #drawer h5 {
-	border-bottom: 1px solid black;
+	border-bottom: 1px solid var(--drawer-border);
 	padding: 4px;
 }
 #drawer div {
@@ -533,10 +623,15 @@ img.icon {
 	vertical-align: middle;
 }
 a > img.icon:hover, a > span.icongroup:hover {
-	outline: 1px outset white;
+	outline: 1px outset var(--icon-outline);
 }
 a > img.icon:active, a > span.icongroup:active {
-	outline: 1px inset white;
+	outline: 1px inset var(--icon-outline);
+}
+/* the icons for a light background, also the one in the drawer (the red delete icon shows on both) */
+img.icon[src*="-dark.svg"]:not([src*="delete"]),
+#drawer img.icon {
+	filter: var(--icon-filter);
 }
 .rightaligned {
 	float: right;
