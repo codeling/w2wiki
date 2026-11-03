@@ -83,7 +83,7 @@
 <?php endif ?>
 <p class="editactions"><input type="hidden" name="action" value="save" />
 <input type="hidden" name="isNew" value="<?= $this->isNew ? 'true' : '' ?>" />
-<input id="save" type="submit" value="<?= __('Save') ?>" />
+<input id="save" type="submit" value="<?= __('Save') ?>" title="<?= __('Save (Ctrl+S)') ?>" />
 <input id="cancel" type="button" onclick="<?= HANDLER_GO_BACK ?>" value="<?= __('Cancel') ?>" />
 <input id="importbutton" type="button" value="<?= __('Insert text from file…') ?>" title="<?= __('Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)') ?>" />
 <input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />
