@@ -104,6 +104,7 @@ $w2_word_set = array(
 	'Note' => 'Hinweis',
 	'Pages which already link to a page of this name:' => 'Seiten, die schon auf eine Seite mit diesem Namen verweisen:',
 	'Pages which mention the name without a link:' => 'Seiten, die den Namen ohne Link erwähnen:',
+	'Save (Ctrl+S)' => 'Speichern (Strg+S)',
 	'Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.' => 'Tab rückt Zeilen ein, Umschalt+Tab rückt sie aus. Um den Text mit Tab zu verlassen, zuerst Esc drücken.',
 	'Insert backlink' => 'Link einfügen',
 	'Insert a link to this page at the cursor' => 'Einen Link auf diese Seite an der Cursorposition einfügen',
