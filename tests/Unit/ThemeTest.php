@@ -31,6 +31,14 @@ final class ThemeTest extends TestCase
 		return [[null], [''], ['Dark'], ['dark '], ['blue'], [['dark']], [1], [true]];
 	}
 
+	public function testTheButtonGoesThroughTheModesAndStartsAgain(): void
+	{
+		$this->assertSame('light', nextThemeMode('auto'));
+		$this->assertSame('dark', nextThemeMode('light'));
+		$this->assertSame('auto', nextThemeMode('dark'));
+		$this->assertSame('light', nextThemeMode('unknown'), 'the system\'s scheme is the one before light');
+	}
+
 	public function testTheModeComesFromTheCookie(): void
 	{
 		$this->assertSame('dark', themeModeFrom('dark'));

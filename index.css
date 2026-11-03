@@ -629,7 +629,7 @@ svg.icon.icon-delete {
 	color: var(--danger);
 }
 
-/* the buttons in the toolbar to choose the color scheme: the one of the system, light, dark (see theme-switch.php) */
+/* the button in the toolbar to change the color scheme (see theme-switch.php): its icon is the one for the scheme in use */
 .themeswitch {
 	margin-right: 6px;
 }
@@ -638,20 +638,23 @@ svg.icon.icon-delete {
 	border: 0;
 	border-radius: 3px;
 	padding: 2px;
-	margin-left: 2px;
 	line-height: 0;
 	cursor: pointer;
 	color: var(--bar-fg);
 }
-.themeswitch button[aria-pressed="true"] {
-	background-color: var(--switch-active);
-}
 .themeswitch button:hover, .themeswitch button:focus-visible {
+	background-color: var(--switch-active);
 	outline: 1px solid var(--icon-outline);
 }
 .themeswitch svg.icon {
+	display: none;
 	width: 1.25em;
 	height: 1.25em;
+}
+:root:not([data-theme]) .themeswitch .icon-theme-auto,
+:root[data-theme="light"] .themeswitch .icon-theme-light,
+:root[data-theme="dark"] .themeswitch .icon-theme-dark {
+	display: inline-block;
 }
 .rightaligned {
 	float: right;

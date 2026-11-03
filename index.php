@@ -667,9 +667,10 @@ print templates()->render('layout', array(
 			? getPageActions($page, $action) : null,
 		'toolbar' => $toolbar,
 		'themeSwitch' => templates()->render('theme-switch', array(
-			'csrfField' => \W2\Html::raw(csrfField()), 'returnTo' => $_SERVER['REQUEST_URI'] ?? SELF,
-			'choices' => array_map(fn($mode) => array('mode' => $mode, 'pressed' => $mode === $themeMode ? 'true' : 'false',
-				'icon' => iconSvg('theme-' . $mode, array('auto' => translate('Color scheme of the system'), 'light' => translate('Light'), 'dark' => translate('Dark'))[$mode])), THEME_MODES)
+			'csrfField' => \W2\Html::raw(csrfField()), 'returnTo' => $_SERVER['REQUEST_URI'] ?? SELF, 'next' => nextThemeMode($themeMode),
+			// (all three icons are in the page: the style sheet shows the one for the scheme in use, which a script can change)
+			'icons' => array_map(fn($mode) => iconSvg('theme-' . $mode, sprintf(translate('Color scheme: %s'),
+				array('auto' => translate('System'), 'light' => translate('Light'), 'dark' => translate('Dark'))[$mode])), THEME_MODES)
 		)),
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,

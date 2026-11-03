@@ -968,6 +968,14 @@ function isThemeMode($mode)
 	return is_string($mode) && in_array($mode, THEME_MODES, true);
 }
 
+/** The color scheme after this one when the button in the toolbar is pressed: the system's, light, dark, and again */
+function nextThemeMode($mode)
+{
+	// (a value which is none of them counts as the system's)
+	$index = array_search($mode, THEME_MODES, true);
+	return THEME_MODES[((int)$index + 1) % count(THEME_MODES)];
+}
+
 /** The color scheme for the value of the cookie: "auto" for a missing or invalid value */
 function themeModeFrom($cookieValue)
 {

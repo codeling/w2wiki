@@ -13,16 +13,24 @@ final class ThemeSwitchTest extends AppTestCase
 		$body = $this->http->get('/index.php')->body;
 		$this->assertMatchesRegularExpression('#<html lang="[a-z]+">#', $body, 'no data-theme');
 		$this->assertStringContainsString('<meta name="color-scheme" content="light dark" />', $body);
-		$this->assertSame(['auto' => 'true', 'light' => 'false', 'dark' => 'false'], $this->buttons($body));
+		$this->assertSame('light', $this->nextMode($body), 'the button chooses the scheme after the system\'s');
 	}
 
-	public function testTheToolbarHasTheButtonsAndTheirForm(): void
+	public function testTheToolbarHasTheButtonWithTheIconsAndItsForm(): void
 	{
 		$body = $this->http->get('/index.php/Home')->body;
-		$this->assertStringContainsString('<form method="post" action="/index.php" class="themeswitch rightaligned" role="group"', $body);
+		$this->assertStringContainsString('<form method="post" action="/index.php" class="themeswitch rightaligned">', $body);
 		$this->assertStringContainsString('<input type="hidden" name="action" value="theme" />', $body);
 		$this->assertMatchesRegularExpression('#<input type="hidden" name="return" value="/index\.php/Home" />#', $body);
-		$this->assertStringContainsString('<use href="/w2-icons/theme-dark.svg?v=', $body);
+		$this->assertSame(1, substr_count($body, '<button type="submit" name="mode"'), 'one button');
+		// (the icons of all three schemes: the style sheet shows the one for the scheme in use)
+		foreach (['auto' => 'System', 'light' => 'Light', 'dark' => 'Dark'] as $mode => $name) {
+			$this->assertMatchesRegularExpression(
+				'#<svg class="icon icon-theme-' . $mode . '" viewBox="0 0 16 16" role="img" aria-label="Color scheme: ' . $name . '">'
+				. '<title>Color scheme: ' . $name . '</title><use href="/w2-icons/theme-' . $mode . '\.svg\?v=\d+\#i"/></svg>#',
+				$body
+			);
+		}
 	}
 
 	public function testChoosingDarkSetsTheCookieAndGoesBack(): void
@@ -37,13 +45,15 @@ final class ThemeSwitchTest extends AppTestCase
 
 		$body = $this->http->get('/index.php', ['action' => 'all'])->body;
 		$this->assertMatchesRegularExpression('#<html lang="[a-z]+" data-theme="dark">#', $body);
-		$this->assertSame(['auto' => 'false', 'light' => 'false', 'dark' => 'true'], $this->buttons($body));
+		$this->assertSame('auto', $this->nextMode($body), 'after dark comes the system\'s scheme');
 	}
 
 	public function testLightAndBackToAuto(): void
 	{
 		$this->postAction('theme', ['mode' => 'light']);
-		$this->assertStringContainsString('data-theme="light"', $this->http->get('/index.php')->body);
+		$body = $this->http->get('/index.php')->body;
+		$this->assertStringContainsString('data-theme="light"', $body);
+		$this->assertSame('dark', $this->nextMode($body));
 		$response = $this->postAction('theme', ['mode' => 'auto']);
 		$this->assertSame('deleted', $response->setCookieValue('w2_theme'), 'the cookie is removed');
 		$this->assertStringNotContainsString('data-theme', $this->http->get('/index.php')->body);
@@ -85,10 +95,10 @@ final class ThemeSwitchTest extends AppTestCase
 		$this->assertStringNotContainsString('data-theme', $this->http->get('/index.php')->body);
 	}
 
-	/** @return array<string, string> the buttons of the switch: mode => aria-pressed */
-	private function buttons(string $html): array
+	/** The scheme which the button in the toolbar chooses */
+	private function nextMode(string $html): string
 	{
-		preg_match_all('#<button type="submit" name="mode" value="([a-z]+)" aria-pressed="(true|false)">#', $html, $matches, PREG_SET_ORDER);
-		return array_column($matches, 2, 1);
+		$this->assertSame(1, preg_match('#<button type="submit" name="mode" value="([a-z]+)">#', $html, $matches));
+		return $matches[1];
 	}
 }

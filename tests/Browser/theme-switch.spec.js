@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-// The buttons in the toolbar to choose the color scheme (the system's, light, dark), and the icons, which are
-// inline SVGs showing the shape in a file (<use>)
+// The button in the toolbar to change the color scheme (the system's, light, dark, and again), and the icons, which
+// are inline SVGs showing the shape in a file (<use>)
 const { test, expect } = require('@playwright/test');
 const { savePage, expectReadable, pageBrightness, iconColor, barColors, loginBase } = require('./helpers');
 
-const choose = (page, mode) => page.locator(`.themeswitch button[value="${mode}"]`).click();
-const pressed = (page) => page.locator('.themeswitch button').evaluateAll((buttons) => Object.fromEntries(buttons.map((b) => [b.value, b.getAttribute('aria-pressed')])));
+const toggle = (page) => page.locator('.themeswitch button').click();
+/** The icon of the button which is shown (the one for the scheme in use), as the name of its scheme: auto, light or dark */
+const shownIcon = (page) => page.locator('.themeswitch svg.icon').evaluateAll(
+  (icons) => icons.filter((icon) => getComputedStyle(icon).display !== 'none').map((icon) => icon.getAttribute('class').replace(/^.*icon-theme-/, '')));
+const nextMode = (page) => page.locator('.themeswitch button').getAttribute('value');
 
 test.describe('icons', () => {
   test('are drawn from their files, with no violation of the content security policy', async ({ page, request }) => {
@@ -16,8 +19,8 @@ test.describe('icons', () => {
     await savePage(request, 'Icons page', 'text');
     for (const url of ['/index.php/Icons%20page', '/index.php?action=edit&page=Icons%20page', '/index.php?action=all', '/index.php?action=upload']) {
       await page.goto(url);
-      // (not the ones of the drawer of the editor, which is closed: they have no size)
-      const icons = await page.locator('svg.icon use').evaluateAll((uses) => uses.filter((use) => !use.closest('.inactive')).map((use) => [use.getAttribute('href'), use.getBBox().width]));
+      // (not the ones which are not shown: in the drawer of the editor, which is closed, and the two of the theme button which don't fit the scheme: they have no size)
+      const icons = await page.locator('svg.icon use').evaluateAll((uses) => uses.filter((use) => !use.closest('.inactive') && getComputedStyle(use.ownerSVGElement).display !== 'none').map((use) => [use.getAttribute('href'), use.getBBox().width]));
       expect(icons.length, url).toBeGreaterThan(3);
       for (const [href, width] of icons) expect(width, `${href} is drawn on ${url}`).toBeGreaterThan(5);
     }
@@ -39,15 +42,17 @@ test.describe('icons', () => {
 test.describe('with a dark system', () => {
   test.use({ colorScheme: 'dark' });
 
-  test('light is chosen, kept for the next pages, and undone with the button of the system', async ({ page }) => {
+  test('the button goes through light and dark, back to the system, and its choice is kept', async ({ page }) => {
     await page.goto('/index.php');
-    expect(await pressed(page)).toEqual({ auto: 'true', light: 'false', dark: 'false' });
+    expect(await shownIcon(page)).toEqual(['auto']);
+    expect(await nextMode(page)).toBe('light');
     expect(await pageBrightness(page)).toBeLessThan(0.3);
 
-    await choose(page, 'light');
+    await toggle(page);
     // (on this page without a script, the form loads the page again)
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    expect(await pressed(page)).toEqual({ auto: 'false', light: 'true', dark: 'false' });
+    expect(await shownIcon(page)).toEqual(['light']);
+    expect(await nextMode(page)).toBe('dark');
     expect(await pageBrightness(page)).toBeGreaterThan(0.8);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light');
     expect(await iconColor(page, '.toolbar svg.icon')).toEqual([34, 34, 34]);
@@ -56,15 +61,33 @@ test.describe('with a dark system', () => {
     // (the next pages, and the next visit, have the choice)
     await page.goto('/index.php?action=all');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await shownIcon(page)).toEqual(['light']);
     expect(await pageBrightness(page)).toBeGreaterThan(0.8);
     await expectReadable(page, ['table td', 'table th', 'table a']);
 
-    await choose(page, 'auto');
+    await toggle(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    expect(await shownIcon(page)).toEqual(['dark']);
+    expect(await nextMode(page)).toBe('auto');
+    expect(await pageBrightness(page)).toBeLessThan(0.3);
+
+    await toggle(page);
     await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
+    expect(await shownIcon(page)).toEqual(['auto']);
     expect(await pageBrightness(page)).toBeLessThan(0.3);
     await page.reload();
     await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
-    expect(await pageBrightness(page)).toBeLessThan(0.3);
+    expect(await shownIcon(page)).toEqual(['auto']);
+  });
+
+  test('the icon of the button names the scheme in use', async ({ page }) => {
+    await page.goto('/index.php');
+    const icon = page.locator('.themeswitch svg.icon:visible');
+    await expect(icon).toHaveCount(1);
+    await expect(icon).toHaveAttribute('aria-label', 'Color scheme: System');
+    await toggle(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('.themeswitch svg.icon:visible')).toHaveAttribute('aria-label', 'Color scheme: Light');
   });
 
   test('the login page follows the choice too', async ({ page, context }) => {
@@ -86,11 +109,14 @@ test.describe('with a dark system', () => {
 test.describe('with a light system', () => {
   test.use({ colorScheme: 'light' });
 
-  test('dark is chosen, and everything is readable', async ({ page, request }) => {
+  test('dark is reached with two presses, and everything is readable', async ({ page, request }) => {
     await savePage(request, 'Switch view', '# Heading\n\ntext with [[Missing page]] and `code`\n\n> quote\n');
     await page.goto('/index.php/Switch%20view');
     expect(await pageBrightness(page)).toBeGreaterThan(0.8);
-    await choose(page, 'dark');
+    expect(await shownIcon(page)).toEqual(['auto']);
+    await toggle(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await toggle(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     expect(await pageBrightness(page)).toBeLessThan(0.3);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('dark');
@@ -103,31 +129,39 @@ test.describe('with a light system', () => {
   });
 });
 
-test('in the editor the choice is applied without loading the page again, so the text stays', async ({ page, request }) => {
+test('in the editor the change is applied without loading the page again, so the text stays', async ({ page, request }) => {
   await savePage(request, 'Switch edit', 'saved text');
   await page.goto('/index.php?action=edit&page=Switch%20edit');
   await page.fill('#text', 'text which is not saved yet');
   await page.evaluate(() => { window.sameDocument = true; });
-  await choose(page, 'dark');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  expect(await pressed(page)).toEqual({ auto: 'false', light: 'false', dark: 'true' });
+  await toggle(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await shownIcon(page)).toEqual(['light']);
+  expect(await nextMode(page)).toBe('dark');
   expect(await page.evaluate(() => window.sameDocument)).toBe(true);
   await expect(page.locator('#text')).toHaveValue('text which is not saved yet');
   // (it was saved, too)
-  expect((await page.context().cookies()).find((cookie) => cookie.name === 'w2_theme')?.value).toBe('dark');
-  await choose(page, 'light');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect((await page.context().cookies()).find((cookie) => cookie.name === 'w2_theme')?.value).toBe('light');
+  await toggle(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await shownIcon(page)).toEqual(['dark']);
+  await toggle(page);
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
+  expect(await shownIcon(page)).toEqual(['auto']);
+  expect(await nextMode(page)).toBe('light');
   await expect(page.locator('#text')).toHaveValue('text which is not saved yet');
+  expect((await page.context().cookies()).find((cookie) => cookie.name === 'w2_theme')).toBeUndefined();
 });
 
 test.describe('without scripts', () => {
   test.use({ javaScriptEnabled: false, colorScheme: 'dark' });
 
-  test('the buttons work as a form: the page is loaded again with the choice', async ({ page }) => {
+  test('the button works as a form: the page is loaded again with the change', async ({ page }) => {
     await page.goto('/index.php?action=all');
-    await choose(page, 'light');
+    await toggle(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     expect(await pageBrightness(page)).toBeGreaterThan(0.8);
-    expect(await pressed(page)).toEqual({ auto: 'false', light: 'true', dark: 'false' });
+    expect(await shownIcon(page)).toEqual(['light']);
+    expect(await nextMode(page)).toBe('dark');
   });
 });

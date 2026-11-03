@@ -12,7 +12,7 @@ function toggleDrawer()
 	document.getElementById('drawer').classList.toggle('inactive');
 }
 
-// The buttons in the toolbar to choose the color scheme: the choice is applied at once and saved in the background,
+// The button in the toolbar to change the color scheme: the change is applied at once and saved in the background,
 // so that the text in the editor stays as it is (the form alone, without this script, loads the page again)
 document.addEventListener('submit', function (event)
 {
@@ -43,10 +43,8 @@ document.addEventListener('submit', function (event)
 		{
 			document.documentElement.dataset.theme = mode;
 		}
-		for (const button of form.querySelectorAll('button'))
-		{
-			button.setAttribute('aria-pressed', button === event.submitter ? 'true' : 'false');
-		}
+		// (the icon follows the root element; the button now chooses the scheme after this one)
+		event.submitter.value = {auto: 'light', light: 'dark', dark: 'auto'}[mode];
 	}, function () { /* no connection: the choice stays as it was */ });
 });
 
