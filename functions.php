@@ -940,13 +940,69 @@ function sortableHeadings($action, $sortBy, $columns)
 }
 
 /**
+ * An icon of the folder w2-icons, as an SVG in the page which shows the shape of the file (`<use>`), so that it is
+ * painted by the colors of the page: the files draw with currentColor, and index.css sets the color of the icons,
+ * in the light and the dark color scheme (a few have colors of their own, like the red cross of the close icon).
+ *
+ * @param string $name	name of the file without ".svg", e.g. "edit"
+ * @param string $label	what the icon means, as plain text (it is the tooltip, and what screen readers say)
+ * @param string $class	more class names, e.g. "rightaligned"
+ * return W2\Html
+ */
+function iconSvg($name, $label, $class = '')
+{
+	$text = \W2\Html::escape($label);
+	return \W2\Html::raw('<svg class="icon icon-' . $name . ($class !== '' ? ' ' . $class : '') . '" viewBox="0 0 16 16" role="img" aria-label="'
+		. $text . '"><title>' . $text . '</title><use href="' . \W2\Html::escape(assetURL("w2-icons/" . $name . ".svg")) . '#i"/></svg>');
+}
+
+/** Name of the cookie with the color scheme which the visitor chose (not set for "auto") */
+const THEME_COOKIE = 'w2_theme';
+
+/** The color schemes to choose from: "auto" follows the setting of the system, the others force one */
+const THEME_MODES = array('auto', 'light', 'dark');
+
+/** Is this one of THEME_MODES? */
+function isThemeMode($mode)
+{
+	return is_string($mode) && in_array($mode, THEME_MODES, true);
+}
+
+/** The color scheme after this one when the button in the toolbar is pressed: the system's, light, dark, and again */
+function nextThemeMode($mode)
+{
+	// (a value which is none of them counts as the system's)
+	$index = array_search($mode, THEME_MODES, true);
+	return THEME_MODES[((int)$index + 1) % count(THEME_MODES)];
+}
+
+/** The color scheme for the value of the cookie: "auto" for a missing or invalid value */
+function themeModeFrom($cookieValue)
+{
+	return isThemeMode($cookieValue) ? $cookieValue : 'auto';
+}
+
+/**
+ * The address to go back to after choosing a color scheme: the address given if it is in the wiki (the script
+ * $self, followed by a path or a query), else the script itself. Nothing which leads to another site is accepted.
+ */
+function themeReturnUrl($url, $self)
+{
+	if ( !is_string($url) || !str_starts_with($url, $self) || preg_match('/[\x00-\x20\x7f\\\\]/', $url) )
+	{
+		return $self;
+	}
+	$next = substr($url, strlen($self), 1);
+	return ($next === '' || $next === '?' || $next === '/' || $next === '#') ? $url : $self;
+}
+
+/**
  * The icons to do something with a page (edit, delete, rename, show the pages which link to it), except for
  * the action which is being done, as links to the actions.
  *
- * @param string $imgSuffix	"-dark" for the icons on a light background
  * return W2\Html
  */
-function getPageActions($page, $action, $imgSuffix)
+function getPageActions($page, $action)
 {
 	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
 	$items = array();
@@ -955,10 +1011,10 @@ function getPageActions($page, $action, $imgSuffix)
 		if ($action != $name)
 		{
 			$items[] = array('href' => SELF . "?action=" . $name . "&page=" . urlencode($page),
-				'icon' => assetURL("w2-icons/" . $name . $imgSuffix . ".svg"), 'label' => $label);
+				'icon' => iconSvg($name, $label), 'label' => $label);
 		}
 	}
 	$items[] = array('href' => SELF . "?action=view&page=" . urlencode($page) . "&linkshere=true",
-		'icon' => assetURL("w2-icons/link" . $imgSuffix . ".svg"), 'label' => translate('Show links here'));
+		'icon' => iconSvg('link', translate('Show links here')), 'label' => translate('Show links here'));
 	return templates()->render('page-actions', array('items' => $items));
 }

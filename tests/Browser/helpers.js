@@ -3,6 +3,8 @@
 const { expect } = require('@playwright/test');
 
 const svgBase = () => process.env.W2_SVG_URL || 'http://127.0.0.1:8091';
+// (the wiki which asks for a password: hunter2)
+const loginBase = () => process.env.W2_LOGIN_URL || 'http://127.0.0.1:8092';
 
 /** Remember every dialog (alert, confirm, prompt) the page opens; scripts of the tests use alert() */
 function watchDialogs(page) {
@@ -112,4 +114,107 @@ function png(width, height, [red, green, blue] = [200, 30, 30]) {
 /** Width and height of a PNG file */
 const pngSize = (buffer) => [buffer.readUInt32BE(16), buffer.readUInt32BE(20)];
 
-module.exports = { watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase };
+// --- contrast and colors of the dark and light color scheme (see dark-mode.spec.js, theme-switch.spec.js) ---
+
+/**
+ * Contrast ratios (WCAG) of the text of the elements found by the selectors, against the background behind them
+ * (the first opaque background of the element or one of its ancestors), as a list of "selector: ratio".
+ */
+async function contrasts(page, selectors) {
+  return page.evaluate((selectors) => {
+    const parse = (value) => {
+      const m = /rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:[,/ ]+([\d.]+%?))?\)/.exec(value);
+      if (!m) return null;
+      let alpha = m[4] === undefined ? 1 : parseFloat(m[4]) / (m[4].endsWith('%') ? 100 : 1);
+      return [Number(m[1]), Number(m[2]), Number(m[3]), alpha];
+    };
+    const luminance = ([r, g, b]) => {
+      const [R, G, B] = [r, g, b].map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    };
+    const backdrop = (element) => {
+      for (let e = element; e; e = e.parentElement) {
+        const c = parse(getComputedStyle(e).backgroundColor);
+        if (c && c[3] >= 0.99) return c;
+      }
+      return [255, 255, 255, 1]; // (the canvas: white, only if nothing sets a color)
+    };
+    const result = {};
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (!element) { result[selector] = null; continue; }
+      const fg = parse(getComputedStyle(element).color);
+      const bg = backdrop(element);
+      const [a, b] = [luminance(fg), luminance(bg)];
+      result[selector] = Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 10) / 10;
+    }
+    return result;
+  }, selectors);
+}
+
+/** Every listed element exists and its text can be read: contrast 4.5 : 1, or 3 : 1 for the large text of headings */
+async function expectReadable(page, selectors) {
+  const ratios = await contrasts(page, selectors);
+  for (const selector of selectors) {
+    expect(ratios[selector], `${selector} is shown`).not.toBeNull();
+    expect(ratios[selector], `contrast of ${selector}`).toBeGreaterThanOrEqual(4.5);
+  }
+}
+
+/**
+ * Contrast of the text of the title bar and of the toolbar against both ends of their gradients (the
+ * custom properties of the style sheet), which the check of expectReadable() can't see
+ */
+async function barContrasts(page) {
+  return page.evaluate(() => {
+    // (the custom properties hold light-dark(...), so the used color is read from an element which uses it)
+    const probe = document.createElement('div');
+    document.body.appendChild(probe);
+    const color = (name) => {
+      probe.style.backgroundColor = `var(${name})`;
+      return getComputedStyle(probe).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+    };
+    const luminance = (c) => {
+      const [R, G, B] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    };
+    const ratio = (a, b) => { const [x, y] = [luminance(a), luminance(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const result = {};
+    for (const end of ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom']) {
+      result[`text on ${end}`] = ratio(color('--bar-fg'), color(end));
+    }
+    result['date on --title-top'] = ratio(color('--bar-fg-muted'), color('--title-top'));
+    result['date on --title-bottom'] = ratio(color('--bar-fg-muted'), color('--title-bottom'));
+    probe.remove();
+    return result;
+  });
+}
+
+/** The colors (red, green, blue) at both ends of the gradients of the bars: title bar top and bottom, toolbar top and bottom */
+async function barColors(page) {
+  return page.evaluate(() => {
+    const probe = document.createElement('div');
+    document.body.appendChild(probe);
+    const colors = ['--title-top', '--title-bottom', '--toolbar-top', '--toolbar-bottom'].map((name) => {
+      probe.style.backgroundColor = `var(${name})`;
+      return getComputedStyle(probe).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+    });
+    probe.remove();
+    return colors;
+  });
+}
+
+/** The brightness (0 to 1) of the background of the page */
+async function pageBrightness(page) {
+  return page.evaluate(() => {
+    const m = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.body).backgroundColor);
+    return (Number(m[1]) + Number(m[2]) + Number(m[3])) / (3 * 255);
+  });
+}
+
+/** Color (red, green, blue) of the first element which the selector finds (icons are painted by their text color) */
+async function iconColor(page, selector) {
+  return page.locator(selector).first().evaluate((element) => /(\d+), (\d+), (\d+)/.exec(getComputedStyle(element).color).slice(1).map(Number));
+}
+
+module.exports = {contrasts, expectReadable, barContrasts, barColors, pageBrightness, iconColor,  watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase, loginBase };

@@ -10,7 +10,7 @@
  */
 ?>
       <div id="drawer" class="inactive">
-        <a href="" onclick="<?= HANDLER_TOGGLE_DRAWER ?>"><img src="<?= $this->e(assetURL("w2-icons/close.svg")) ?>" alt="<?= __('Close') ?>" title="<?= __('Close') ?>" class="icon rightaligned"/></a>
+        <a href="" onclick="<?= HANDLER_TOGGLE_DRAWER ?>"><?= iconSvg('close', translate('Close'), 'rightaligned') ?></a>
         <h5><?= __('Markdown Syntax Helper') ?></h5>
         <div>
 # <?= __('Header') ?> 1<br/>## <?= __('Header') ?> 2<br/>### <?= __('Header') ?> 3<br/>#### <?= __('Header') ?> 4<br/>##### <?= __('Header') ?> 5<br/>###### <?= __('Header') ?> 6<br/>
@@ -29,12 +29,12 @@
       <a id="drawer-control" href="" onclick="<?= HANDLER_TOGGLE_DRAWER ?>">
         <span class="icongroup">
 <?php foreach (array('bold', 'italic', 'code') as $style): ?>
-          <img src="<?= $this->e(assetURL("w2-icons/format-text-$style.svg")) ?>" alt="<?= __('Formatting help') ?>" title="<?= __('Formatting help') ?>" class="icon"/>
+          <?= iconSvg("format-text-$style", translate('Formatting help')) ?>
 <?php endforeach ?>
         </span>
       </a>
 <?php if ($this->uploads): ?>
       <a id="uploadbutton" href="" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)') ?>">
-        <img src="<?= $this->e(assetURL("w2-icons/upload.svg")) ?>" alt="<?= __('Upload') ?>" class="icon"/>
+        <?= iconSvg('upload', translate('Upload')) ?>
       </a>
 <?php endif ?>

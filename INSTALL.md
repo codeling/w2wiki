@@ -87,7 +87,10 @@ prefix.
 **Static files.** The style sheet, scripts and icons (`w2-icons`) are served
 directly by the web server, and referenced with a version parameter
 (`wiki.js?v=...`). The nginx rules below send long cache headers for them;
-the same is possible in Apache with `mod_expires`/`mod_headers`.
+the same is possible in Apache with `mod_expires`/`mod_headers`. The icons are
+shown by the pages with `<use href="w2-icons/....svg#i">`, which browsers only
+load from the same origin as the page: serve `w2-icons` from the same host as the
+wiki, as the rules below do (and no other `Content-Security-Policy` is needed for them).
 
 
 # Running in a container (Docker and Podman)

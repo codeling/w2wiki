@@ -37,6 +37,9 @@ const ImageExtensions = array("bmp", "gif", "heic", "heif","jpg", "jpeg", "png",
 // Session handling, IP and password checks:
 require_once "auth.php";
 
+// The color scheme which the visitor chose with the buttons of the toolbar: "auto" (that of the system), "light" or "dark"
+$themeMode = themeModeFrom($_COOKIE[THEME_COOKIE] ?? null);
+
 if ( !isLoggedIn() )
 {
 	$loginFailed = false;
@@ -113,7 +116,7 @@ if ( !isLoggedIn() )
 		// (the page may show a hash of the password, see above)
 		header("Cache-Control: no-store");
 		print templates()->render('layout', array(
-			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'script' => false, 'savedDraft' => '',
+			'title' => translate('Log In'), 'pageTitle' => \W2\Html::raw(PAGE_TITLE), 'bodyClass' => 'login', 'editor' => false, 'script' => false, 'savedDraft' => '', 'theme' => $themeMode,
 			'content' => templates()->render('login', array(
 				'heading' => translate('Log In'), 'notes' => $notes, 'passwordLabel' => translate('Password'),
 				'buttonLabel' => translate('Log In'), 'csrfField' => \W2\Html::raw(csrfField())
@@ -260,6 +263,17 @@ function jsonAnswer($status, array $data)
 	exit;
 }
 
+/**
+ * Remembers the color scheme in a cookie for a year ("auto" is the default, which needs no cookie)
+ */
+function rememberThemeMode($mode)
+{
+	setcookie(THEME_COOKIE, $mode === 'auto' ? '' : $mode, array(
+		'expires' => $mode === 'auto' ? time() - 42000 : time() + 365 * 24 * 3600,
+		'path' => BASE_URI === '' ? '/' : BASE_URI,
+		'secure' => \WebAuth\Https::isRequest($_SERVER), 'httponly' => true, 'samesite' => 'Lax'));
+}
+
 function destroy_session()
 {
 	if ( isset($_COOKIE[session_name()]) )
@@ -293,6 +307,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (int)($_SERVER['CONTENT_LEN
 	http_response_code(413);
 	die(sprintf(__('The upload is too large: the server accepts requests of up to %s (post_max_size).'), h(ini_get('post_max_size'))).' '.
 		__('Nothing was uploaded or saved. Please go back and try again with a smaller file.'));
+}
+if ($action === 'theme')
+{
+	// (a request of the buttons in the toolbar; like the others which change something, it needs the token)
+	if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || !isValidCSRFToken($_POST['csrf_token'] ?? null))
+	{
+		http_response_code(403);
+		die(__('Invalid request: missing or wrong security token. Please go back, reload the page and try again.'));
+	}
+	if (!isThemeMode($_POST['mode'] ?? null))
+	{
+		http_response_code(400);
+		die(__('Invalid request'));
+	}
+	rememberThemeMode($_POST['mode']);
+	header("HTTP/1.1 303 See Other");
+	header("Location: " . themeReturnUrl($_POST['return'] ?? null, SELF));
+	exit;
 }
 $saveRefused = false;
 if (in_array($action, array('save', 'uploaded', 'renamed', 'deleted', 'imgRenamed', 'imgDeleted', 'linkMention'), true) &&
@@ -588,9 +620,9 @@ else
 
 // The toolbar: the pages of the wiki and what can be done with them
 $toolbar = array(
-	array('href' => SELF, 'icon' => assetURL("w2-icons/home.svg"), 'label' => translate(DEFAULT_PAGE)),
-	array('href' => SELF . "?action=all", 'icon' => assetURL("w2-icons/list.svg"), 'label' => translate('All')),
-	array('href' => SELF . "?action=new", 'icon' => assetURL("w2-icons/new.svg"), 'label' => translate('New'))
+	array('href' => SELF, 'icon' => iconSvg('home', translate(DEFAULT_PAGE)), 'label' => translate(DEFAULT_PAGE)),
+	array('href' => SELF . "?action=all", 'icon' => iconSvg('list', translate('All')), 'label' => translate('All')),
+	array('href' => SELF . "?action=new", 'icon' => iconSvg('new', translate('New')), 'label' => translate('New'))
 );
 if ( !DISABLE_UPLOADS )
 {
@@ -600,7 +632,7 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => assetURL("w2-icons/media.svg"), 'label' => translate('Media'));
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => iconSvg('media', translate('Media')), 'label' => translate('Media'));
 }
 if ( REQUIRE_PASSWORD )
 {
@@ -627,13 +659,19 @@ unset($_SESSION['savedDraft']);
 header("Cache-Control: no-store");
 print templates()->render('layout', array(
 	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
-	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action),
+	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'theme' => $themeMode,
 	'script' => isEditorAction($action) || ($action === 'upload' && !DISABLE_UPLOADS) || $savedDraft !== '', 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
-			? getPageActions($page, $action, "") : null,
+			? getPageActions($page, $action) : null,
 		'toolbar' => $toolbar,
+		'themeSwitch' => templates()->render('theme-switch', array(
+			'csrfField' => \W2\Html::raw(csrfField()), 'returnTo' => $_SERVER['REQUEST_URI'] ?? SELF, 'next' => nextThemeMode($themeMode),
+			// (all three icons are in the page: the style sheet shows the one for the scheme in use, which a script can change)
+			'icons' => array_map(fn($mode) => iconSvg('theme-' . $mode, sprintf(translate('Color scheme: %s'),
+				array('auto' => translate('System'), 'light' => translate('Light'), 'dark' => translate('Dark'))[$mode])), THEME_MODES)
+		)),
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),

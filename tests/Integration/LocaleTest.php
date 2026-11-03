@@ -82,7 +82,9 @@ final class LocaleTest extends AppTestCase
 		$body = $this->http->get('/index.php')->body;
 		foreach (['All', 'New', 'Media'] as $key) {
 			$text = htmlspecialchars($words[$key] ?? $key, ENT_QUOTES, 'UTF-8');
-			$this->assertStringContainsString("title=\"$text\"", $body, "$locale: tooltip '$key'");
+			// (the tooltip of an icon is the title element of its SVG, which is also its label for screen readers)
+			$this->assertStringContainsString("<title>$text</title>", $body, "$locale: tooltip '$key'");
+			$this->assertStringContainsString("aria-label=\"$text\"", $body, "$locale: label '$key'");
 		}
 		$this->assertStringContainsString('placeholder="' . htmlspecialchars($words['Search'] ?? 'Search', ENT_QUOTES, 'UTF-8') . '"', $body);
 	}

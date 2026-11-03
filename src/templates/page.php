@@ -5,8 +5,8 @@
  * The page of the wiki (inside layout): title bar, toolbar, sidebar, and the main part with the note.
  *
  * Values: title (text), modified (text, or '' for pages without a date), pageActions (Html or null),
- *         toolbar (list of items: href, icon (address, or null for a link with a text only), label),
- *         drawer (Html or null), sidebar (Html or null),
+ *         toolbar (list of items: href, icon (Html, see iconSvg(), or null for a link with a text only), label),
+ *         drawer (Html or null), themeSwitch (Html: the buttons to choose the color scheme), sidebar (Html or null),
  *         linksHere (null, or a list of pages: href, name), note (Html or null), content (Html)
  */
 ?>
@@ -16,7 +16,7 @@
     <div class="toolbar">
 <?php foreach ($this->toolbar as $item): ?>
 <?php if ($item['icon'] !== null): ?>
-      <a href="<?= $item['href'] ?>"><img src="<?= $item['icon'] ?>" alt="<?= $item['label'] ?>" title="<?= $item['label'] ?>" class="icon"></a>
+      <a href="<?= $item['href'] ?>"><?= $item['icon'] ?></a>
 <?php else: ?>
       <a href="<?= $item['href'] ?>"><?= $item['label'] ?></a>
 <?php endif ?>
@@ -28,6 +28,7 @@
         <input class="search" placeholder="<?= __('Search') ?>" size="20" id="search" type="text" name="q" />
       </form>
 <?= $this->drawer ?>
+<?= $this->themeSwitch ?>
     </div>
 <?php if ($this->sidebar !== null): ?>
     <div class="sidebar">

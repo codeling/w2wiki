@@ -10,10 +10,72 @@
  *
  * Written with Coda: <http://panic.com/coda/>
  *
- * colors icons:
- *          240,240,240
- *     dark: 15, 15, 15
+ * The colors are custom properties with a value for the light and one for the dark color scheme (light-dark()).
+ * The scheme is that of the system, or the one chosen with the buttons of the toolbar (data-theme of the root element).
+ *
+ * The icons (w2-icons/*.svg) are inline SVGs in the pages which show the shape in a file (<use>, see iconSvg()). The
+ * files draw with currentColor, so the color of the icons is set here (svg.icon), also for the dark scheme. The
+ * globe after external links is a mask, painted with the color of the text.
  */
+
+:root {
+	color-scheme: light dark;
+}
+/* the color scheme chosen with the buttons of the toolbar (a cookie, see theme-switch.php), else that of the system */
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
+}
+
+/* (light-dark() takes the first color in the light scheme and the second in the dark one) */
+:root {
+	--page-bg: light-dark(#eeeeee, #1c1c1e);
+	--page-fg: light-dark(#000000, #e4e4e4);
+	--blockquote-bg: light-dark(#f0f8f0, #1f2d1f);
+	--rule: light-dark(#cccccc, #555555);
+	--code-bg: light-dark(#ffffcc, #33321a);
+	--code-border: light-dark(gray, #777777);
+	--row-even: light-dark(#e4e4e4, #2a2a2d);
+	--row-odd: light-dark(#eeeeee, #1c1c1e);
+	--table-rule: light-dark(black, #aaaaaa);
+	--textarea-bg: light-dark(#ffffee, #26261c);
+	--textarea-fg: light-dark(#000000, #eeeeee);
+	--diff-border: light-dark(#999999, #777777);
+	--diff-removed: light-dark(#ffdddd, #4a2326);
+	--diff-added: light-dark(#ddffdd, #1f4023);
+	--diff-gap: light-dark(#888888, #999999);
+	--dialog-border: light-dark(black, #888888);
+	--dialog-backdrop: light-dark(rgba(0, 0, 0, .4), rgba(0, 0, 0, .65));
+	--focus: light-dark(#4466cc, #8ab4ff);
+	--drop-outline: light-dark(#666644, #bbbb88);
+	--link-literal: light-dark(#0000ff, #8ab4ff);
+	--link-missing: light-dark(#bb0000, #ff7b7b);
+	--note-bg: light-dark(#ffffcc, #3a3a1c);
+	--note-fg: light-dark(#666644, #e0e0b0);
+	--note-border: light-dark(#666644, #8c8c5c);
+	--snippet: light-dark(#555555, #aaaaaa);
+	--search-bg: light-dark(#ffffff, #2c2c2e);
+	--search-fg: light-dark(#000000, #eeeeee);
+	--button-bg: light-dark(rgb(220, 220, 220), rgb(70, 70, 74));
+	--button-bg-hover: light-dark(rgb(200, 200, 200), rgb(90, 90, 94));
+	--button-fg: light-dark(black, #eeeeee);
+	--drawer-bg: light-dark(rgb(240, 240, 240), rgb(44, 44, 46));
+	--drawer-fg: light-dark(#000000, #e4e4e4);
+	--drawer-border: light-dark(black, #888888);
+	--icon-outline: light-dark(#777777, #bbbbbb);
+	--icon-fg: light-dark(#0f0f0f, #f0f0f0);
+	--danger: light-dark(#da4453, #ff6b7a);
+	--switch-active: light-dark(rgba(0, 0, 0, .18), rgba(255, 255, 255, .22));
+	--bar-fg: light-dark(#222222, #eeeeee);
+	--bar-fg-muted: light-dark(#555555, #cccccc);
+	--title-top: light-dark(#fcfcfc, #555555);
+	--title-bottom: light-dark(#d9d9d9, #000000);
+	--toolbar-top: light-dark(#ebebeb, #666666);
+	--toolbar-bottom: light-dark(#cfcfcf, #444444);
+	--bar-border: light-dark(#aaaaaa, transparent);
+}
 
 * {
 	font-family: Helvetica, sans-serif;
@@ -23,11 +85,12 @@
 }
 
 body {
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
 }
 
 blockquote {
-	background-color: #f0f8f0;
+	background-color: var(--blockquote-bg);
 	margin: 4px 4px 12px 20px;
 	padding: 4px 10px 4px 10px;
 }
@@ -56,7 +119,7 @@ h3 {
 	font-size: 1.2em;
 }
 hr {
-	border-top: 1px solid #cccccc;
+	border-top: 1px solid var(--rule);
 	border-bottom: 0;
 	border-left: 0;
 	border-right: 0;
@@ -90,14 +153,14 @@ pre {
 	margin-bottom: .5em;
 	margin-top: .5em;
 	text-wrap: wrap;
-	background: #ffc;
-	border: 1px dotted gray;
+	background: var(--code-bg);
+	border: 1px dotted var(--code-border);
 	padding: .2em .2em .2em .4em;
 }
 
 code {
 	font-family: Courier, monospace;
-	background: #ffc;
+	background: var(--code-bg);
 	padding: .1em .1em 0 .2em;
 	display: inline-block;
 }
@@ -115,7 +178,7 @@ table {
 	word-break: break-all;
   }
   thead {
-	border-bottom: 1px solid black;
+	border-bottom: 1px solid var(--table-rule);
 	font-weight: bold;
   }
   thead td a {
@@ -125,10 +188,10 @@ table {
 	content: "\25BC";
   }
   tr:nth-child(even) {
-	background: #e4e4e4;
+	background: var(--row-even);
   }
   tr:nth-child(odd) {
-	background: #eeeeee;
+	background: var(--row-odd);
   }
 .pageActions {
 	padding-left: 8px;
@@ -138,7 +201,8 @@ table {
 textarea {
 	font-family: Courier, monospace;
 	width: 75%;
-	background-color: #ffffee;
+	background-color: var(--textarea-bg);
+	color: var(--textarea-fg);
 }
   @media (max-width: 600px), (orientation: portrait) {
 	textarea {
@@ -197,7 +261,7 @@ body.editor .note {
 /* what saving would change in the page, after it was changed by somebody else */
 .diff {
 	margin: .5em 0;
-	border: solid 1px #999999;
+	border: solid 1px var(--diff-border);
 	padding: 4px;
 	overflow-x: auto;
 }
@@ -206,18 +270,18 @@ body.editor .note {
 	font-size: .9em;
 }
 .diff .removed {
-	background-color: #ffdddd;
+	background-color: var(--diff-removed);
 	display: block;
 }
 .diff .added {
-	background-color: #ddffdd;
+	background-color: var(--diff-added);
 	display: block;
 }
 .diff .same, .diff .gap {
 	display: block;
 }
 .diff .gap {
-	color: #888888;
+	color: var(--diff-gap);
 }
 
 /* keep Save and Cancel within reach, also on small screens where the form can be taller than the visible area */
@@ -225,7 +289,7 @@ body.editor .note {
 	position: sticky;
 	bottom: 0;
 	padding: .5em 0;
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
 }
 
 /* the dialog to upload files from the editor, with the part of an image to keep (the frame on the image) */
@@ -252,9 +316,10 @@ body.editor .note {
 	overflow: auto;
 	margin: auto;
 	padding: .5em 1em 1em;
-	border: 1px solid black;
+	border: 1px solid var(--dialog-border);
 	border-radius: 5px;
-	background-color: #eeeeee;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
 }
 #uploaddialog h5 {
 	margin: 0 0 .5em;
@@ -266,7 +331,7 @@ body.editor .note {
 	display: block;
 }
 #uploaddialog::backdrop {
-	background-color: rgba(0, 0, 0, .4);
+	background-color: var(--dialog-backdrop);
 }
 #uploaddialog .hint {
 	font-size: smaller;
@@ -307,7 +372,7 @@ body.editor .note {
 	touch-action: none;
 }
 #cropbox:focus-visible {
-	outline: 2px solid #4466cc;
+	outline: 2px solid var(--focus);
 }
 #cropbox .handle {
 	position: absolute;
@@ -333,7 +398,7 @@ body.editor .note {
 	}
 }
 .editorbox.dropping textarea {
-	outline: dashed 2px #666644;
+	outline: dashed 2px var(--drop-outline);
 }
 
 input#gitmsg {
@@ -345,16 +410,25 @@ input#gitmsg {
 }
 
 .main a[href^="http"]::after {
-	content: url('w2-icons/internet.png');
+	/* (a globe, in the color of the link) */
+	content: "";
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-left: .2em;
+	vertical-align: -.15em;
+	background-color: currentColor;
+	-webkit-mask: url('w2-icons/internet.svg') center / contain no-repeat;
+	mask: url('w2-icons/internet.svg') center / contain no-repeat;
 }
 
 .main a.literalMatch {
 	font-weight: bold;
-	color: #00f;
+	color: var(--link-literal);
 }
 
 .main a.noexist {
-	color: #b00 !important;
+	color: var(--link-missing) !important;
 }
 
 .login {
@@ -364,11 +438,11 @@ input#gitmsg {
 }
 
 .note {
-	background-color: #ffffcc;
+	background-color: var(--note-bg);
 	padding: 4px;
 	margin: .5em 0 .5em 0;
-	color: #666644;
-	border: solid 1px #666644;
+	color: var(--note-fg);
+	border: solid 1px var(--note-border);
 	width: 75%;
 }
   @media (max-width: 600px), (orientation: portrait) {
@@ -378,9 +452,8 @@ input#gitmsg {
   }
 
 .titlebar {
-	background-color: #222222;
-	background: -webkit-gradient(linear, left top, left bottom, from(#555555), to(#000000));
-	color: #ffffff;
+	background: linear-gradient(to bottom, var(--title-top), var(--title-bottom));
+	color: var(--bar-fg);
 	padding: 4px 4px 4px 1em;
 }
 
@@ -391,21 +464,21 @@ input#gitmsg {
 
 .titledate {
 	font-size: 0.90em;
-	color: #999999;
+	color: var(--bar-fg-muted);
 	margin-left: 1em;
 	margin-right: 1em;
 }
 
 .toolbar {
-	background-color: #777777;
-	background: -webkit-gradient(linear, left top, left bottom, from(#666666), to(#444444));
+	background: linear-gradient(to bottom, var(--toolbar-top), var(--toolbar-bottom));
+	box-shadow: 0 1px 0 var(--bar-border);
 	padding: 4px 4px 4px 1em;
 }
 
 .toolbar > a, .titlebar > a {
 	font-size: 0.90em;
 	margin-right: 1em;
-	color: #eeeeee;
+	color: var(--bar-fg);
 	text-decoration: none;
 	font-weight: normal;
 }
@@ -421,12 +494,12 @@ input#gitmsg {
 	margin-right: 5px;
 	margin-top: 5px;
 	padding: 4px;
-	border: solid 1px #666644;
+	border: solid 1px var(--note-border);
 }
 .pagecontext {
 	padding: 4px;
 	margin: .5em 0;
-	border: solid 1px #666644;
+	border: solid 1px var(--note-border);
 }
 .pagecontext p {
 	margin: .3em 0;
@@ -436,7 +509,7 @@ input#gitmsg {
 	padding-left: 1.5em;
 }
 .pagecontext .snippet {
-	color: #555;
+	color: var(--snippet);
 }
 .pagecontext form.linkmention {
 	display: inline;
@@ -459,7 +532,8 @@ input#gitmsg {
 
 input.search {
 /*	font-size: 0.95em;*/
-	color: #000000;
+	background-color: var(--search-bg);
+	color: var(--search-fg);
 	width: 5em;
 	padding: .1em;
 }
@@ -489,14 +563,15 @@ input[type="submit"] {
 	color: white;
 }
 input[type="button"] {
-	background-color: rgb(220, 220, 220);
+	background-color: var(--button-bg);
+	color: var(--button-fg);
 }
 
 input[type="submit"]:hover {
 	background-color: rgb(69, 135, 226);
 }
 input[type="button"]:hover {
-	background-color: rgb(200, 200, 200);
+	background-color: var(--button-bg-hover);
 }
 
 img {
@@ -508,15 +583,16 @@ img {
 	display: inline-block;
 	position: absolute;
 	width: 300px;
-	background-color: rgb(240, 240, 240);
+	background-color: var(--drawer-bg);
+	color: var(--drawer-fg);
 	opacity: 0.5;
-	border: 1px solid black;
+	border: 1px solid var(--drawer-border);
 	border-radius: 5px;
 	padding: 0;
 	cursor: move;
 }
 #drawer h5 {
-	border-bottom: 1px solid black;
+	border-bottom: 1px solid var(--drawer-border);
 	padding: 4px;
 }
 #drawer div {
@@ -528,15 +604,57 @@ img {
 .inactive {
 	display: none !important;
 }
-img.icon {
+svg.icon {
 	width: 1.5em;
+	height: 1.5em;
 	vertical-align: middle;
 }
-a > img.icon:hover, a > span.icongroup:hover {
-	outline: 1px outset white;
+a > svg.icon:hover, a > span.icongroup:hover {
+	outline: 1px outset var(--icon-outline);
 }
-a > img.icon:active, a > span.icongroup:active {
-	outline: 1px inset white;
+a > svg.icon:active, a > span.icongroup:active {
+	outline: 1px inset var(--icon-outline);
+}
+svg.icon {
+	color: var(--icon-fg);
+}
+/* in the bars, the color of their text */
+.titlebar svg.icon, .toolbar svg.icon {
+	color: var(--bar-fg);
+}
+#drawer svg.icon {
+	color: var(--drawer-fg);
+}
+svg.icon.icon-delete {
+	color: var(--danger);
+}
+
+/* the button in the toolbar to change the color scheme (see theme-switch.php): its icon is the one for the scheme in use */
+.themeswitch {
+	margin-right: 6px;
+}
+.themeswitch button {
+	background: none;
+	border: 0;
+	border-radius: 3px;
+	padding: 2px;
+	line-height: 0;
+	cursor: pointer;
+	color: var(--bar-fg);
+}
+.themeswitch button:hover, .themeswitch button:focus-visible {
+	background-color: var(--switch-active);
+	outline: 1px solid var(--icon-outline);
+}
+.themeswitch svg.icon {
+	display: none;
+	width: 1.25em;
+	height: 1.25em;
+}
+:root:not([data-theme]) .themeswitch .icon-theme-auto,
+:root[data-theme="light"] .themeswitch .icon-theme-light,
+:root[data-theme="dark"] .themeswitch .icon-theme-dark {
+	display: inline-block;
 }
 .rightaligned {
 	float: right;

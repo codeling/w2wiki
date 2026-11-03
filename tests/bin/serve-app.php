@@ -5,13 +5,15 @@
 //
 //   php tests/bin/serve-app.php --port=8090 [--svg]
 //
-// --svg enables SVG uploads (needs the enshrined/svg-sanitize test dependency). Used by the browser tests.
+// --svg enables SVG uploads (needs the enshrined/svg-sanitize test dependency). --login requires a password (hunter2).
+// Used by the browser tests.
 
 use W2\Tests\Support\AppServer;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$options = getopt('', ['port:', 'svg']);
+$options = getopt('', ['port:', 'svg', 'login']);
+$login = isset($options['login']);
 $port = (int)($options['port'] ?? 0);
 $svg = isset($options['svg']);
 if ($svg && AppServer::svgSanitizerDir() === null) {
@@ -20,7 +22,10 @@ if ($svg && AppServer::svgSanitizerDir() === null) {
 }
 
 $server = AppServer::get(
-	$svg ? ['SVG_UPLOADS_ENABLED' => true] : [],
+	array_merge(
+		$svg ? ['SVG_UPLOADS_ENABLED' => true] : [],
+		$login ? ['REQUIRE_PASSWORD' => true, 'W2_PASSWORD_HASH' => password_hash('hunter2', PASSWORD_BCRYPT, ['cost' => 4])] : []
+	),
 	array_filter(['port' => $port ?: null, 'svgSanitizer' => $svg ?: null])
 );
 $server->reset();

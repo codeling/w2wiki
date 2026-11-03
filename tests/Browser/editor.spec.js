@@ -98,7 +98,7 @@ for (const [label, url] of [['existing page', '/index.php?action=edit&page=Home'
     await expect(page.locator('#drawer')).toHaveClass(/inactive/);
     await page.click('#drawer-control');
     await expect(page.locator('#drawer')).not.toHaveClass(/inactive/);
-    await page.click('#drawer img.rightaligned');
+    await page.click('#drawer svg.rightaligned');
     await expect(page.locator('#drawer')).toHaveClass(/inactive/);
   });
 }

@@ -4,7 +4,7 @@
  *
  * The document around every page: head and body.
  *
- * Values: title (text), pageTitle (Html, from PAGE_TITLE), bodyClass (text or ''), editor (bool: the page has
+ * Values: theme (text: "auto", or the color scheme which was chosen: "light" or "dark"), title (text), pageTitle (Html, from PAGE_TITLE), bodyClass (text or ''), editor (bool: the page has
  *         the editor, which needs the space above the on-screen keyboard), script (bool: the page needs wiki.js: it
  *         has the editor or the dialog to upload files, or removes a saved draft), content (Html),
  *         savedDraft (text: the key of the draft in the browser which wiki.js removes, because its text has
@@ -12,13 +12,15 @@
  */
 ?>
 <!doctype html>
-<html lang="<?= $this->e(W2_LOCALE) ?>">
+<html lang="<?= $this->e(W2_LOCALE) ?>"<?= $this->theme !== 'auto' ? ' data-theme="' . $this->theme . '"' : '' ?>>
   <head>
     <meta charset="<?= $this->e(W2_CHARSET) ?>">
     <link rel="apple-touch-icon" href="<?= $this->e(assetURL("w2-icons/w2-icon.png")) ?>"/>
     <link rel="icon" href="<?= $this->e(assetURL("w2-icons/w2-icon.png")) ?>"/>
 <?php /* (in the editor, the page shrinks to the space above the on-screen keyboard, to keep Save in reach) */ ?>
     <meta name="viewport" content="width=device-width, initial-scale=1<?= $this->editor ? ', interactive-widget=resizes-content' : '' ?>" />
+<?php /* (form controls and scrollbars follow the dark or light color scheme of the system, as the style sheet does) */ ?>
+    <meta name="color-scheme" content="light dark" />
     <link type="text/css" rel="stylesheet" href="<?= $this->e(assetURL(CSS_FILE)) ?>" />
     <title><?= $this->pageTitle ?><?= $this->title ?></title>
 <?php if ($this->script): ?>
