@@ -11,6 +11,7 @@ parameters:
     paths:
         - index.php
         - api.php
+        - file.php
         - auth.php
         - auth_functions.php
         - functions.php

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 // SVG files which were uploaded before sanitizing existed (or put in the uploads folder otherwise) can contain
-// scripts. The web server rules make browsers ignore them; this needs the wiki to be served by Apache or nginx:
+// scripts. file.php sends them with a Content-Security-Policy which makes browsers ignore them. The test places
+// files in the folder of the wiki, so it needs a server whose folder it knows (W2_SERVER_ROOT), e.g.:
 //   W2_BROWSER=1 tests/Server/run.sh apache
 const fs = require('fs');
 const path = require('path');
@@ -28,7 +29,7 @@ test.afterAll(() => {
 test('scripts in SVG files of the uploads folder do not run', async ({ page }) => {
   const dialogs = watchDialogs(page);
   place('pages/images/legacy.svg');
-  await page.goto('/images/legacy.svg');
+  await page.goto('/file.php?name=legacy.svg');
   await interact(page);
   expect(dialogs).toEqual([]);
 });

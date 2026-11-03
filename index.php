@@ -469,6 +469,15 @@ else if ( $action === 'upload' )
 	$lists = new \W2\Lists();
 	$sortBy = $lists->sortKey($_REQUEST['sortBy'] ?? 'name');
 	$prevpage = requireValidPreviousPage('page');
+	// (for the administrator; once per session, as long as the setup isn't changed)
+	if ( empty($_SESSION['upload_setup_checked']) )
+	{
+		foreach ( uploadSetupProblems() as $problem )
+		{
+			w2Log($problem);
+		}
+		$_SESSION['upload_setup_checked'] = true;
+	}
 	$content = templates()->render('upload-page', array(
 		'dialog' => DISABLE_UPLOADS ? null : uploadDialog(), 'list' => $lists->uploads($sortBy, $prevpage)
 	));

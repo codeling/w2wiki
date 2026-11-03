@@ -12,7 +12,7 @@ namespace W2\Tests\Support;
  */
 final class AppServer
 {
-	private const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
+	private const APP_FILES = ['index.php', 'api.php', 'file.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
 	private const APP_DIRS = ['Michelf', 'locales', 'src', 'w2-icons', 'webauth'];
 
 	/** @var array<string, AppServer> running servers by configuration */
@@ -25,6 +25,8 @@ final class AppServer
 	private string $routerFile;
 	private string $pagesFolder;
 	private string $uploadFolder;
+	/** path of the uploads folder below the folder of the test copy, if it is not in the pages folder */
+	private ?string $uploadsFolder;
 	private int $port;
 	/** @var array<string, mixed> */
 	private array $options;
@@ -45,7 +47,11 @@ final class AppServer
 	 *                                        user.email), see initGit(); "gitRemote": also create a local bare
 	 *                                        repository as "origin" (implies "git");
 	 *                                        "pagesFolder": name of the pages folder (default "pages"), e.g. with
-	 *                                        spaces and quotes, which is set as PAGES_PATH;
+	 *                                        spaces and quotes, or a path like "data/pages", which is set as PAGES_PATH;
+	 *                                        "uploadsFolder": path of the uploads folder in the test copy (e.g.
+	 *                                        "data/media", next to the pages), which is set as UPLOAD_PATH;
+	 *                                        "gitRoot": make this folder of the test copy (e.g. "data") the git
+	 *                                        repository instead of the pages folder (with "git" or "gitRemote");
 	 *                                        "phpIni": PHP ini values for the server, e.g. ['post_max_size' => '100K'];
 	 *                                        "router": PHP code run before every request (a router script of
 	 *                                        the built-in server, which then serves the request as usual),
@@ -97,6 +103,7 @@ final class AppServer
 		$this->routerFile = $this->dir . '-router.php';
 		$this->pagesFolder = (string)($options['pagesFolder'] ?? 'pages');
 		$this->uploadFolder = (string)($overrides['UPLOAD_FOLDER'] ?? 'images');
+		$this->uploadsFolder = isset($options['uploadsFolder']) ? (string)$options['uploadsFolder'] : null;
 		mkdir($this->dir . '/sessions', 0777, true);
 		foreach (self::APP_FILES as $file) {
 			if (is_file("$this->appRoot/$file")) {
@@ -110,17 +117,19 @@ final class AppServer
 		}
 		if (is_dir("$this->appRoot/pages")) {
 			self::copyDir("$this->appRoot/pages", $this->pagesDir());
-			if ($this->uploadFolder !== 'images' && is_dir($this->pagesDir() . '/images')) {
+			if ($this->uploadsFolder === null && $this->uploadFolder !== 'images' && is_dir($this->pagesDir() . '/images')) {
 				rename($this->pagesDir() . '/images', $this->imagesDir());
 			}
 		}
 		if (!is_dir($this->imagesDir())) {
 			mkdir($this->imagesDir(), 0777, true);
 		}
-		// the uploads folder is served statically from the root folder, see README.md
-		symlink($this->pagesFolder . '/' . $this->uploadFolder, "$this->dir/" . ($overrides['UPLOAD_URL'] ?? $this->uploadFolder));
+		// (the uploads are served by file.php: the web server doesn't serve the uploads folder, see INSTALL.md)
 		if ($this->pagesFolder !== 'pages') {
 			$overrides['PAGES_PATH'] = $this->pagesDir();
+		}
+		if ($this->uploadsFolder !== null) {
+			$overrides['UPLOAD_PATH'] = $this->imagesDir();
 		}
 		$this->writeConfig($overrides);
 		$this->initGit();
@@ -160,7 +169,13 @@ final class AppServer
 
 	public function imagesDir(): string
 	{
-		return $this->pagesDir() . '/' . $this->uploadFolder;
+		return $this->uploadsFolder === null ? $this->pagesDir() . '/' . $this->uploadFolder : "$this->dir/$this->uploadsFolder";
+	}
+
+	/** The folder of the git repository (options "git" and "gitRemote"): the pages folder, or the one of the option "gitRoot" */
+	public function gitDir(): string
+	{
+		return isset($this->options['gitRoot']) ? $this->dir . '/' . $this->options['gitRoot'] : $this->pagesDir();
 	}
 
 	/** The file with the time of the last pull attempt, see gitSyncFile() in functions.php */
@@ -197,6 +212,13 @@ final class AppServer
 			mkdir($this->imagesDir(), 0777, true);
 		}
 		self::removeContents($this->pagesDir(), $keep);
+		if ($this->uploadsFolder !== null) {
+			self::removeContents($this->imagesDir(), []);
+		}
+		if (isset($this->options['gitRoot']) && is_dir($this->gitDir() . '/.git')) {
+			self::removeContents($this->gitDir() . '/.git', []);
+			rmdir($this->gitDir() . '/.git');
+		}
 		$this->resetLoginThrottle();
 		@unlink($this->gitSyncFile());
 		foreach (glob($this->appRoot . '/pages/*.md') as $page) {
@@ -238,7 +260,7 @@ final class AppServer
 			$commands[] = 'push -q -u origin main';
 		}
 		foreach ($commands as $command) {
-			$this->git($command);
+			$this->git($command, $this->gitDir());
 		}
 	}
 

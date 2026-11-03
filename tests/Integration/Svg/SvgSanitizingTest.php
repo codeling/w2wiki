@@ -117,7 +117,7 @@ final class SvgSanitizingTest extends SvgAppTestCase
 	{
 		$this->uploadSvg('benign.svg', $this->svgFixture('benign'));
 		$list = $this->http->get('/index.php', ['action' => 'upload'])->body;
-		$this->assertStringContainsString('<img class="thumbImg" src="/images/benign.svg?v=', $list);
+		$this->assertStringContainsString('<img class="thumbImg" src="/file.php?name=benign.svg&amp;v=', $list);
 		$this->assertStringContainsString('![Image Description](/images/benign.svg)', $list);
 	}
 

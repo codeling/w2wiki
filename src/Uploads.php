@@ -61,7 +61,7 @@ final class Uploads
 		// (and the content must be of the type belonging to the extension, which decides how it is processed)
 		if ($typeAllowed && hasValidUploadExt($dstName) && ($fileExt === 'svg' || uploadTypeMatchesExt($fileType, $fileExt)))
 		{
-			$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/$dstName";
+			$path = uploadPath($dstName);
 			$doResize = $resize;
 			$doConvert = in_array($fileExt, explode(',', IMAGE_EXTS_TO_CONVERT));
 			// never let ImageMagick parse SVG files (external references, delegates)

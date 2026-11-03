@@ -62,7 +62,7 @@ final class MarkdownToHtmlTest extends TestCase
 	public function testMarkdownImagesAndSafeLinks(): void
 	{
 		$html = toHTML('![alt](/images/a.png "title") [link](https://example.com/?a=1&b=2) [rel](other.html)');
-		$this->assertStringContainsString('<img src="/images/a.png" alt="alt" title="title" />', $html);
+		$this->assertStringContainsString('<img src="/file.php?name=a.png" alt="alt" title="title" />', $html);
 		$this->assertStringContainsString('href="https://example.com/?a=1&amp;b=2"', $html);
 		$this->assertStringContainsString('href="other.html"', $html);
 	}

@@ -3,6 +3,7 @@
 *
 !index.php
 !api.php
+!file.php
 !auth.php
 !auth_functions.php
 !config.sample.php

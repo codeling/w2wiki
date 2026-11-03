@@ -34,7 +34,7 @@ test('upload button: the link is inserted at the cursor and the typed text is ke
   // the page was not saved by the upload, and it can be saved now
   await page.click('#save');
   await page.waitForURL(/Page%20with%20upload/);
-  await expect(page.locator('img[src^="/images/editor-upload.gif"]')).toHaveCount(1);
+  await expect(page.locator('img[src^="/file.php?name=editor-upload.gif&v="]')).toHaveCount(1);
 });
 
 test('upload: a space in the name is replaced, and the stored name is linked', async ({ page }) => {
@@ -96,7 +96,7 @@ test('upload: whether a file exists is checked for the name chosen under "Save a
   await expect.poll(() => messages.length).toBe(1);
   expect(messages[0]).toContain('taken-name.gif');
   await expect(page.locator('#uploaddialog')).toBeHidden();
-  expect((await page.request.get('/images/other.gif')).status()).toBe(404);
+  expect((await page.request.get('/file.php?name=other.gif')).status()).toBe(404);
 });
 
 test('upload: the name under "Save as" is for one file, the next file keeps its own name', async ({ page }) => {
@@ -166,7 +166,7 @@ test.describe('cropping', () => {
   }
 
   async function storedSize(page, name) {
-    const response = await page.request.get('/images/' + name);
+    const response = await page.request.get('/file.php?name=' + encodeURIComponent(name));
     expect(response.status()).toBe(200);
     return pngSize(await response.body());
   }
@@ -229,7 +229,7 @@ test.describe('cropping', () => {
     await choose(page, 'cancelled.png', 40, 20);
     await page.click('#uploadcancel');
     await expect(page.locator('#uploaddialog')).toBeHidden();
-    expect((await page.request.get('/images/cancelled.png')).status()).toBe(404);
+    expect((await page.request.get('/file.php?name=cancelled.png')).status()).toBe(404);
     await expect(page.locator('#text')).toHaveValue('');
   });
 

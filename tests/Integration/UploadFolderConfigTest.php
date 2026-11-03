@@ -22,9 +22,10 @@ final class UploadFolderConfigTest extends AppTestCase
 		$this->assertDirectoryDoesNotExist($this->server->pagesDir() . '/images');
 
 		$this->savePage('Pic', '![x](/pictures/a.gif)');
-		$this->assertMatchesRegularExpression('#<img src="/pictures/a\.gif\?v=\d+"#', $this->http->get($this->pageUrl('Pic'))->body);
+		$this->assertMatchesRegularExpression('#<img src="/file\.php\?name=a\.gif&amp;v=\d+"#', $this->http->get($this->pageUrl('Pic'))->body);
 		$list = $this->http->get('/index.php', ['action' => 'upload'])->body;
-		$this->assertStringContainsString('src="/pictures/a.gif?v=', $list);
+		$this->assertStringContainsString('src="/file.php?name=a.gif&amp;v=', $list);
+		$this->assertSame(self::gif(), $this->http->get('/file.php', ['name' => 'a.gif'])->body);
 		$this->assertStringContainsString('(/pictures/image.jpg)', $this->http->get('/index.php', ['action' => 'new', 'page' => 'X'])->body);
 	}
 

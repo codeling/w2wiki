@@ -129,6 +129,25 @@ final class PageStoreTest extends TestCase
 		$this->assertSame([], @(new PageStore("$this->root/missing", 'md', 'uploads'))->names());
 	}
 
+	/** The uploads folder may be a nested folder, or not in the pages folder at all (then nothing is excluded) */
+	public function testUploadFolderInSubfoldersOrOutside(): void
+	{
+		$this->put('media/files/a.md');
+		$this->put('media/Page.md');
+		$this->put('uploads/b.md');
+		$nested = new PageStore($this->root, 'md', 'media/files');
+		$this->assertSame(['media/Page', 'uploads/b'], $nested->names());
+		$this->assertFalse($nested->isValidName('media/files'));
+		$this->assertFalse($nested->isValidName('media/files/a'));
+		$this->assertTrue($nested->isValidName('media/files2/a'));
+		$this->assertTrue($nested->isValidName('media/Page'));
+
+		$outside = new PageStore($this->root, 'md', null);
+		$this->assertSame(['media/files/a', 'media/Page', 'uploads/b'], $outside->names());
+		$this->assertTrue($outside->isValidName('uploads/b'));
+		$this->assertTrue($outside->exists('uploads/b'));
+	}
+
 	public function testWriteCreatesAndReplacesPagesAndTheirFolders(): void
 	{
 		$this->assertTrue($this->store->write('New', 'first'));

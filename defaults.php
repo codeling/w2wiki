@@ -14,6 +14,7 @@
 // Site layout settings
 defined('PAGES_PATH') || define('PAGES_PATH', __DIR__ . '/pages');
 defined('UPLOAD_FOLDER') || define('UPLOAD_FOLDER', 'images');
+defined('UPLOAD_PATH') || define('UPLOAD_PATH', PAGES_PATH . '/' . UPLOAD_FOLDER);
 defined('UPLOAD_URL') || define('UPLOAD_URL', UPLOAD_FOLDER);
 defined('PAGES_EXT') || define('PAGES_EXT', 'md');
 defined('BASE_URI') || define('BASE_URI', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'));

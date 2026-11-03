@@ -5,7 +5,7 @@
  * W2
  *
  * Authentication by the web server, session handling, IP restriction and password checks, shared by all entry
- * points (index.php, api.php). Requires the settings (config.php, defaults.php) to be loaded.
+ * points (index.php, api.php, file.php). Requires the settings (config.php, defaults.php) to be loaded.
  */
 
 require_once "auth_functions.php";
@@ -38,19 +38,28 @@ ini_set('session.gc_maxlifetime', W2_SESSION_LIFETIME);
 ini_set('session.use_strict_mode', 1);
 session_set_cookie_params(sessionCookieParams($_SERVER));
 session_name(W2_SESSION_NAME);
-session_start();
-
-// (once per session, not for every request)
-if ( !empty($w2ConfigMissing) && empty($_SESSION['config_missing_logged']) )
+if ( !empty($w2ReadOnlySession) )
 {
-	w2Log('config.php not found: using the default settings; copy config.sample.php to config.php to change them');
-	$_SESSION['config_missing_logged'] = true;
+	// (file.php only needs to know whether the user is logged in: the session is not locked while the file is sent,
+	// and caching is left to file.php, without the headers against it which PHP adds for sessions)
+	session_start(array('read_and_close' => true, 'cache_limiter' => ''));
 }
-
-// token protecting state-changing requests against cross-site request forgery
-if ( empty($_SESSION['csrf_token']) )
+else
 {
-	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+	session_start();
+
+	// (once per session, not for every request)
+	if ( !empty($w2ConfigMissing) && empty($_SESSION['config_missing_logged']) )
+	{
+		w2Log('config.php not found: using the default settings; copy config.sample.php to config.php to change them');
+		$_SESSION['config_missing_logged'] = true;
+	}
+
+	// token protecting state-changing requests against cross-site request forgery
+	if ( empty($_SESSION['csrf_token']) )
+	{
+		$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+	}
 }
 
 if ( count($allowedIPs) > 0 )
@@ -60,7 +69,7 @@ if ( count($allowedIPs) > 0 )
 	if ( !\WebAuth\Ip::isInList($ip, $allowedIPs) )
 	{
 		http_response_code(403);
-		// (api.php doesn't load the locale)
+		// (api.php and file.php don't load the locale)
 		$text = function_exists('__') ? __('Access from IP address %s is not allowed') : 'Access from IP address %s is not allowed';
 		print "<html><body>" . sprintf($text, htmlspecialchars($ip)) . "</body></html>";
 		exit;

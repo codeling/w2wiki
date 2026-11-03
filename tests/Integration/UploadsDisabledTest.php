@@ -23,6 +23,13 @@ final class UploadsDisabledTest extends AppTestCase
 		$this->assertSame([], $this->uploadedFiles());
 	}
 
+	/** (DISABLE_UPLOADS only stops new uploads: the files which are there are still shown) */
+	public function testExistingFilesAreStillServed(): void
+	{
+		file_put_contents($this->imageFile('a.gif'), self::gif());
+		$this->assertSame(self::gif(), $this->http->get('/file.php', ['name' => 'a.gif'])->body);
+	}
+
 	public function testEditorHasNoUploadButtonOrDialog(): void
 	{
 		$body = $this->http->get('/index.php', ['action' => 'new'])->body;

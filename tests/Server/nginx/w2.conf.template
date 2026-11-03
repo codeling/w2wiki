@@ -31,16 +31,6 @@ server {
         add_header Cache-Control "max-age=31536000, immutable";
         add_header X-Content-Type-Options nosniff;
     }
-    location ^~ /images/ {
-        location ~* \.(php[0-9]?|pht|phtml|phar)$ { deny all; }
-        add_header X-Content-Type-Options nosniff;
-        add_header Cache-Control "max-age=31536000, immutable";
-        location ~* \.svg$ {
-            add_header X-Content-Type-Options nosniff;
-            add_header Cache-Control "max-age=31536000, immutable";
-            add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
-        }
-    }
     # --- end of rules from INSTALL.md ---
 
     location ~ \.php(/|$) {

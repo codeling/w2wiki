@@ -23,18 +23,19 @@ final class PageStore
 	/**
 	 * @param string $root			folder with the pages (no trailing slash)
 	 * @param string $extension		extension of the page files, without the dot
-	 * @param string $uploadFolder	name of the folder for uploads within $root, which holds no pages
+	 * @param string|null $uploadFolder	path of the folder for uploads relative to $root (like "images"), which holds no
+	 *                                  pages; null if the uploads are not stored within $root
 	 */
 	public function __construct(
 		private readonly string $root,
 		private readonly string $extension,
-		private readonly string $uploadFolder
+		private readonly ?string $uploadFolder
 	) {
 	}
 
 	/**
 	 * Whether a page with the given name may exist: page names may contain subfolders, but no hidden or
-	 * empty path segments, and pages must not be stored within the (statically served) uploads folder
+	 * empty path segments, and pages must not be stored within the uploads folder
 	 */
 	public function isValidName(string $page): bool
 	{
@@ -44,7 +45,7 @@ final class PageStore
 				return false;
 			}
 		}
-		return $segments[0] !== $this->uploadFolder;
+		return $this->uploadFolder === null || ($page !== $this->uploadFolder && !str_starts_with($page, $this->uploadFolder . '/'));
 	}
 
 	/** The file of a page (which may not exist; the name is not checked) */
@@ -142,7 +143,7 @@ final class PageStore
 			}
 			$relative = $folder === '' ? $file : "$folder/$file";
 			if (is_dir("$this->root/$relative")) {
-				if ($folder === '' && $file === $this->uploadFolder) {
+				if ($relative === $this->uploadFolder) {
 					continue;
 				}
 				array_push($names, ...$this->namesIn($relative));

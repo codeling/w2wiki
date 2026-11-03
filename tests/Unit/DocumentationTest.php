@@ -25,6 +25,19 @@ final class DocumentationTest extends TestCase
 		$this->assertSame(self::lines($documented[1]), self::lines($tested[1]));
 	}
 
+	/** .dockerignore lists what goes into the container image: every script of the wiki has to be there */
+	public function testContainerImageGetsEveryScriptOfTheWiki(): void
+	{
+		$root = dirname(__DIR__, 2);
+		$allowed = self::lines((string)file_get_contents("$root/.dockerignore"));
+		foreach (glob("$root/*.php") as $file) {
+			$name = basename($file);
+			if ($name !== 'config.php') {
+				$this->assertContains("!$name", $allowed, "$name is missing in .dockerignore");
+			}
+		}
+	}
+
 	public function testHtaccessFilesReferencedInInstallGuideExist(): void
 	{
 		foreach (['.htaccess', 'pages/.htaccess', 'pages/images/.htaccess', 'vendor/.htaccess'] as $file) {

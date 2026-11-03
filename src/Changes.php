@@ -43,7 +43,7 @@ final class Changes
 		if (!isValidPageName($page))
 		{
 			$note->format(translate("Error creating page '%s' - invalid page name! Page names must not start with '%s/', or contain empty or hidden ('.'-prefixed) folder names."),
-				array($page, UPLOAD_FOLDER));
+				array($page, uploadFolderInPages() ?? UPLOAD_FOLDER));
 			return new ChangeResult(false, $page, $note);
 		}
 		if (!$isNew && $baseHash !== null && !hash_equals(self::textHash(pageStore()->read($page) ?? ''), $baseHash))
@@ -166,7 +166,7 @@ final class Changes
 	/** Renames an uploaded file and the references to it in all pages */
 	public function renameImage(string $oldName, string $newName): ChangeResult
 	{
-		$imgPath = PAGES_PATH . "/". UPLOAD_FOLDER . "/";
+		$imgPath = uploadPath() . "/";
 		$oldPath = $imgPath . $oldName;
 		// never touch e.g. the .htaccess file protecting the uploads folder;
 		// only allow renaming to a valid upload extension; otherwise, e.g.
@@ -189,7 +189,7 @@ final class Changes
 	/** Deletes an uploaded file and removes the images which show it from all pages */
 	public function deleteImage(string $name): ChangeResult
 	{
-		$path = PAGES_PATH . "/". UPLOAD_FOLDER . "/" . $name;
+		$path = uploadPath($name);
 		$note = new Note();
 		if (isHiddenFile($name) || !is_file($path) || !unlink($path))
 		{

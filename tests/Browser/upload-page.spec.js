@@ -19,7 +19,7 @@ test('upload page: the button opens the dialog, and the uploaded file is listed'
   // (the page is loaded again to show the file in its list, under the name chosen)
   await expect(page.locator('.uploadFileName', { hasText: 'listed.gif' })).toHaveCount(1);
   await expect(page.locator('#uploaddialog')).toBeHidden();
-  expect((await page.request.get('/images/listed.gif')).status()).toBe(200);
+  expect((await page.request.get('/file.php?name=listed.gif')).status()).toBe(200);
   expect(errors).toEqual([]);
 });
 
@@ -34,7 +34,7 @@ test('upload page: images can be cropped in the dialog', async ({ page }) => {
   await expect(page.locator('#resultsize')).toContainText('200 × 200');
   await page.click('#uploadstart');
   await expect(page.locator('.uploadFileName', { hasText: 'cropped-from-list.png' })).toHaveCount(1);
-  const response = await page.request.get('/images/cropped-from-list.png');
+  const response = await page.request.get('/file.php?name=cropped-from-list.png');
   expect(pngSize(await response.body())).toEqual([200, 200]);
 });
 

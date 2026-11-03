@@ -1,7 +1,9 @@
-# Uploaded files are served statically (via the link named like UPLOAD_URL in the W2 root
-# folder); make sure nothing in here can ever be executed by the web server.
-Require all granted
+# Uploaded files are served by the wiki (file.php), with the same password and IP
+# checks as the pages: the web server must not serve them directly, also not through
+# a link or alias left over from earlier versions (see "Uploaded files" in INSTALL.md).
+Require all denied
 
+# ... and nothing in here may ever be executed by the web server.
 <FilesMatch "(?i)\.(php[0-9]?|pht|phtml|phar|phps|cgi|pl|py|sh|asp|aspx|jsp)$">
 	Require all denied
 </FilesMatch>
@@ -15,13 +17,3 @@ Require all granted
 
 RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .pht .phtml .phar
 RemoveType .php .php3 .php4 .php5 .php7 .php8 .pht .phtml .phar
-
-<IfModule mod_headers.c>
-	Header set X-Content-Type-Options "nosniff"
-	# Links to uploads carry a version parameter (?v=...) which changes when a file is overwritten
-	Header set Cache-Control "max-age=31536000, immutable"
-	# Prevent scripts in uploaded SVG files from running in the wiki's origin
-	<FilesMatch "(?i)\.svg$">
-		Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
-	</FilesMatch>
-</IfModule>

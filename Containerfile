@@ -31,7 +31,7 @@ RUN set -eux; \
 	php -r 'new Imagick();'; \
 	php -r 'if (!Imagick::queryFormats("HEIC")) { fwrite(STDERR, "WARNING: ImageMagick has no HEIC support\n"); }'
 
-# Apache: .htaccess files allowed, mod_headers on (both needed by the protection of pages and uploads),
+# Apache: .htaccess files allowed (needed by the protection of pages and uploads), mod_headers on (cache headers),
 # port 8080 so that no root is needed. The pid and lock files go to /tmp, so that it is the only
 # folder besides the pages which has to be writable (podman/docker run --read-only --tmpfs /tmp).
 ENV APACHE_RUN_DIR=/tmp/apache2 APACHE_LOCK_DIR=/tmp/apache2 APACHE_PID_FILE=/tmp/apache2/apache2.pid
@@ -57,8 +57,6 @@ RUN set -eux; \
 	mv pages /usr/local/share/w2/pages; \
 	mkdir pages; \
 	chown www-data:www-data pages; \
-	# uploads are served from the "images" link (see INSTALL.md)
-	ln -s pages/images images; \
 	mv container/entrypoint.sh /usr/local/bin/w2-entrypoint; \
 	rm -r container; \
 	# git history of the pages, no PHP file to be rewritten at runtime
