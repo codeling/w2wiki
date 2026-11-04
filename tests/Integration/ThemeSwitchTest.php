@@ -27,7 +27,7 @@ final class ThemeSwitchTest extends AppTestCase
 		foreach (['auto' => 'System', 'light' => 'Light', 'dark' => 'Dark'] as $mode => $name) {
 			$this->assertMatchesRegularExpression(
 				'#<svg class="icon icon-theme-' . $mode . '" viewBox="0 0 16 16" role="img" aria-label="Color scheme: ' . $name . '">'
-				. '<title>Color scheme: ' . $name . '</title><use href="/w2-icons/theme-' . $mode . '\.svg\?v=\d+\#i"/></svg>#',
+				. '<title>Color scheme: ' . $name . '</title><use href="/webicons/icons/theme-' . $mode . '\.svg\?v=\d+\#i"/></svg>#',
 				$body
 			);
 		}
