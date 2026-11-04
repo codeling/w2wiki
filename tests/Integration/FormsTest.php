@@ -59,7 +59,7 @@ final class FormsTest extends AppTestCase
 		);
 		$this->assertStringContainsString("[[MarkdownSyntax|Markdown Syntax]]", $body, 'the text is in the page');
 		$this->assertStringContainsString('<textarea id="text" name="newText" rows="18"', $body);
-		$this->assertStringContainsString('<input id="save" type="submit" value="Save" title="Save (Ctrl+S)" />', $body);
+		$this->assertStringContainsString('<input id="save" type="submit" value="Save" title="Save (Ctrl+S)" aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter" />', $body);
 		$this->assertStringContainsString('<input id="cancel" type="button" onclick="history.go(-1);" value="Cancel" />', $body);
 		$this->assertStringContainsString('<div class="editorbox">', $body);
 		$this->assertStringContainsString('<p class="editactions">', $body);

@@ -64,11 +64,19 @@ final class KeyboardShortcutsTest extends AppTestCase
 
 		$editor = $this->http->get('/index.php?action=new')->body;
 		$this->assertStringContainsString('<caption>In the editor</caption>', $editor);
-		$this->assertStringContainsString('<tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>S</kbd></th><td>Save</td></tr>', $editor);
+		$this->assertStringContainsString('<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd>', $editor);
 		$this->assertStringContainsString('On a Mac, press Cmd instead of Ctrl', $editor);
 		// (the dialog is not open without the script, and comes after the form, so that Enter in the form can't reach it)
 		$this->assertMatchesRegularExpression('#</form>.*<dialog id="shortcuts" class="shortcuts"#s', $editor);
 		$this->assertStringNotContainsString('<dialog id="shortcuts" class="shortcuts" open', $editor);
+	}
+
+	public function testTheFormattingHelpHasTheKeysOfTheEditor(): void
+	{
+		$body = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home'])->body;
+		preg_match('#<div id="drawer".*?</div>\s*</div>#s', $body, $drawer);
+		$this->assertStringContainsString('Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+S or Ctrl+Enter save, Ctrl+Alt+P preview', $drawer[0]);
+		$this->assertStringContainsString('? shows all keyboard shortcuts', $drawer[0]);
 	}
 
 	public function testEveryPageLoadsTheScript(): void

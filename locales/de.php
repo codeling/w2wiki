@@ -204,7 +204,7 @@ $w2_word_set = array(
 	'You are not logged in (any more). Please log in again, in another tab to keep the text of this one.' => 'Du bist nicht (mehr) angemeldet. Bitte melde dich erneut an, in einem anderen Tab, damit der Text in diesem erhalten bleibt.',
 	'The text is too large for the preview: the server accepts requests of up to %s (post_max_size).' => 'Der Text ist zu groß für die Vorschau: Der Server nimmt Anfragen bis %s an (post_max_size).',
 	'The security token is missing or wrong, for example because the session has expired. Save the page or reload it to get a new one; the text is kept.' => 'Das Sicherheitstoken fehlt oder ist falsch, zum Beispiel weil die Sitzung abgelaufen ist. Speichere die Seite oder lade sie neu, um ein neues zu bekommen; der Text bleibt erhalten.',
-	// Keyboard shortcuts (the list which "?" shows)
+	// Keyboard shortcuts (the list which "?" shows, and the keys of the editor)
 	'Keyboard shortcuts' => 'Tastenkürzel',
 	'On every page (not while the cursor is in a text field)' => 'Auf jeder Seite (nicht, während der Cursor in einem Textfeld ist)',
 	'Edit this page' => 'Diese Seite bearbeiten',
@@ -217,5 +217,11 @@ $w2_word_set = array(
 	'In the editor' => 'Im Editor',
 	'Ctrl' => 'Strg',
 	'Shift' => 'Umschalt',
+	'Enter' => 'Eingabe',
+	'Bold: the selected text, or ** ** at the cursor (again: removes it)' => 'Fett: der markierte Text, oder ** ** am Cursor (noch einmal: entfernt es)',
+	'Italic: the selected text, or * * at the cursor (again: removes it)' => 'Kursiv: der markierte Text, oder * * am Cursor (noch einmal: entfernt es)',
+	'Link: [selected text](url), with url selected to type the address; without a selection [[ ]] for a link to a page' => 'Link: [markierter Text](url), mit url markiert, um die Adresse einzugeben; ohne Markierung [[ ]] für einen Link auf eine Seite',
+	'Show or hide the preview' => 'Vorschau zeigen oder ausblenden',
 	'On a Mac, press Cmd instead of Ctrl, and Option instead of Alt.' => 'Auf einem Mac Cmd statt Strg und Option statt Alt drücken.',
+	'Keys: Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+S or Ctrl+Enter save, Ctrl+Alt+P preview (on a Mac: Cmd and Option). Outside of the text, ? shows all keyboard shortcuts.' => 'Tasten: Strg+B fett, Strg+I kursiv, Strg+K Link, Strg+S oder Strg+Eingabe speichern, Strg+Alt+P Vorschau (auf einem Mac: Cmd und Option). Außerhalb des Textes zeigt ? alle Tastenkürzel.',
 );

@@ -222,7 +222,7 @@ final class PreviewTest extends AppTestCase
 			$body = $this->http->get('/index.php', $query)->body;
 			$this->assertStringContainsString('<div id="preview" class="preview" role="region" aria-label="Preview" hidden="hidden" data-url="/api.php?task=preview"', $body);
 			$this->assertStringContainsString('<input id="previewbutton" type="button" value="Preview"', $body);
-			$this->assertMatchesRegularExpression('/<input id="previewbutton"[^>]* aria-pressed="false" aria-controls="preview" hidden="hidden" \/>/', $body);
+			$this->assertMatchesRegularExpression('/<input id="previewbutton"[^>]* aria-pressed="false" aria-controls="preview" aria-keyshortcuts="Control\+Alt\+P Meta\+Alt\+P" hidden="hidden" \/>/', $body);
 			// (inside the box of the text, which is side by side with it)
 			$this->assertMatchesRegularExpression('/<div class="editorbox"><textarea id="text".*?<\/textarea>.*?<div id="preview"/s', $body);
 			$this->assertNoActiveContent($body);

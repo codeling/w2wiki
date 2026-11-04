@@ -169,8 +169,9 @@ test('the editor: the list has its keys, and "?" in the text is text', async ({ 
   await page.keyboard.press('?');
   await expect(page.locator('#shortcuts')).toBeVisible();
   await expect(page.locator('#shortcuts caption')).toHaveText(['On every page (not while the cursor is in a text field)', 'In the editor']);
+  await expect(page.locator('#shortcuts')).toContainText('Show or hide the preview');
   // (the history needs git; the editor has no icon to edit the page)
-  expect(await listedKeys(page)).toEqual(['/', 'n', 'g then h', 'g then a', '?', 'Ctrl+S', 'Tab, Shift+Tab']);
+  expect(await listedKeys(page)).toEqual(['/', 'n', 'g then h', 'g then a', '?', 'Ctrl+S, Ctrl+Enter', 'Ctrl+B', 'Ctrl+I', 'Ctrl+K', 'Ctrl+Alt+P', 'Tab, Shift+Tab']);
 });
 
 test('keys with Ctrl, Alt or Cmd, repeated keys and keys of an input method are left to the browser', async ({ page }) => {

@@ -4,8 +4,8 @@
  * W2
  *
  * Script of the wiki's pages: the keyboard shortcuts of every page, the navigation drawer (which can be dragged) and the
- * editor (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files,
- * preview).
+ * editor (local drafts, warning about unsaved changes, Ctrl+S and Ctrl+Enter to save, keys for bold, italic and links,
+ * indenting lines with Tab, inserting text files, preview).
  * Every page works without it: the shortcuts only follow the links and use the fields which the page has.
  */
 
@@ -158,8 +158,9 @@ function insertTyped(textArea, text)
 {
 	textArea.focus();
 	// (a text area which is not shown, like behind the preview on narrow screens, can't get the focus: the text would go
-	// into the element which has it)
-	if (document.activeElement !== textArea || !document.execCommand || !document.execCommand('insertText', false, text))
+	// into the element which has it; no text removes the selection)
+	if (document.activeElement !== textArea || !document.execCommand
+		|| !(text === '' ? document.execCommand('delete') : document.execCommand('insertText', false, text)))
 	{
 		textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
 		textArea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1024,6 +1025,172 @@ function setupPreview(form, textArea)
 	};
 }
 
+// (the systems of Apple use Cmd for the shortcuts of programs; Ctrl with a letter moves the cursor in their text fields)
+const APPLE = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
+
+/**
+ * The letter of the key (lower case), also with a keyboard layout without Latin letters, where the shortcuts are on the
+ * key of the letter (as in the browser's own); or '' for other keys. Alt with another letter types a character of its own
+ * (AltGr on Windows is Ctrl+Alt): then only Cmd+Option on a Mac counts as the key of the letter.
+ */
+function letterOf(event)
+{
+	if (/^[a-z]$/i.test(event.key))
+	{
+		return event.key.toLowerCase();
+	}
+	let code = /^Key([A-Z])$/.exec(event.code || '');
+	return (code && event.key.length === 1 && (!event.altKey || event.metaKey)) ? code[1].toLowerCase() : '';
+}
+
+/**
+ * Whether the event has the modifier of the shortcuts of programs: Cmd on a Mac, Ctrl elsewhere (or the Meta key, which
+ * the systems usually keep for themselves), and Alt (Option) if alt, but not Shift.
+ */
+function isCommand(event, alt)
+{
+	if (event.shiftKey || event.altKey !== alt)
+	{
+		return false;
+	}
+	return event.metaKey ? !event.ctrlKey : (event.ctrlKey && !APPLE);
+}
+
+/** Skips the spaces at the start and the end of the selection from start to end of the text: returns [start, end] */
+function trimSelection(text, start, end)
+{
+	while (start < end && /\s/.test(text[start]))
+	{
+		start++;
+	}
+	while (end > start && /\s/.test(text[end - 1]))
+	{
+		end--;
+	}
+	return [start, end];
+}
+
+/**
+ * Bold (marker "**") or italic ("*") for the selection from start to end of the text: removes the markers if the text is
+ * marked already (the markers are around the selection or at both ends of it; "***" is both), else puts them around it
+ * and keeps the text selected (spaces at its ends stay outside, as Markdown doesn't mark text which starts or ends with
+ * one). Without a selection, the two markers are inserted with the cursor between them (and removed again by the next
+ * press). Returns the change like indentLines(): the part to replace (start, end), its replacement, and the selection
+ * afterwards (selectionStart, selectionEnd).
+ */
+function toggleEmphasis(text, start, end, marker)
+{
+	let n = marker.length;
+	let marks = (stars) => (n === 2) ? stars >= 2 : (stars === 1 || stars >= 3);
+	[start, end] = trimSelection(text, start, end);
+	let selected = text.slice(start, end);
+	let before = 0;
+	while (before < start && text[start - 1 - before] === '*')
+	{
+		before++;
+	}
+	let after = 0;
+	while (end + after < text.length && text[end + after] === '*')
+	{
+		after++;
+	}
+	if (before >= n && after >= n && marks(Math.min(before, after)))
+	{
+		return { start: start - n, end: end + n, replacement: selected, selectionStart: start - n, selectionEnd: end - n };
+	}
+	let leading = /^\**/.exec(selected)[0].length;
+	let trailing = /\**$/.exec(selected.slice(leading))[0].length;
+	if (selected.length > 2 * n && leading >= n && trailing >= n && marks(Math.min(leading, trailing)))
+	{
+		let inner = selected.slice(n, -n);
+		return { start: start, end: end, replacement: inner, selectionStart: start, selectionEnd: start + inner.length };
+	}
+	return { start: start, end: end, replacement: marker + selected + marker, selectionStart: start + n, selectionEnd: end + n };
+}
+
+/**
+ * A link for the selection from start to end of the text: [selection](url) with "url" selected, to be replaced by the
+ * address; a selected address becomes [](address), with the cursor where the text of the link goes. Without a
+ * selection, [[]] with the cursor inside, for a link to a page of the wiki. Returns the change like toggleEmphasis().
+ */
+function linkSelection(text, start, end)
+{
+	[start, end] = trimSelection(text, start, end);
+	let selected = text.slice(start, end);
+	if (selected === '')
+	{
+		return { start: start, end: end, replacement: '[[]]', selectionStart: start + 2, selectionEnd: start + 2 };
+	}
+	if (/^(https?:\/\/|mailto:)\S+$/i.test(selected))
+	{
+		return { start: start, end: end, replacement: '[](' + selected + ')', selectionStart: start + 1, selectionEnd: start + 1 };
+	}
+	let url = start + selected.length + 3;
+	return { start: start, end: end, replacement: '[' + selected + '](url)', selectionStart: url, selectionEnd: url + 3 };
+}
+
+/** Makes the change (see toggleEmphasis()) in the text area as if it was typed: it can be undone, and counts as input */
+function applyChange(textArea, change)
+{
+	textArea.setSelectionRange(change.start, change.end);
+	insertTyped(textArea, change.replacement);
+	textArea.setSelectionRange(change.selectionStart, change.selectionEnd);
+}
+
+/** Ctrl+B (bold), Ctrl+I (italic) and Ctrl+K (link) in the text, Cmd on a Mac; see toggleEmphasis() and linkSelection() */
+function setupFormatKeys(textArea)
+{
+	let changes = {
+		b: (text, start, end) => toggleEmphasis(text, start, end, '**'),
+		i: (text, start, end) => toggleEmphasis(text, start, end, '*'),
+		k: linkSelection
+	};
+	textArea.addEventListener('keydown', (event) =>
+	{
+		let change = isCommand(event, false) && !event.isComposing ? changes[letterOf(event)] : null;
+		if (!change)
+		{
+			return;
+		}
+		// (instead of the browser's keys, like the bookmarks or its search field)
+		event.preventDefault();
+		if (!event.repeat)
+		{
+			applyChange(textArea, change(textArea.value, textArea.selectionStart, textArea.selectionEnd));
+		}
+	});
+}
+
+/**
+ * Ctrl+Alt+P (Cmd+Option+P on a Mac) in the editor shows or hides the preview, like its button (which is shown when the
+ * preview can be used). Not Ctrl+Shift+P, which opens a private window in Firefox; Ctrl+Alt with a letter is not used by
+ * the browsers, and P is free in the desktops which use Ctrl+Alt (AltGr+P typing a character doesn't count, see letterOf()).
+ */
+function setupPreviewShortcut(textArea)
+{
+	let button = document.getElementById('previewbutton');
+	document.addEventListener('keydown', (event) =>
+	{
+		if (!button || button.hidden || !isCommand(event, true) || event.isComposing || letterOf(event) !== 'p')
+		{
+			return;
+		}
+		event.preventDefault();
+		let dialog = document.querySelector('dialog[open]');
+		if (event.repeat || dialog)
+		{
+			return;
+		}
+		let inText = document.activeElement === textArea;
+		button.click();
+		// (on narrow screens the preview takes the place of the text, which loses the focus: it gets it back with the text)
+		if ((inText || document.activeElement === document.body) && textArea.offsetParent !== null)
+		{
+			textArea.focus();
+		}
+	});
+}
+
 // The time to press the second key of a shortcut of two keys, like "g h"
 const SHORTCUT_SEQUENCE_TIME = 1500;
 
@@ -1139,20 +1306,26 @@ function setupShortcuts()
 
 /**
  * Ctrl+S (Cmd+S on a Mac) in the editor saves the page, as the Save button does (instead of saving the HTML of the
- * page in the browser). The form is sent like with the button, so the draft is kept until the page is saved.
+ * page in the browser); so does Ctrl+Enter (Cmd+Enter) in the text fields of the form (the text, the title, the message).
+ * The form is sent like with the button, so the draft is kept until the page is saved.
  */
 function setupSaveShortcut(form)
 {
 	document.addEventListener('keydown', (event) =>
 	{
-		if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 's')
+		if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.isComposing)
+		{
+			return;
+		}
+		let field = event.target.closest ? event.target.closest('textarea, input[type="text"]') : null;
+		if (letterOf(event) !== 's' && !(event.key === 'Enter' && field && form.contains(field)))
 		{
 			return;
 		}
 		event.preventDefault();
 		let dialog = document.getElementById('uploaddialog');
 		// (not while files are chosen or sent: their links are not in the text yet)
-		if (event.repeat || event.isComposing || (dialog && dialog.open))
+		if (event.repeat || (dialog && dialog.open))
 		{
 			return;
 		}
@@ -1326,8 +1499,10 @@ document.addEventListener('DOMContentLoaded', () =>
 
 	setupBacklinks(textArea);
 	setupIndent(textArea);
+	setupFormatKeys(textArea);
 	setupImport(form, textArea, titleInput);
 	preview = setupPreview(form, textArea);
+	setupPreviewShortcut(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	function leaveWithDraft()
