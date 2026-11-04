@@ -117,7 +117,12 @@ final class EditorUploadTest extends AppTestCase
 		$this->assertNotFalse($formEnd);
 		$this->assertStringNotContainsString('id="uploadfile"', substr($body, 0, $formEnd));
 		$this->assertGreaterThan($formEnd, strpos($body, 'id="uploaddialog"'));
-		$this->assertGreaterThan($formEnd, strpos($body, 'id="cropbox"'));
+		// (the frame to crop images is only in the dialog when images can be processed, which needs Imagick)
+		if (extension_loaded('imagick')) {
+			$this->assertGreaterThan($formEnd, strpos($body, 'id="cropbox"'));
+		} else {
+			$this->assertStringNotContainsString('id="cropbox"', $body);
+		}
 	}
 
 	public function testUploadWithCropAnswersWithTheSizeInTheMessage(): void
