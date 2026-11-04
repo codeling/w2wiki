@@ -16,6 +16,7 @@
 !src
 !locales
 !w2-icons
+!webicons
 !pages/.htaccess
 !pages/Home.md
 !pages/MarkdownSyntax.md
