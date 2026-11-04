@@ -719,3 +719,56 @@ table.history tr.deleted {
 .nodiff {
 	font-style: italic;
 }
+
+/*
+ * Syntax highlighting of fenced code blocks with a language (```php): spans with these classes, made on the server
+ * (src/Highlighter.php). Like the other colors, each has a value for the light and one for the dark scheme, with a
+ * contrast of at least 4.5 against the background of code blocks. Changed lines of diffs get the backgrounds of the
+ * differences shown after a conflicting change.
+ */
+:root {
+	--hl-keyword: light-dark(#8a1f8a, #e0a3ff);
+	--hl-string: light-dark(#1a6e1a, #a5d98a);
+	--hl-comment: light-dark(#646450, #a9a88c);
+	--hl-number: light-dark(#a14a00, #f2b36b);
+	--hl-type: light-dark(#00668a, #7fd0f0);
+	--hl-variable: light-dark(#a3264b, #ff9fb8);
+	--hl-attribute: light-dark(#7a4a00, #e6c47a);
+	--hl-meta: light-dark(#5a4ab0, #b8b0ff);
+}
+/* (not the font of every element, see "*" above) */
+pre code span {
+	font-family: inherit;
+	font-size: inherit;
+}
+.hl-k {
+	color: var(--hl-keyword);
+}
+.hl-s {
+	color: var(--hl-string);
+}
+.hl-c {
+	color: var(--hl-comment);
+	font-style: italic;
+}
+.hl-n {
+	color: var(--hl-number);
+}
+.hl-t {
+	color: var(--hl-type);
+}
+.hl-v {
+	color: var(--hl-variable);
+}
+.hl-a {
+	color: var(--hl-attribute);
+}
+.hl-p {
+	color: var(--hl-meta);
+}
+.hl-d-add {
+	background-color: var(--diff-added);
+}
+.hl-d-del {
+	background-color: var(--diff-removed);
+}

@@ -200,6 +200,14 @@ define('AUTOLINK_PAGE_TITLES', false);
 define('INCLUDE_MAX_DEPTH', 5);
 define('INCLUDE_MAX_SIZE', 1048576);
 
+// CODE_HIGHLIGHTING
+//
+// Highlight keywords, strings, comments etc. in fenced code blocks which
+// name their language, like ```php (in the page, not with JavaScript; see
+// src/Highlighter.php for the languages). Set it to false to show all code
+// blocks in one color.
+define('CODE_HIGHLIGHTING', true);
+
 
 // -----------------------------
 // Security and session settings

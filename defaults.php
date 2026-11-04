@@ -42,6 +42,7 @@ defined('EDIT_ROWS') || define('EDIT_ROWS', 18);
 defined('AUTOLINK_PAGE_TITLES') || define('AUTOLINK_PAGE_TITLES', false);
 defined('INCLUDE_MAX_DEPTH') || define('INCLUDE_MAX_DEPTH', 5);
 defined('INCLUDE_MAX_SIZE') || define('INCLUDE_MAX_SIZE', 1048576);
+defined('CODE_HIGHLIGHTING') || define('CODE_HIGHLIGHTING', true);
 
 // Security and session settings (no authentication unless configured; logging in is impossible
 // until W2_PASSWORD_HASH is set)

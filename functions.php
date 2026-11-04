@@ -8,6 +8,7 @@
  * loaded; the functions use the constants defined in config.php when called).
  */
 
+use W2\Highlighter;
 use W2\MarkdownParser;
 
 // Libraries installed via Composer (see INSTALL.md): without Composer the wiki runs with the copy of the Markdown
@@ -826,6 +827,11 @@ function toHTML($inText)
 	$parser = new MarkdownParser;
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';
+	if ( CODE_HIGHLIGHTING )
+	{
+		// fenced code blocks with a language (```php) get spans with classes; the others are escaped as before
+		$parser->code_block_content_func = array(Highlighter::class, 'highlight');
+	}
 	$outHTML  = $parser->transform($inText);
 	// page links are looked for in the text only: not in tags (like the URL or title of a link) or in code
 	$masked = maskTagsAndCode($outHTML);

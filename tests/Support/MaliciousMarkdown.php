@@ -23,6 +23,10 @@ final class MaliciousMarkdown
 			'raw html link' => ['<a href="javascript:alert(10)">x</a>'],
 			'page link text' => ['[[Home|<img src=x onerror=alert(11)>]]'],
 			'page link target' => ['[[a" onmouseover="alert(12)]]'],
+			'highlighted html code' => ["```html\n<script>alert(13)</script>\n<img src=x onerror=alert(14)>\n```"],
+			'highlighted code closing the block' => ["```js\n</code></pre><script>alert(15)</script>\n```"],
+			'highlighted unterminated string' => ["```php\n\"</span><img src=x onerror=alert(16)>\n```"],
+			'highlighted comment' => ["```css\n/* </span></code></pre><svg onload=alert(17)> */\n```"],
 		];
 	}
 }
