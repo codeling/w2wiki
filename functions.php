@@ -879,7 +879,7 @@ function toHTML($inText)
 }
 
 /**
- * URL of a static file of the wiki (path relative to the W2 folder, e.g. "wiki.js" or "w2-icons/home.svg"),
+ * URL of a static file of the wiki (path relative to the W2 folder, e.g. "wiki.js" or "webicons/icons/home.svg"),
  * with a version parameter taken from the modification time of the file. A changed file therefore gets
  * a new URL, which allows serving the files with long cache lifetimes. Files that don't exist get no parameter.
  */
@@ -949,7 +949,7 @@ function sortableHeadings($action, $sortBy, $columns)
 }
 
 /**
- * An icon of the folder w2-icons, as an SVG in the page which shows the shape of the file (`<use>`), so that it is
+ * An icon of the folder webicons/icons (the subtree of codeling/webicons), as an SVG in the page which shows the shape of the file (`<use>`), so that it is
  * painted by the colors of the page: the files draw with currentColor, and index.css sets the color of the icons,
  * in the light and the dark color scheme (a few have colors of their own, like the red cross of the close icon).
  *
@@ -962,7 +962,7 @@ function iconSvg($name, $label, $class = '')
 {
 	$text = \W2\Html::escape($label);
 	return \W2\Html::raw('<svg class="icon icon-' . $name . ($class !== '' ? ' ' . $class : '') . '" viewBox="0 0 16 16" role="img" aria-label="'
-		. $text . '"><title>' . $text . '</title><use href="' . \W2\Html::escape(assetURL("w2-icons/" . $name . ".svg")) . '#i"/></svg>');
+		. $text . '"><title>' . $text . '</title><use href="' . \W2\Html::escape(assetURL("webicons/icons/" . $name . ".svg")) . '#i"/></svg>');
 }
 
 /** Name of the cookie with the color scheme which the visitor chose (not set for "auto") */
