@@ -338,6 +338,11 @@ function setupIndent(textArea)
 			leaveOnTab = true;
 			return;
 		}
+		// (Shift of Shift+Tab is pressed before Tab)
+		if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'].includes(event.key))
+		{
+			return;
+		}
 		if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey || event.isComposing)
 		{
 			leaveOnTab = false;
