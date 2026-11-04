@@ -5,9 +5,13 @@
  * The page of the wiki (inside layout): title bar, toolbar, sidebar, and the main part with the note.
  *
  * Values: title (text), modified (text, or '' for pages without a date), pageActions (Html or null),
- *         toolbar (list of items: href, icon (Html, see iconSvg(), or null for a link with a text only), label),
+ *         toolbar (list of items: href, icon (Html, see iconSvg(), or null for a link with a text only), label,
+ *         shortcut (text: the keys of the keyboard shortcut which follows the link, like "g h"; or null)),
  *         drawer (Html or null), themeSwitch (Html: the buttons to choose the color scheme), sidebar (Html or null),
- *         linksHere (null, or a list of pages: href, name), note (Html or null), content (Html)
+ *         linksHere (null, or a list of pages: href, name), note (Html or null), content (Html),
+ *         shortcuts (Html: the list of the keyboard shortcuts, see shortcuts)
+ * The keys of the shortcuts are in data-shortcut of the links and the search box which they use (see setupShortcuts() in
+ * wiki.js), so that a page only has the shortcuts of what it shows.
  */
 ?>
     <div class="titlebar"><span class="title"><?= $this->title ?></span><?php if ($this->modified !== ''): ?><span class="titledate"><?= $this->modified ?></span><?php endif ?><?= $this->pageActions ?>
@@ -15,17 +19,18 @@
     </div>
     <div class="toolbar">
 <?php foreach ($this->toolbar as $item): ?>
+<?php $shortcut = $item['shortcut'] !== null ? ' data-shortcut="' . $item['shortcut'] . '"' : '' ?>
 <?php if ($item['icon'] !== null): ?>
-      <a href="<?= $item['href'] ?>"><?= $item['icon'] ?></a>
+      <a href="<?= $item['href'] ?>"<?= $shortcut ?>><?= $item['icon'] ?></a>
 <?php else: ?>
-      <a href="<?= $item['href'] ?>"><?= $item['label'] ?></a>
+      <a href="<?= $item['href'] ?>"<?= $shortcut ?>><?= $item['label'] ?></a>
 <?php endif ?>
 <?php endforeach ?>
 <?php /* (a GET request: the address of the results can be bookmarked and shared, and reloading them doesn't ask
           to send the form again; the action is a field of the form, as a query in "action" would be dropped) */ ?>
       <form method="get" action="<?= $this->e(SELF) ?>">
         <input type="hidden" name="action" value="search" />
-        <input class="search" placeholder="<?= __('Search') ?>" size="20" id="search" type="text" name="q" />
+        <input class="search" placeholder="<?= __('Search') ?>" size="20" id="search" type="text" name="q" data-shortcut="/" aria-keyshortcuts="/" />
       </form>
 <?= $this->drawer ?>
 <?= $this->themeSwitch ?>
@@ -51,3 +56,4 @@
 <?= $this->content ?>
 
     </div>
+<?= $this->shortcuts ?>

@@ -645,11 +645,12 @@ else
 	$title = translate($action);
 }
 
-// The toolbar: the pages of the wiki and what can be done with them
+// The toolbar: the pages of the wiki and what can be done with them (with the keys of the keyboard shortcuts which
+// follow the links, see setupShortcuts() in wiki.js)
 $toolbar = array(
-	array('href' => SELF, 'icon' => iconSvg('home', translate(DEFAULT_PAGE)), 'label' => translate(DEFAULT_PAGE)),
-	array('href' => SELF . "?action=all", 'icon' => iconSvg('list', translate('All')), 'label' => translate('All')),
-	array('href' => SELF . "?action=new", 'icon' => iconSvg('new', translate('New')), 'label' => translate('New'))
+	array('href' => SELF, 'icon' => iconSvg('home', translate(DEFAULT_PAGE)), 'label' => translate(DEFAULT_PAGE), 'shortcut' => 'g h'),
+	array('href' => SELF . "?action=all", 'icon' => iconSvg('list', translate('All')), 'label' => translate('All'), 'shortcut' => 'g a'),
+	array('href' => SELF . "?action=new", 'icon' => iconSvg('new', translate('New')), 'label' => translate('New'), 'shortcut' => 'n')
 );
 if ( !DISABLE_UPLOADS )
 {
@@ -659,11 +660,11 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => iconSvg('media', translate('Media')), 'label' => translate('Media'));
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => iconSvg('media', translate('Media')), 'label' => translate('Media'), 'shortcut' => null);
 }
 if ( REQUIRE_PASSWORD )
 {
-	$toolbar[] = array('href' => SELF . "?action=logout&csrf_token=" . urlencode(csrfToken()), 'icon' => null, 'label' => translate('Log out'));
+	$toolbar[] = array('href' => SELF . "?action=logout&csrf_token=" . urlencode(csrfToken()), 'icon' => null, 'label' => translate('Log out'), 'shortcut' => null);
 }
 
 $sidebar = null;
@@ -695,7 +696,7 @@ print templates()->render('layout', array(
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit' || ($historyView['pageExists'] ?? false))
-			? getPageActions($page, $action) : null,
+			? getPageActions($page, $action, true) : null,
 		'toolbar' => $toolbar,
 		'themeSwitch' => templates()->render('theme-switch', array(
 			'csrfField' => \W2\Html::raw(csrfField()), 'returnTo' => $_SERVER['REQUEST_URI'] ?? SELF, 'next' => nextThemeMode($themeMode),
@@ -706,6 +707,7 @@ print templates()->render('layout', array(
 		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
-		'content' => $content
+		'content' => $content,
+		'shortcuts' => templates()->render('shortcuts', array('editor' => isEditorAction($action)))
 	))
 ));

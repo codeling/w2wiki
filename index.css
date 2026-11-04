@@ -819,3 +819,84 @@ body.editor form#edit > .editorbox {
 		display: none;
 	}
   }
+
+/*
+ * The list of the keyboard shortcuts, which the key "?" shows (shortcuts.php, setupShortcuts() in wiki.js): a dialog like
+ * the one to upload files, with the keys as keycaps. Its content fills it, so that a click next to it closes it.
+ */
+#shortcuts {
+	width: 34em;
+	max-width: 95vw;
+	max-height: 95vh;
+	box-sizing: border-box;
+	overflow: auto;
+	margin: auto;
+	padding: 0;
+	border: 1px solid var(--dialog-border);
+	border-radius: 5px;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
+}
+#shortcuts::backdrop {
+	background-color: var(--dialog-backdrop);
+}
+#shortcuts .shortcutsbox {
+	padding: .5em 1em 1em;
+}
+#shortcuts h5 {
+	margin: 0 0 .5em;
+	font-size: 1.2em;
+}
+#shortcuts table {
+	width: 100%;
+	margin-bottom: .5em;
+}
+#shortcuts caption {
+	text-align: left;
+	font-weight: bold;
+	padding: .5em 0 .3em;
+}
+/* (rows with a line between them instead of stripes, as the rows which the page doesn't have are hidden) */
+#shortcuts tr {
+	background: none;
+	border-bottom: 1px solid var(--rule);
+}
+#shortcuts th {
+	white-space: nowrap;
+	word-break: normal;
+	font-weight: normal;
+	width: 13.5em;
+}
+#shortcuts td, #shortcuts th {
+	padding-top: .2em;
+	padding-bottom: .2em;
+	word-break: normal;
+}
+#shortcuts .hint {
+	font-size: smaller;
+}
+#shortcuts kbd {
+	display: inline-block;
+	min-width: 1em;
+	padding: 0 .3em;
+	border: 1px solid var(--rule);
+	border-bottom-width: 2px;
+	border-radius: 3px;
+	background-color: var(--search-bg);
+	color: var(--search-fg);
+	font-family: Courier, monospace;
+	text-align: center;
+}
+#shortcuts .shortcutsclose {
+	background: none;
+	border: 0;
+	border-radius: 3px;
+	padding: 2px;
+	line-height: 0;
+	cursor: pointer;
+	color: var(--page-fg);
+}
+#shortcuts .shortcutsclose:hover, #shortcuts .shortcutsclose:focus-visible {
+	background-color: var(--switch-active);
+	outline: 1px solid var(--icon-outline);
+}

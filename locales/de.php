@@ -204,4 +204,18 @@ $w2_word_set = array(
 	'You are not logged in (any more). Please log in again, in another tab to keep the text of this one.' => 'Du bist nicht (mehr) angemeldet. Bitte melde dich erneut an, in einem anderen Tab, damit der Text in diesem erhalten bleibt.',
 	'The text is too large for the preview: the server accepts requests of up to %s (post_max_size).' => 'Der Text ist zu groß für die Vorschau: Der Server nimmt Anfragen bis %s an (post_max_size).',
 	'The security token is missing or wrong, for example because the session has expired. Save the page or reload it to get a new one; the text is kept.' => 'Das Sicherheitstoken fehlt oder ist falsch, zum Beispiel weil die Sitzung abgelaufen ist. Speichere die Seite oder lade sie neu, um ein neues zu bekommen; der Text bleibt erhalten.',
+	// Keyboard shortcuts (the list which "?" shows)
+	'Keyboard shortcuts' => 'Tastenkürzel',
+	'On every page (not while the cursor is in a text field)' => 'Auf jeder Seite (nicht, während der Cursor in einem Textfeld ist)',
+	'Edit this page' => 'Diese Seite bearbeiten',
+	'New page' => 'Neue Seite',
+	'then' => 'dann',
+	'Home page' => 'Startseite',
+	'List of all pages' => 'Liste aller Seiten',
+	'History of this page' => 'Versionen dieser Seite',
+	'These keyboard shortcuts' => 'Diese Tastenkürzel',
+	'In the editor' => 'Im Editor',
+	'Ctrl' => 'Strg',
+	'Shift' => 'Umschalt',
+	'On a Mac, press Cmd instead of Ctrl, and Option instead of Alt.' => 'Auf einem Mac Cmd statt Strg und Option statt Alt drücken.',
 );

@@ -175,6 +175,7 @@ final class RegressionTest extends AppTestCase
 			$hasSave = str_contains($body, 'id="save"');
 			$this->assertSame($hasEditor, $hasSave, $url);
 			$this->assertStringContainsString('/wiki.js', $body, "$url: script");
+			$this->assertStringContainsString('<dialog id="shortcuts"', $body, "$url: keyboard shortcuts");
 			$this->assertSame($hasEditor, str_contains($body, 'id="drawer"'), "$url: formatting help");
 		}
 		$this->assertStringContainsString('id="text"', $this->http->get('/index.php?action=new')->body);

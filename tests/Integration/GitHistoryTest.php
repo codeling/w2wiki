@@ -53,10 +53,15 @@ final class GitHistoryTest extends GitTestCase
 	public function testThePageActionsHaveTheHistory(): void
 	{
 		$body = $this->http->get($this->pageUrl('Home'))->body;
-		$this->assertMatchesRegularExpression('#<a href="/index\.php\?action=history&amp;page=Home"><svg class="icon icon-history" viewBox="0 0 16 16" role="img" aria-label="History"><title>History</title><use href="/w2-icons/history\.svg\?v=\d+\#i"/></svg></a>#', $body);
+		$this->assertMatchesRegularExpression('#<a href="/index\.php\?action=history&amp;page=Home" data-shortcut="h" aria-keyshortcuts="h"><svg class="icon icon-history" viewBox="0 0 16 16" role="img" aria-label="History"><title>History</title><use href="/w2-icons/history\.svg\?v=\d+\#i"/></svg></a>#', $body);
 		$this->assertStringContainsString('icon-history', $this->http->get('/index.php', ['action' => 'all'])->body);
-		// (not in the list of versions itself)
-		$this->assertStringNotContainsString('icon-history', $this->view('history', 'Home')->body);
+		// (not in the list of versions itself, which has the key "e" to edit the page, but not "h")
+		$history = $this->view('history', 'Home')->body;
+		$this->assertStringNotContainsString('icon-history', $history);
+		$this->assertStringNotContainsString('data-shortcut="h"', $history);
+		$this->assertStringContainsString('<a href="/index.php?action=edit&amp;page=Home" data-shortcut="e"', $history);
+		// (the icons in the rows of the list of all pages have none)
+		$this->assertStringNotContainsString('data-shortcut="h"', $this->http->get('/index.php', ['action' => 'all'])->body);
 	}
 
 	public function testTheListHasTheVersionsNewestFirst(): void

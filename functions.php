@@ -1014,11 +1014,14 @@ function themeReturnUrl($url, $self)
 /**
  * The icons to do something with a page (edit, delete, rename, show its history if changes are committed to git, show
  * the pages which link to it), except for the action which is being done, as links to the actions.
+ * With $shortcuts (the icons of the title bar, not those of the rows of a list), editing and the history have the keys
+ * of the keyboard shortcuts which follow them (data-shortcut, see setupShortcuts() in wiki.js).
  *
  * return W2\Html
  */
-function getPageActions($page, $action)
+function getPageActions($page, $action, $shortcuts = false)
 {
+	$keys = $shortcuts ? array('edit' => 'e', 'history' => 'h') : array();
 	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
 	if (GIT_COMMIT_ENABLED)
 	{
@@ -1030,10 +1033,10 @@ function getPageActions($page, $action)
 		if ($action != $name)
 		{
 			$items[] = array('href' => SELF . "?action=" . $name . "&page=" . urlencode($page),
-				'icon' => iconSvg($name, $label), 'label' => $label);
+				'icon' => iconSvg($name, $label), 'label' => $label, 'shortcut' => $keys[$name] ?? null);
 		}
 	}
 	$items[] = array('href' => SELF . "?action=view&page=" . urlencode($page) . "&linkshere=true",
-		'icon' => iconSvg('link', translate('Show links here')), 'label' => translate('Show links here'));
+		'icon' => iconSvg('link', translate('Show links here')), 'label' => translate('Show links here'), 'shortcut' => null);
 	return templates()->render('page-actions', array('items' => $items));
 }

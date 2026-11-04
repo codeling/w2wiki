@@ -3,8 +3,10 @@
  *
  * W2
  *
- * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files, preview).
+ * Script of the wiki's pages: the keyboard shortcuts of every page, the navigation drawer (which can be dragged) and the
+ * editor (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files,
+ * preview).
+ * Every page works without it: the shortcuts only follow the links and use the fields which the page has.
  */
 
 function toggleDrawer()
@@ -1022,6 +1024,119 @@ function setupPreview(form, textArea)
 	};
 }
 
+// The time to press the second key of a shortcut of two keys, like "g h"
+const SHORTCUT_SEQUENCE_TIME = 1500;
+
+/** Whether typing into the element (which has the focus) is typing text: then single keys are not shortcuts */
+function takesText(element)
+{
+	if (!element || !element.closest)
+	{
+		return false;
+	}
+	if (element.isContentEditable)
+	{
+		return true;
+	}
+	let field = element.closest('input, textarea, select');
+	return !!field && (field.localName !== 'input'
+		|| !['button', 'submit', 'reset', 'checkbox', 'radio', 'image', 'file', 'range', 'color'].includes(field.type));
+}
+
+/**
+ * The keyboard shortcuts of every page: single keys (and "g" followed by a key) which follow the links of the page or
+ * go to its search box, as data-shortcut of them names them (see page.php), so that a page has only the shortcuts of
+ * what it shows. "?" shows the list of the shortcuts (the dialog of shortcuts.php, which hides those the page doesn't
+ * have); it closes with Esc, its button, or a click next to it.
+ * The keys are left alone while text is typed (in a field, also during the composition of an input method), with Ctrl,
+ * Alt or Cmd (the shortcuts of the browser and the system), when a key repeats, and while a dialog is open.
+ */
+function setupShortcuts()
+{
+	let dialog = document.getElementById('shortcuts');
+	let prefix = '';
+	let prefixTimer = null;
+
+	function target(keys)
+	{
+		for (let element of document.querySelectorAll('[data-shortcut]'))
+		{
+			if (element.dataset.shortcut === keys && !element.closest('[hidden]'))
+			{
+				return element;
+			}
+		}
+		return null;
+	}
+
+	function use(element)
+	{
+		if (element.localName === 'input')
+		{
+			element.focus();
+			element.select();
+		}
+		else
+		{
+			element.click();
+		}
+	}
+
+	if (dialog && dialog.showModal)
+	{
+		dialog.querySelector('.shortcutsclose').addEventListener('click', () => dialog.close());
+		// (a click on the backdrop: the content of the dialog is in a box which fills it)
+		dialog.addEventListener('click', (event) =>
+		{
+			if (event.target === dialog)
+			{
+				dialog.close();
+			}
+		});
+	}
+	else
+	{
+		dialog = null;
+	}
+
+	document.addEventListener('keydown', (event) =>
+	{
+		// (Shift, for keys like "?", is pressed before them)
+		if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'].includes(event.key))
+		{
+			return;
+		}
+		let first = prefix;
+		prefix = '';
+		clearTimeout(prefixTimer);
+		if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.repeat
+			|| takesText(event.target) || document.querySelector('dialog[open]'))
+		{
+			return;
+		}
+		let element = (first !== '' ? target(first + ' ' + event.key) : null) || target(event.key);
+		if (element)
+		{
+			event.preventDefault();
+			use(element);
+		}
+		else if (event.key === '?' && dialog)
+		{
+			event.preventDefault();
+			for (let row of dialog.querySelectorAll('tr[data-for]'))
+			{
+				row.hidden = !target(row.dataset.for);
+			}
+			dialog.showModal();
+		}
+		else if (first === '' && Array.from(document.querySelectorAll('[data-shortcut]')).some((other) => other.dataset.shortcut.startsWith(event.key + ' ')))
+		{
+			prefix = event.key;
+			prefixTimer = setTimeout(() => { prefix = ''; }, SHORTCUT_SEQUENCE_TIME);
+		}
+	});
+}
+
 /**
  * Ctrl+S (Cmd+S on a Mac) in the editor saves the page, as the Save button does (instead of saving the HTML of the
  * page in the browser). The form is sent like with the button, so the draft is kept until the page is saved.
@@ -1055,6 +1170,7 @@ function setupSaveShortcut(form)
 
 document.addEventListener('DOMContentLoaded', () =>
 {
+	setupShortcuts();
 	// the server has saved the text of this draft (the page after saving loads this script for that):
 	if (document.body.dataset.savedDraft)
 	{
