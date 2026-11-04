@@ -153,14 +153,12 @@ final class RegressionTest extends AppTestCase
 			$this->assertStringContainsString('<script src="/wiki.js?v=', $response->body, $description);
 			$this->assertStringContainsString('id="drawer"', $response->body, "$description: formatting help");
 		}
-		$this->assertStringNotContainsString('wiki.js', $this->http->get('/index.php')->body, 'not needed when viewing');
 		$this->assertStringNotContainsString('id="drawer"', $this->http->get('/index.php')->body);
 	}
 
 	/**
-	 * wiki.js (which assumes the editor, its formatting help and the save button exist, if there is an editor) must be
-	 * loaded exactly on the pages with an editor or with the dialog to upload files, and the pages with an editor must
-	 * have the formatting help
+	 * wiki.js (which assumes the editor, its formatting help and the save button exist, if there is an editor) is loaded
+	 * by every page (for the keyboard shortcuts), and the pages with an editor must have the formatting help
 	 */
 	public function testEditorScriptFormattingHelpAndEditorAppearTogether(): void
 	{
@@ -176,8 +174,8 @@ final class RegressionTest extends AppTestCase
 			$hasEditor = str_contains($body, 'id="text"');
 			$hasSave = str_contains($body, 'id="save"');
 			$this->assertSame($hasEditor, $hasSave, $url);
-			$hasUploadDialog = str_contains($body, 'id="uploaddialog"');
-			$this->assertSame($hasEditor || $hasUploadDialog, str_contains($body, '/wiki.js'), "$url: script");
+			$this->assertStringContainsString('/wiki.js', $body, "$url: script");
+			$this->assertStringContainsString('<dialog id="shortcuts"', $body, "$url: keyboard shortcuts");
 			$this->assertSame($hasEditor, str_contains($body, 'id="drawer"'), "$url: formatting help");
 		}
 		$this->assertStringContainsString('id="text"', $this->http->get('/index.php?action=new')->body);

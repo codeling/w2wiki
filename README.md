@@ -9,6 +9,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Uses [Markdown Syntax](https://github.com/codeling/w2wiki/blob/master/pages/MarkdownSyntax.md).
     - It supports double-brackets [[like this]] to link to another page in the wiki by title
     - A line with only `![[Page name]]` embeds the content of that page (nested up to `INCLUDE_MAX_DEPTH` levels; cycles and oversized embeds are replaced by a marker)
+    - Syntax highlighting of fenced code blocks which name their language (```` ```php ````): PHP, JavaScript/TypeScript, JSON, Python, shell, CSS/SCSS, HTML/XML, SQL, C/C++/Java/C#/Go/Rust/Kotlin/Swift, YAML, INI/TOML and diffs. It is done on the server, without JavaScript, in both color schemes (`CODE_HIGHLIGHTING` turns it off)
 - Title & content search
 - Filesystem storage (no database required) in plain Markdown text files.
 - Image uploading support
@@ -19,9 +20,13 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 - Extremely compact (only a few .php files and a .css file)
 - Differences to [original w2wiki by panicsteve](https://github.com/panicsteve/w2wiki):
     - Rudimentary, optional git integration to commit (and push) each page edit, and to pull changes made elsewhere
+    - Page history from git (with the git integration): the versions of a page (also from before it was renamed), an old version, what changed in it or how it differs from the current text, and restoring it in the editor
     - Support for renaming and deleting pages
     - Markdown formatting syntax help on edit page
+    - Formatting toolbar above the text in the editor: bold, italic, headings (level 1 to 4), links (also to pages of the wiki), bulleted and numbered lists, quotes, code (inline, or a fenced block with the cursor where the language goes), horizontal rules, tables of a chosen size (or made of selected lines separated by tabs or commas, as copied from a spreadsheet), upload and the formatting help. Each change is one step for Ctrl+Z; the toolbar is one stop of Tab, with the arrow keys between its buttons (Alt+F10 goes there from the text). Only shown with JavaScript
     - Insert the text of Markdown or text files into the editor (button below the text, or drag & drop on the text); a new page gets the file's name
+    - Live preview in the editor (button below the text): rendered by the server like the page itself (links, embeds, uploads), next to the text on wide screens and instead of it on narrow ones; the choice is remembered in the browser
+    - Keyboard shortcuts (`?` shows the list): `/` search, `e` edit, `n` new page, `g` `h` home page, `g` `a` all pages, `h` history (with git); in the editor Ctrl+S or Ctrl+Enter save, Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+Alt+P preview, Alt+F10 formatting toolbar, Tab indents (Cmd and Option on a Mac). They only use the links of the page, and are left alone while typing; the pages work without them (and without JavaScript)
     - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
     - Optional sidebar fed by a special page (shown when viewing pages, in the page list and in search results, but not when editing)
@@ -33,7 +38,8 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 	    - Mark links to non-existing pages (by default in red)
         - Mark external links with globe icon
 	- Image uploads:
-		- One dialog to upload files, in the editor (a button of the toolbar; drag & drop of files and paste of images open it with the files chosen, and the link is inserted at the cursor) and on the upload page (a button above the list)
+		- One dialog to upload files, in the editor (a button of the formatting toolbar above the text; drag & drop of files and paste of images open it with the files chosen, and the link is inserted at the cursor) and on the upload page (a button above the list)
+		- Drag & drop: files dropped on the text are linked where they are dropped (the cursor follows them while they are dragged over it); dropped anywhere else in the editor, at the cursor, and never opened by the browser instead of the page; on the upload page, anywhere on the page. A hint covers the page while files are dragged over it. Images dragged from other pages become images in the text: those of the wiki's uploads (from the list of uploads, the preview, or a page in another tab) with the same link as after uploading, others with their address (`![alt](https://...)`)
 		- Store a file under another name
 		- Crop uploaded images in the dialog (drag the frame over the image), with the size of the result shown
 		- Option to shrink uploaded images (based on maximum side length, after cropping)

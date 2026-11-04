@@ -8,6 +8,7 @@
  * loaded; the functions use the constants defined in config.php when called).
  */
 
+use W2\Highlighter;
 use W2\MarkdownParser;
 
 // Libraries installed via Composer (see INSTALL.md): without Composer the wiki runs with the copy of the Markdown
@@ -145,7 +146,7 @@ function hasMalformedRequestData(array $get, array $post, array $server, array $
 {
 	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
 		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p', 'draftKey', 'baseHash', 'json',
-		'name', 'v');
+		'name', 'v', 'rev', 'to');
 	foreach ( array($get, $post) as $values )
 	{
 		foreach ( $textParameters as $name )
@@ -212,11 +213,20 @@ function writePage($page, $text)
 
 /**
  * Whether the page of this action contains the editor (text area, save button
- * and formatting help), and needs its script wiki.js
+ * and formatting help), whose script is in wiki.js
  */
 function isEditorAction($action)
 {
 	return $action === 'edit' || $action === 'new';
+}
+
+/**
+ * Whether the action shows the history of a page from git, or one of its versions (see W2\History): the list of versions,
+ * a version, what changed in it, and the editor with the text of a version to restore it. They need GIT_COMMIT_ENABLED.
+ */
+function isHistoryAction($action)
+{
+	return in_array($action, array('history', 'version', 'diff', 'restore'), true);
 }
 
 /**
@@ -817,6 +827,11 @@ function toHTML($inText)
 	$parser = new MarkdownParser;
 	$parser->no_markup = true;
 	$parser->url_filter_func = 'filterURL';
+	if ( CODE_HIGHLIGHTING )
+	{
+		// fenced code blocks with a language (```php) get spans with classes; the others are escaped as before
+		$parser->code_block_content_func = array(Highlighter::class, 'highlight');
+	}
 	$outHTML  = $parser->transform($inText);
 	// page links are looked for in the text only: not in tags (like the URL or title of a link) or in code
 	$masked = maskTagsAndCode($outHTML);
@@ -997,24 +1012,31 @@ function themeReturnUrl($url, $self)
 }
 
 /**
- * The icons to do something with a page (edit, delete, rename, show the pages which link to it), except for
- * the action which is being done, as links to the actions.
+ * The icons to do something with a page (edit, delete, rename, show its history if changes are committed to git, show
+ * the pages which link to it), except for the action which is being done, as links to the actions.
+ * With $shortcuts (the icons of the title bar, not those of the rows of a list), editing and the history have the keys
+ * of the keyboard shortcuts which follow them (data-shortcut, see setupShortcuts() in wiki.js).
  *
  * return W2\Html
  */
-function getPageActions($page, $action)
+function getPageActions($page, $action, $shortcuts = false)
 {
+	$keys = $shortcuts ? array('edit' => 'e', 'history' => 'h') : array();
 	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
+	if (GIT_COMMIT_ENABLED)
+	{
+		$pageActions['history'] = translate('History');
+	}
 	$items = array();
 	foreach ($pageActions as $name => $label)
 	{
 		if ($action != $name)
 		{
 			$items[] = array('href' => SELF . "?action=" . $name . "&page=" . urlencode($page),
-				'icon' => iconSvg($name, $label), 'label' => $label);
+				'icon' => iconSvg($name, $label), 'label' => $label, 'shortcut' => $keys[$name] ?? null);
 		}
 	}
 	$items[] = array('href' => SELF . "?action=view&page=" . urlencode($page) . "&linkshere=true",
-		'icon' => iconSvg('link', translate('Show links here')), 'label' => translate('Show links here'));
+		'icon' => iconSvg('link', translate('Show links here')), 'label' => translate('Show links here'), 'shortcut' => null);
 	return templates()->render('page-actions', array('items' => $items));
 }

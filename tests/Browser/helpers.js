@@ -5,6 +5,8 @@ const { expect } = require('@playwright/test');
 const svgBase = () => process.env.W2_SVG_URL || 'http://127.0.0.1:8091';
 // (the wiki which asks for a password: hunter2)
 const loginBase = () => process.env.W2_LOGIN_URL || 'http://127.0.0.1:8092';
+// (the wiki which commits every change to git, and has the history of pages)
+const gitBase = () => process.env.W2_GIT_URL || 'http://127.0.0.1:8093';
 
 /** Remember every dialog (alert, confirm, prompt) the page opens; scripts of the tests use alert() */
 function watchDialogs(page) {
@@ -217,4 +219,4 @@ async function iconColor(page, selector) {
   return page.locator(selector).first().evaluate((element) => /(\d+), (\d+), (\d+)/.exec(getComputedStyle(element).color).slice(1).map(Number));
 }
 
-module.exports = {contrasts, expectReadable, barContrasts, barColors, pageBrightness, iconColor,  watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase, loginBase };
+module.exports = {contrasts, expectReadable, barContrasts, barColors, pageBrightness, iconColor,  watchDialogs, interact, activeContent, csrfToken, savePage, upload, gif, png, pngSize, svgBase, loginBase, gitBase };

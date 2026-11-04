@@ -3,17 +3,19 @@
 
 // Serves a fresh copy of the wiki (with the test configuration) until the process is terminated.
 //
-//   php tests/bin/serve-app.php --port=8090 [--svg]
+//   php tests/bin/serve-app.php --port=8090 [--svg] [--login] [--git]
 //
 // --svg enables SVG uploads (needs the enshrined/svg-sanitize test dependency). --login requires a password (hunter2).
+// --git makes the pages folder a git repository and commits every change (GIT_COMMIT_ENABLED), for the history of pages.
 // Used by the browser tests.
 
 use W2\Tests\Support\AppServer;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$options = getopt('', ['port:', 'svg', 'login']);
+$options = getopt('', ['port:', 'svg', 'login', 'git']);
 $login = isset($options['login']);
+$git = isset($options['git']);
 $port = (int)($options['port'] ?? 0);
 $svg = isset($options['svg']);
 if ($svg && AppServer::svgSanitizerDir() === null) {
@@ -24,9 +26,10 @@ if ($svg && AppServer::svgSanitizerDir() === null) {
 $server = AppServer::get(
 	array_merge(
 		$svg ? ['SVG_UPLOADS_ENABLED' => true] : [],
-		$login ? ['REQUIRE_PASSWORD' => true, 'W2_PASSWORD_HASH' => password_hash('hunter2', PASSWORD_BCRYPT, ['cost' => 4])] : []
+		$login ? ['REQUIRE_PASSWORD' => true, 'W2_PASSWORD_HASH' => password_hash('hunter2', PASSWORD_BCRYPT, ['cost' => 4])] : [],
+		$git ? ['GIT_COMMIT_ENABLED' => true] : []
 	),
-	array_filter(['port' => $port ?: null, 'svgSanitizer' => $svg ?: null])
+	array_filter(['port' => $port ?: null, 'svgSanitizer' => $svg ?: null, 'git' => $git ?: null])
 );
 $server->reset();
 

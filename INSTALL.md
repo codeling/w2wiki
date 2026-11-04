@@ -461,6 +461,15 @@ To enable changes in pages to be committed to a local git repository, you need t
 - Do an initial commit: `$ sudo -u www-data git commit -m "Initial commit`.
 - Set `GIT_COMMIT_ENABLED` to `true` in `config.php`.
 
+With `GIT_COMMIT_ENABLED`, every page has a history (the clock icon next to the
+title, `?action=history&page=...`): the commits which changed it, newest first and
+50 at a time (`git log --follow`, so versions from before the page was renamed are
+included). A version can be shown, compared with the version before it or with the
+current text, and restored: that opens the editor with its text, and saving it is a
+new commit like any other change (nothing in the history is changed or removed).
+Commits made outside the wiki are listed too. Without `GIT_COMMIT_ENABLED`, the icon
+is not shown and the history is not available.
+
 To also enable pushing changes to a remote repository, you need to (in addition
 to the steps above):
 

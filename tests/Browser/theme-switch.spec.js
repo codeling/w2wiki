@@ -19,14 +19,17 @@ test.describe('icons', () => {
     await savePage(request, 'Icons page', 'text');
     for (const url of ['/index.php/Icons%20page', '/index.php?action=edit&page=Icons%20page', '/index.php?action=all', '/index.php?action=upload']) {
       await page.goto(url);
-      // (not the ones which are not shown: in the drawer of the editor, which is closed, and the two of the theme button which don't fit the scheme: they have no size)
-      const icons = await page.locator('svg.icon use').evaluateAll((uses) => uses.filter((use) => !use.closest('.inactive') && getComputedStyle(use.ownerSVGElement).display !== 'none').map((use) => [use.getAttribute('href'), use.getBBox().width]));
+      // (not the ones which are not shown: in the drawer of the editor, which is closed, in the list of keyboard shortcuts, which is a closed dialog, and the two of the theme button which don't fit the scheme: they have no size)
+      const icons = await page.locator('svg.icon use').evaluateAll((uses) => uses.filter((use) => !use.closest('.inactive, dialog:not([open])') && getComputedStyle(use.ownerSVGElement).display !== 'none').map((use) => [use.getAttribute('href'), use.getBBox().width]));
       expect(icons.length, url).toBeGreaterThan(3);
       for (const [href, width] of icons) expect(width, `${href} is drawn on ${url}`).toBeGreaterThan(5);
     }
     await page.goto('/index.php?action=edit&page=Icons%20page');
     await page.click('#drawer-control');
     expect(await page.locator('#drawer svg.icon use').evaluate((use) => use.getBBox().width)).toBeGreaterThan(5);
+    await page.locator('h1, .titlebar .title').first().click();
+    await page.keyboard.press('?');
+    expect(await page.locator('#shortcuts svg.icon use').evaluate((use) => use.getBBox().width)).toBeGreaterThan(5);
     expect(problems).toEqual([]);
   });
 
@@ -49,7 +52,7 @@ test.describe('with a dark system', () => {
     expect(await pageBrightness(page)).toBeLessThan(0.3);
 
     await toggle(page);
-    // (on this page without a script, the form loads the page again)
+    // (the script applies the choice without loading the page again; the next pages have it from the cookie)
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     expect(await shownIcon(page)).toEqual(['light']);
     expect(await nextMode(page)).toBe('dark');

@@ -39,5 +39,7 @@ final class UploadsDisabledTest extends AppTestCase
 		// (inserting a text file into the text stores nothing: it stays available)
 		$this->assertStringContainsString('id="importbutton"', $body);
 		$this->assertStringContainsString('id="importfile"', $body);
+		// (files dropped on the editor can only be text files to insert)
+		$this->assertStringContainsString('data-msg-drop="Drop Markdown or text files to insert their text"', $body);
 	}
 }

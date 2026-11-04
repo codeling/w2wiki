@@ -20,7 +20,8 @@ final class UploadPageDisabledTest extends AppTestCase
 		$this->assertStringContainsString('<p>Image uploading has been disabled on this installation.</p>', $response->body);
 		$this->assertStringNotContainsString('id="uploadbutton"', $response->body);
 		$this->assertStringNotContainsString('id="uploaddialog"', $response->body);
-		$this->assertStringNotContainsString('wiki.js', $response->body);
+		// (the script of every page, for the keyboard shortcuts)
+		$this->assertStringContainsString('<script src="/wiki.js', $response->body);
 		$this->assertStringContainsString('Total: 0 images', $response->body);
 	}
 }

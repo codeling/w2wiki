@@ -30,6 +30,15 @@ final class AuthTest extends AppTestCase
 		}
 	}
 
+	/** The login page has no script and no keyboard shortcuts: they would only lead back to it */
+	public function testLoginPageHasNoScript(): void
+	{
+		$body = $this->http->get('/index.php')->body;
+		$this->assertStringNotContainsString('wiki.js', $body);
+		$this->assertStringNotContainsString('data-shortcut', $body);
+		$this->assertStringNotContainsString('id="shortcuts"', $body);
+	}
+
 	public function testWrongPasswordsAreRefused(): void
 	{
 		$response = $this->login('nope');

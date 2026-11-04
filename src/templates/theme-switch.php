@@ -4,8 +4,8 @@
  *
  * The button in the toolbar to change the color scheme: the system's, light, dark, and again. The icon shows the scheme in
  * use (index.css shows the one of the three icons which fits the root element). The choice is kept in a cookie, so it
- * works without a script (the script of the editor pages applies it without loading the page again, which would lose
- * the text in the editor).
+ * works without a script (the script of the pages applies it without loading the page again, which would lose the text
+ * in the editor).
  *
  * Values: csrfField (Html), returnTo (text: the address to go back to), next (text: the scheme which the button
  *         chooses), icons (list of Html: the icons of the three schemes, see iconSvg())

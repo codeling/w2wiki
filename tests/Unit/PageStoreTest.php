@@ -66,6 +66,8 @@ final class PageStoreTest extends TestCase
 		$this->assertSame("$this->root/Home.md", $this->store->path('Home'));
 		$this->assertSame("$this->root/sub/page.md", $this->store->path('sub/page'));
 		$this->assertSame("$this->root/Home.txt", (new PageStore($this->root, 'txt', 'uploads'))->path('Home'));
+		$this->assertSame('sub/page.md', $this->store->fileName('sub/page'));
+		$this->assertSame('Home.txt', (new PageStore($this->root, 'txt', 'uploads'))->fileName('Home'));
 	}
 
 	public function testExistsOnlyForValidNamesOfExistingFiles(): void

@@ -59,9 +59,9 @@ final class FormsTest extends AppTestCase
 		);
 		$this->assertStringContainsString("[[MarkdownSyntax|Markdown Syntax]]", $body, 'the text is in the page');
 		$this->assertStringContainsString('<textarea id="text" name="newText" rows="18"', $body);
-		$this->assertStringContainsString('<input id="save" type="submit" value="Save" title="Save (Ctrl+S)" />', $body);
+		$this->assertStringContainsString('<input id="save" type="submit" value="Save" title="Save (Ctrl+S)" aria-keyshortcuts="Control+S Meta+S Control+Enter Meta+Enter" />', $body);
 		$this->assertStringContainsString('<input id="cancel" type="button" onclick="history.go(-1);" value="Cancel" />', $body);
-		$this->assertStringContainsString('<p class="editorbox">', $body);
+		$this->assertStringContainsString('<div class="editorbox">', $body);
 		$this->assertStringContainsString('<p class="editactions">', $body);
 	}
 
@@ -73,6 +73,18 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('', $fields['page']);
 		$this->assertSame('true', $fields['isNew']);
 		$this->assertSame('w2wiki-draft:/index.php:new:', $form->getAttribute('data-draft-key'));
+	}
+
+	public function testEditorTellsTheScriptAboutDroppedFilesAndImages(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
+			$form = $this->form($this->http->get('/index.php', $query)->body, 'edit');
+			// (the hint while files are dragged over the editor, and what images of the uploads become: see setupDrops())
+			$this->assertSame('Drop files to upload them and insert links', $form->getAttribute('data-msg-drop'));
+			$this->assertSame('/images/', $form->getAttribute('data-upload-prefix'));
+			$this->assertSame('/file.php', $form->getAttribute('data-file-url'));
+			$this->assertSame('Image Description', $form->getAttribute('data-msg-image-alt'));
+		}
 	}
 
 	public function testTextOfTheEditorIsDescribedWithTheKeysForIndenting(): void
@@ -157,10 +169,9 @@ final class FormsTest extends AppTestCase
 		$saved = $this->postAction('save', ['page' => 'Home', 'isNew' => '', 'newText' => 'new text', 'gitmsg' => '', 'draftKey' => $key]);
 		$body = $this->http->follow($saved)->body;
 		$this->assertStringContainsString('<body data-saved-draft="' . $key . '">', $body);
-		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+"></script>#', $body, 'the script removes the draft');
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+" defer="defer"></script>#', $body, 'the script removes the draft');
 		$after = $this->http->get('/index.php/Home')->body;
 		$this->assertStringNotContainsString('data-saved-draft', $after);
-		$this->assertStringNotContainsString('wiki.js', $after);
 	}
 
 	public function testSavedDraftIsEscaped(): void
@@ -253,7 +264,7 @@ final class FormsTest extends AppTestCase
 		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => 'Home'])->body;
 		// (no form of its own and no script in the page: the same dialog as in the editor, opened by the script of the wiki)
 		$this->assertStringNotContainsString('<form id="upload"', $body);
-		$this->assertStringContainsString('<input id="uploadbutton" type="button" value="Upload" />', $body);
+		$this->assertStringContainsString('<p class="uploadaction" data-msg-drop="Drop files to upload them"><input id="uploadbutton" type="button" value="Upload" />', $body);
 		$this->assertStringContainsString('<dialog id="uploaddialog"', $body);
 		$this->assertStringContainsString('<script src="/wiki.js', $body);
 		$this->assertNoActiveContent($body);

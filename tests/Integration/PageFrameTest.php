@@ -15,7 +15,8 @@ final class PageFrameTest extends AppTestCase
 		$this->assertStringContainsString('<meta charset="UTF-8">', $body);
 		$this->assertStringContainsString('<title>Wiki: Home</title>', $body);
 		$this->assertStringContainsString('<meta name="viewport" content="width=device-width, initial-scale=1" />', $body);
-		$this->assertStringNotContainsString('wiki.js', $body, 'the script is only for the editor');
+		// (for the keyboard shortcuts: deferred, as nothing in the page needs it to be shown)
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+" defer="defer"></script>#', $body);
 		$this->assertStringNotContainsString('id="drawer"', $body);
 		$this->assertMatchesRegularExpression('#<body>\s*<div class="titlebar">#', $body);
 		$this->assertStringEndsWith("</body>\n</html>\n", $body);
@@ -25,10 +26,11 @@ final class PageFrameTest extends AppTestCase
 	{
 		$body = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home'])->body;
 		$this->assertStringContainsString('initial-scale=1, interactive-widget=resizes-content" />', $body);
-		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+"></script>#', $body);
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+" defer="defer"></script>#', $body);
 		$this->assertStringContainsString('<body class="editor">', $body);
 		$this->assertStringContainsString('<div id="drawer" class="inactive">', $body);
-		$this->assertStringContainsString('<a id="drawer-control" href=""', $body);
+		// (the button which shows it is the last one of the formatting toolbar above the text, see FormatBarTest)
+		$this->assertStringContainsString('<button type="button" id="drawer-control" class="helpbutton"', $body);
 		$this->assertStringNotContainsString('class="sidebar"', $body, 'no sidebar in the editor');
 	}
 
@@ -36,10 +38,10 @@ final class PageFrameTest extends AppTestCase
 	{
 		$body = $this->http->get('/index.php/Home')->body;
 		preg_match('#<div class="toolbar">(.*?)<form#s', $body, $matches);
-		preg_match_all('#<a href="([^"]*)"><svg class="icon icon-[a-z-]+" viewBox="0 0 16 16" role="img" aria-label="([^"]*)"><title>\2</title><use href="[^"]*\#i"/></svg></a>#', $matches[1], $items, PREG_SET_ORDER);
+		preg_match_all('#<a href="([^"]*)"(?: data-shortcut="([^"]*)")?><svg class="icon icon-[a-z-]+" viewBox="0 0 16 16" role="img" aria-label="([^"]*)"><title>\3</title><use href="[^"]*\#i"/></svg></a>#', $matches[1], $items, PREG_SET_ORDER);
 		$this->assertSame(
-			[['/index.php', 'Home'], ['/index.php?action=all', 'All'], ['/index.php?action=new', 'New'], ['/index.php?action=upload&amp;page=Home', 'Media']],
-			array_map(fn($item) => [$item[1], $item[2]], $items)
+			[['/index.php', 'g h', 'Home'], ['/index.php?action=all', 'g a', 'All'], ['/index.php?action=new', 'n', 'New'], ['/index.php?action=upload&amp;page=Home', '', 'Media']],
+			array_map(fn($item) => [$item[1], $item[2], $item[3]], $items)
 		);
 		$this->assertStringNotContainsString('action=logout', $body, 'no way to log out without a password');
 		$this->assertStringContainsString('<form method="get" action="/index.php">', $body);

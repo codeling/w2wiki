@@ -39,4 +39,16 @@ final class GitNoRepositoryTest extends AppTestCase
 		$this->assertStringContainsString('Error executing git command', $this->noteAfter($this->deleteImage('b.gif')));
 		$this->assertSame([], $this->uploadedFiles());
 	}
+
+	public function testTheHistoryShowsAGenericError(): void
+	{
+		$logSize = $this->server->logSize();
+		$response = $this->http->get('/index.php', ['action' => 'history', 'page' => 'Home']);
+		$this->assertSame(500, $response->status);
+		$this->assertStringContainsString('The history of the page could not be read; see the web server&#039;s error log for details.', $response->body);
+		foreach ([$this->server->pagesDir(), 'not a git repository', 'fatal'] as $secret) {
+			$this->assertStringNotContainsString($secret, $response->body);
+		}
+		$this->assertStringContainsString('not a git repository', $this->server->logSince($logSize));
+	}
 }

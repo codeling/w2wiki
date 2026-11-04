@@ -17,6 +17,10 @@ final class MalformedRequestTest extends AppTestCase
 			'action array' => ['/index.php?action[]=view'],
 			'sortBy array' => ['/index.php?action=all&sortBy[]=name'],
 			'null byte in page' => ['/index.php?action=view&page=a%00b'],
+			'revision array' => ['/index.php?action=version&page=Home&rev[]=abcdef0'],
+			'null byte in revision' => ['/index.php?action=version&page=Home&rev=abcdef0%00'],
+			'comparison array' => ['/index.php?action=diff&page=Home&rev=abcdef0&to[]=current'],
+			'part of the list array' => ['/index.php?action=history&page=Home&p[]=2'],
 			'api filename array' => ['/api.php?task=checkupload&filename[]=a.gif'],
 			'api null byte' => ['/api.php?task=checkupload&filename=a%00.gif'],
 		];

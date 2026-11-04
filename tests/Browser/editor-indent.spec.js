@@ -90,6 +90,14 @@ test('Escape and then Tab moves the focus out of the text', async ({ page }) => 
   await expect(page.locator('#text')).toHaveValue('text    ');
 });
 
+test('Escape and then Shift+Tab moves the focus back, out of the text (Shift is pressed before Tab)', async ({ page }) => {
+  await editorWith(page, '    text', 8, 8);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.locator('#text')).toHaveValue('    text');
+  expect(await page.evaluate(() => document.activeElement.id)).not.toBe('text');
+});
+
 test('Escape, then another key: Tab indents again', async ({ page }) => {
   await editorWith(page, 'text', 4, 4);
   await page.keyboard.press('Escape');

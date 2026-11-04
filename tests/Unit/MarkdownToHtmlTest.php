@@ -76,6 +76,7 @@ final class MarkdownToHtmlTest extends TestCase
 			'inline code' => ['`[[Home]]`', '<code>[[Home]]</code>'],
 			'code block' => ["    [[Home]]\n", "<pre><code>[[Home]]\n</code></pre>"],
 			'fenced code block' => ["```\n[[Home|x]]\n```", "[[Home|x]]\n</code></pre>"],
+			'highlighted code block' => ["```php\n'[[Home|x]]' // [[Home]]\n```", '<span class="hl-s">\'[[Home|x]]\'</span> <span class="hl-c">// [[Home]]</span>'],
 		];
 	}
 

@@ -357,7 +357,7 @@ $text = "";
 $baseHash = null;
 $diff = null;
 $content = \W2\Html::raw('');
-if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
+if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete' || isHistoryAction($action))
 {
 	// Look for page name following the script name in the URL, like this:
 	// http://stevenf.com/w2demo/index.php/Markdown%20Syntax
@@ -473,21 +473,40 @@ if ( $action == 'save' )
 	$_SESSION['note'] = $note->toArray();
 }
 
+// The history of a page in git (see W2\HistoryViews): the views only read; restoring a version opens the editor with its
+// text, which is saved like any other text (with the hash of the current text, so that a change made since is not lost)
+$historyView = null;
+if ( isHistoryAction($action) )
+{
+	$historyView = (new \W2\HistoryViews(new \W2\History(new \W2\Git(PAGES_PATH), pageStore())))
+		->show($action, $page, $_GET['rev'] ?? '', ($_GET['to'] ?? '') === 'current', (int)($_GET['p'] ?? 1));
+	http_response_code($historyView['status']);
+	$content = $historyView['content'];
+	if ( $historyView['restore'] !== null )
+	{
+		$action = 'edit';
+		$text = $historyView['restore']['text'];
+		$baseHash = $historyView['restore']['baseHash'];
+		$oldgitmsg = $historyView['restore']['gitMessage'];
+	}
+}
+
 if ( isEditorAction($action) )
 {
 	$showContext = ($action === 'new' && $newPage != "" && !$triedSave);
 	$similarPages = $showContext ? (new \W2\Lists())->similarPages($newPage) : null;
 	$pageContext = $showContext ? (new \W2\Lists())->pageContext($newPage) : null;
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
-	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
-		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
+	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey : ($historyView['restore']['draftKey'] ??
+		("w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage")));
 	$content = templates()->render('editor', array(
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
-		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff,
-		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog()
+		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff === null ? null : templates()->render('diff-lines', array('lines' => $diff)),
+		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog(), 'previewUrl' => BASE_URI . '/api.php?task=preview',
+		'uploadPrefix' => uploadUrlPrefix(), 'fileUrl' => BASE_URI . '/file.php'
 	));
 }
 else if ( $action === 'logout' )
@@ -581,6 +600,10 @@ else if ( $action === 'search' )
 {
 	$content = (new \W2\Lists())->search($_REQUEST['q'] ?? '');
 }
+else if ( isHistoryAction($action) )
+{
+	// (the content was made above, see W2\HistoryViews)
+}
 else
 {
 	$content = \W2\Html::raw(empty($text) ? '' : toHTML($text));
@@ -604,6 +627,11 @@ else if ( $action === 'search' )
 {
 	$title = translate("Search");
 }
+else if ( isHistoryAction($action) )
+{
+	$title = $historyView['title'];
+	$modified = $historyView['date'];
+}
 else if (isset($filename) && $filename != '')
 {
 	$title = (($action === 'edit')? (translate('Edit').": "):"") . $page;
@@ -618,11 +646,12 @@ else
 	$title = translate($action);
 }
 
-// The toolbar: the pages of the wiki and what can be done with them
+// The toolbar: the pages of the wiki and what can be done with them (with the keys of the keyboard shortcuts which
+// follow the links, see setupShortcuts() in wiki.js)
 $toolbar = array(
-	array('href' => SELF, 'icon' => iconSvg('home', translate(DEFAULT_PAGE)), 'label' => translate(DEFAULT_PAGE)),
-	array('href' => SELF . "?action=all", 'icon' => iconSvg('list', translate('All')), 'label' => translate('All')),
-	array('href' => SELF . "?action=new", 'icon' => iconSvg('new', translate('New')), 'label' => translate('New'))
+	array('href' => SELF, 'icon' => iconSvg('home', translate(DEFAULT_PAGE)), 'label' => translate(DEFAULT_PAGE), 'shortcut' => 'g h'),
+	array('href' => SELF . "?action=all", 'icon' => iconSvg('list', translate('All')), 'label' => translate('All'), 'shortcut' => 'g a'),
+	array('href' => SELF . "?action=new", 'icon' => iconSvg('new', translate('New')), 'label' => translate('New'), 'shortcut' => 'n')
 );
 if ( !DISABLE_UPLOADS )
 {
@@ -632,11 +661,11 @@ if ( !DISABLE_UPLOADS )
 		// (the upload page only accepts existing pages to return to; e.g. not the page which is just being created)
 		$uploadPage = DEFAULT_PAGE;
 	}
-	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => iconSvg('media', translate('Media')), 'label' => translate('Media'));
+	$toolbar[] = array('href' => SELF . "?action=upload&page=" . urlencode($uploadPage), 'icon' => iconSvg('media', translate('Media')), 'label' => translate('Media'), 'shortcut' => null);
 }
 if ( REQUIRE_PASSWORD )
 {
-	$toolbar[] = array('href' => SELF . "?action=logout&csrf_token=" . urlencode(csrfToken()), 'icon' => null, 'label' => translate('Log out'));
+	$toolbar[] = array('href' => SELF . "?action=logout&csrf_token=" . urlencode(csrfToken()), 'icon' => null, 'label' => translate('Log out'), 'shortcut' => null);
 }
 
 $sidebar = null;
@@ -649,6 +678,10 @@ $linksHere = ($action === 'view' && isset($_GET['linkshere'])) ? (new \W2\Lists(
 
 $note = \W2\Note::fromArray($_SESSION['note'] ?? null);
 unset($_SESSION['note']);
+if ( ($historyView['note'] ?? null) !== null )
+{
+	$note->append($historyView['note']);
+}
 
 // (the key of the local draft which the browser can remove, because its text has just been saved)
 $savedDraft = $_SESSION['savedDraft'] ?? '';
@@ -660,11 +693,11 @@ header("Cache-Control: no-store");
 print templates()->render('layout', array(
 	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
 	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'theme' => $themeMode,
-	'script' => isEditorAction($action) || ($action === 'upload' && !DISABLE_UPLOADS) || $savedDraft !== '', 'savedDraft' => $savedDraft,
+	'script' => true, 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
-		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
-			? getPageActions($page, $action) : null,
+		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit' || ($historyView['pageExists'] ?? false))
+			? getPageActions($page, $action, true) : null,
 		'toolbar' => $toolbar,
 		'themeSwitch' => templates()->render('theme-switch', array(
 			'csrfField' => \W2\Html::raw(csrfField()), 'returnTo' => $_SERVER['REQUEST_URI'] ?? SELF, 'next' => nextThemeMode($themeMode),
@@ -672,9 +705,10 @@ print templates()->render('layout', array(
 			'icons' => array_map(fn($mode) => iconSvg('theme-' . $mode, sprintf(translate('Color scheme: %s'),
 				array('auto' => translate('System'), 'light' => translate('Light'), 'dark' => translate('Dark'))[$mode])), THEME_MODES)
 		)),
-		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
+		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
-		'content' => $content
+		'content' => $content,
+		'shortcuts' => templates()->render('shortcuts', array('editor' => isEditorAction($action)))
 	))
 ));
