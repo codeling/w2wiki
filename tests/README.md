@@ -45,6 +45,9 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   (types, refused names, headers, caching) in a temporary folder; `UploadServingTest` and `UploadServingAuthTest` (integration)
   `file.php` itself, also with a password.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
+  `HighlighterTest` tests `W2\Highlighter`, the syntax highlighting of fenced code blocks (the tokens of every language,
+  aliases, escaping of script payloads, well-formed output, large and pathological inputs, the parser hook);
+  `CodeHighlightingTest` and `CodeHighlightingDisabledTest` (integration) the highlighted pages and `CODE_HIGHLIGHTING`.
   `PageStoreTest` tests `W2\PageStore` (`src/PageStore.php`, the pages as files) in a temporary folder.
   `LocaleFilesTest` checks the files in `locales/` (valid PHP, no duplicate keys, UTF-8, date formats) ;
   `locales/en.php` only has entries that differ from their key (`__()` returns the key for texts without entry).
@@ -120,7 +123,7 @@ browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
 The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`)
-the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), the history of a page with git (`history.spec.js`: from the page to the versions, the changes of a version and restoring it), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
+the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), the history of a page with git (`history.spec.js`: from the page to the versions, the changes of a version and restoring it), highlighted code blocks (`code-highlighting.spec.js`: readable in both color schemes, without violating the content security policy), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
 
 ```
 cd tests/Browser

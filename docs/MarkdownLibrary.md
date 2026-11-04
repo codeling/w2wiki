@@ -61,7 +61,7 @@ GitHub Flavored Markdown, Footnote, DescriptionList and Attributes, with `html_i
 | abbreviations, see below | `<abbr>` | not supported (no extension) |
 | list nested under a numbered item with 2 spaces (`1. a` / `  - b`) | nested list | separate list (needs 3 spaces, aligned with the item text) |
 | code block inside a list item | 8 spaces | indentation counted from the item text |
-| ```` ``` php ```` | `class="php"` | `class="language-php"` (W2's CSS and JavaScript don't use it) |
+| ```` ``` php ```` | `class="php"` | `class="language-php"` (W2's CSS and JavaScript don't use it; see "Syntax highlighting" below) |
 
 The same in both: tables, footnotes, definition lists, `{#id .class}`, setext headings, hard breaks with two spaces,
 underscores inside words, `[[wiki links]]` (left as text for W2's own processing), indented code, `<http://…>` autolinks.
@@ -97,6 +97,41 @@ Measured with PHP 8.3 on the command line, without opcache; times per rendering:
 | PHP code | 108 KB, 3 files | 942 KB, 387 files (league/commonmark 616 KB, nette/utils 215 KB, nette/schema 69 KB, the rest 42 KB) |
 
 With opcache (as usual on servers) most of the loading time goes away; the rendering stays 3–4 times slower.
+
+## Syntax highlighting
+
+Since November 2026 W2 highlights fenced code blocks which name their language (```` ```php ````, also ```` ~~~ php ````;
+the name is not case-sensitive) with `W2\Highlighter` (`src/Highlighter.php`), which is the `code_block_content_func` of
+the parser (set in `toHTML()`, unless `CODE_HIGHLIGHTING` is `false`). It escapes the code itself and puts tokens in
+`<span class="hl-…">` elements: `hl-k` keyword, `hl-s` string, `hl-c` comment, `hl-n` number or constant, `hl-t` type or
+built-in, `hl-v` variable, `hl-a` attribute, key or property, `hl-p` preprocessor, annotation or other meta information,
+`hl-d-add`/`hl-d-del` added and removed lines of diffs. The colors are in `index.css`, for both color schemes. The
+`<code>` element keeps its `class="php"`. Indented code blocks, fences without a language or with an unknown one, inline
+code and the attribute form ```` ```{.php} ```` stay as before (escaped only). `c++` and `c#` are no valid names after the
+fence in Markdown Extra (`cpp`, `csharp` and `cs` are).
+
+Languages: `php`, `javascript` (`js`, `jsx`, `mjs`), `typescript` (`ts`, `tsx`), `json` (`jsonc`), `python` (`py`),
+`bash` (`sh`, `shell`, `zsh`, `console`), `css` (`scss`), `html` (`xml`, `svg`, `xhtml`), `sql` (`mysql`, `postgresql`,
+`sqlite`), `c` (`h`), `cpp` (`hpp`, `cc`, `cxx`), `java`, `csharp` (`cs`), `go` (`golang`), `rust` (`rs`), `kotlin`
+(`kt`), `swift`, `yaml` (`yml`), `ini` (`toml`, `cfg`, `conf`) and `diff` (`patch`).
+
+Why on the server, and why not a library:
+
+- The highlighting is part of the HTML which `toHTML()` returns, so everything that shows rendered Markdown (the page,
+  embedded pages, a preview in the editor) gets it from the same code. Pages need no JavaScript, and the
+  Content-Security-Policy stays as it is (no inline styles: only classes).
+- [tempest/highlight](https://github.com/tempestphp/highlight) needs PHP 8.4, W2 supports 8.1.
+  [scrivo/highlight.php](https://github.com/scrivo/highlight.php) has had no release since 2022 (deprecation warnings
+  with new PHP versions would be logged, and fail the tests). [highlight.js](https://highlightjs.org/) in the browser would
+  be a script for every page view, and would not be in the HTML.
+
+How it works: each language has one regular expression whose alternatives are the tokens (with possessive quantifiers;
+comments and strings which are not closed end at the end of the line or of the code), applied once from left to right.
+So the time grows linearly with the size of the code. Words are looked up in lists per language (C, C++, Java, C#, Go,
+Rust, Kotlin and Swift share one pattern). Blocks larger than 64 KB, invalid UTF-8 and any failure of a regular
+expression give the code escaped only. It is a highlighter for reading, not a parser: for example, JavaScript regular
+expression literals are not recognized (a quote in one starts a string up to the end of the line), and the content of
+`<script>` and `<style>` elements in HTML is not highlighted as JavaScript or CSS.
 
 ## Other libraries
 

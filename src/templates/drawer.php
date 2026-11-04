@@ -21,7 +21,7 @@
 <br/>
 - <?= __('Unordered list') ?><br/>+ <?= __('Unordered list') ?><br/>* <?= __('Unordered list') ?><br/>1. <?= __('Ordered list') ?><br/>
 <br/>
-> <?= __('Blockquote') ?><br/>```<?= __('Code') ?>```<br/>`<?= __('Inline code') ?>`<br/><br/>*** <?= __('Horizontal rule') ?><br/>--- <?= __('Horizontal rule') ?><br/>
+> <?= __('Blockquote') ?><br/>```<?= __('Code') ?>```<br/>```php<br/><?= __('Code') ?><br/>```<br/>`<?= __('Inline code') ?>`<br/><br/>*** <?= __('Horizontal rule') ?><br/>--- <?= __('Horizontal rule') ?><br/>
 <br/>
 <?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?><br/>
         </div>
