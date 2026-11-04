@@ -23,9 +23,10 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Page history from git (with the git integration): the versions of a page (also from before it was renamed), an old version, what changed in it or how it differs from the current text, and restoring it in the editor
     - Support for renaming and deleting pages
     - Markdown formatting syntax help on edit page
+    - Formatting toolbar above the text in the editor: bold, italic, headings (level 1 to 4), links (also to pages of the wiki), bulleted and numbered lists, quotes, code (inline, or a fenced block with the cursor where the language goes), horizontal rules, tables of a chosen size (or made of selected lines separated by tabs or commas, as copied from a spreadsheet), upload and the formatting help. Each change is one step for Ctrl+Z; the toolbar is one stop of Tab, with the arrow keys between its buttons (Alt+F10 goes there from the text). Only shown with JavaScript
     - Insert the text of Markdown or text files into the editor (button below the text, or drag & drop on the text); a new page gets the file's name
     - Live preview in the editor (button below the text): rendered by the server like the page itself (links, embeds, uploads), next to the text on wide screens and instead of it on narrow ones; the choice is remembered in the browser
-    - Keyboard shortcuts (`?` shows the list): `/` search, `e` edit, `n` new page, `g` `h` home page, `g` `a` all pages, `h` history (with git); in the editor Ctrl+S or Ctrl+Enter save, Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+Alt+P preview, Tab indents (Cmd and Option on a Mac). They only use the links of the page, and are left alone while typing; the pages work without them (and without JavaScript)
+    - Keyboard shortcuts (`?` shows the list): `/` search, `e` edit, `n` new page, `g` `h` home page, `g` `a` all pages, `h` history (with git); in the editor Ctrl+S or Ctrl+Enter save, Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+Alt+P preview, Alt+F10 formatting toolbar, Tab indents (Cmd and Option on a Mac). They only use the links of the page, and are left alone while typing; the pages work without them (and without JavaScript)
     - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
     - Optional sidebar fed by a special page (shown when viewing pages, in the page list and in search results, but not when editing)
@@ -37,7 +38,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
 	    - Mark links to non-existing pages (by default in red)
         - Mark external links with globe icon
 	- Image uploads:
-		- One dialog to upload files, in the editor (a button of the toolbar; drag & drop of files and paste of images open it with the files chosen, and the link is inserted at the cursor) and on the upload page (a button above the list)
+		- One dialog to upload files, in the editor (a button of the formatting toolbar above the text; drag & drop of files and paste of images open it with the files chosen, and the link is inserted at the cursor) and on the upload page (a button above the list)
 		- Store a file under another name
 		- Crop uploaded images in the dialog (drag the frame over the image), with the size of the result shown
 		- Option to shrink uploaded images (based on maximum side length, after cropping)
