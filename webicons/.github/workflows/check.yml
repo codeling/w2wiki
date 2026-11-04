@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 name: check
 on: [push, pull_request]
 permissions:
