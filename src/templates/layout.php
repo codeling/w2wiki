@@ -5,8 +5,9 @@
  * The document around every page: head and body.
  *
  * Values: theme (text: "auto", or the color scheme which was chosen: "light" or "dark"), title (text), pageTitle (Html, from PAGE_TITLE), bodyClass (text or ''), editor (bool: the page has
- *         the editor, which needs the space above the on-screen keyboard), script (bool: the page needs wiki.js: it
- *         has the editor or the dialog to upload files, or removes a saved draft), content (Html),
+ *         the editor, which needs the space above the on-screen keyboard), script (bool: the page loads wiki.js: all
+ *         pages of the wiki, for the keyboard shortcuts, the editor, the dialog to upload files and removing a saved
+ *         draft; not the login page), content (Html),
  *         savedDraft (text: the key of the draft in the browser which wiki.js removes, because its text has
  *         just been saved; or '')
  */
@@ -25,9 +26,10 @@
     <title><?= $this->pageTitle ?><?= $this->title ?></title>
 <?php if ($this->script): ?>
 <?php /* (warns when leaving the editor with unsaved changes; for new pages too, as they would be lost silently;
-          after saving, it removes the local draft of the saved text) */ ?>
+          after saving, it removes the local draft of the saved text; the keyboard shortcuts of every page. Deferred:
+          the page is shown without waiting for it, and it is cached, see assetURL()) */ ?>
 <?php /* (not relative: pages can be shown below the script, like /index.php/Page) */ ?>
-    <script src="<?= $this->e(assetURL("wiki.js")) ?>"></script>
+    <script src="<?= $this->e(assetURL("wiki.js")) ?>" defer="defer"></script>
 <?php endif ?>
   </head>
   <body<?= $this->bodyClass !== '' ? ' class="' . $this->bodyClass . '"' : '' ?><?= $this->savedDraft !== '' ? ' data-saved-draft="' . $this->savedDraft . '"' : '' ?>>

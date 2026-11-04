@@ -157,10 +157,9 @@ final class FormsTest extends AppTestCase
 		$saved = $this->postAction('save', ['page' => 'Home', 'isNew' => '', 'newText' => 'new text', 'gitmsg' => '', 'draftKey' => $key]);
 		$body = $this->http->follow($saved)->body;
 		$this->assertStringContainsString('<body data-saved-draft="' . $key . '">', $body);
-		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+"></script>#', $body, 'the script removes the draft');
+		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+" defer="defer"></script>#', $body, 'the script removes the draft');
 		$after = $this->http->get('/index.php/Home')->body;
 		$this->assertStringNotContainsString('data-saved-draft', $after);
-		$this->assertStringNotContainsString('wiki.js', $after);
 	}
 
 	public function testSavedDraftIsEscaped(): void

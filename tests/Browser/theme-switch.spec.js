@@ -49,7 +49,7 @@ test.describe('with a dark system', () => {
     expect(await pageBrightness(page)).toBeLessThan(0.3);
 
     await toggle(page);
-    // (on this page without a script, the form loads the page again)
+    // (the script applies the choice without loading the page again; the next pages have it from the cookie)
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     expect(await shownIcon(page)).toEqual(['light']);
     expect(await nextMode(page)).toBe('dark');

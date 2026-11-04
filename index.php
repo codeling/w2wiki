@@ -691,7 +691,7 @@ header("Cache-Control: no-store");
 print templates()->render('layout', array(
 	'title' => $title, 'pageTitle' => \W2\Html::raw(PAGE_TITLE),
 	'bodyClass' => isEditorAction($action) ? "editor" : "", 'editor' => isEditorAction($action), 'theme' => $themeMode,
-	'script' => isEditorAction($action) || ($action === 'upload' && !DISABLE_UPLOADS) || $savedDraft !== '', 'savedDraft' => $savedDraft,
+	'script' => true, 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
 		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit' || ($historyView['pageExists'] ?? false))

@@ -213,7 +213,7 @@ function writePage($page, $text)
 
 /**
  * Whether the page of this action contains the editor (text area, save button
- * and formatting help), and needs its script wiki.js
+ * and formatting help), whose script is in wiki.js
  */
 function isEditorAction($action)
 {
