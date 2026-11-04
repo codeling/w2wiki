@@ -1068,3 +1068,48 @@ body.editor form#edit > .formatbar + .editorbox {
 #tabledialog button[type="submit"]:hover {
 	background-color: rgb(69, 135, 226);
 }
+
+/*
+ * Dropping files (setupDrops() in wiki.js): while files are dragged over the editor or the upload page, a frame around
+ * the window with a hint at the top. It lets the mouse through, so that the text below it gets the drop (and the cursor,
+ * which shows where the files will go; .dropping marks the text, see above).
+ */
+.dropoverlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	pointer-events: none;
+	box-sizing: border-box;
+	border: 3px dashed var(--drop-outline);
+	background-color: color-mix(in srgb, var(--focus) 8%, transparent);
+	animation: dropoverlay-in .15s ease-out;
+}
+.dropoverlay[hidden] {
+	display: none;
+}
+.dropoverlay p {
+	position: absolute;
+	top: .75em;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: calc(100% - 2em);
+	box-sizing: border-box;
+	margin: 0;
+	padding: .5em 1em;
+	border: 1px solid var(--note-border);
+	border-radius: 5px;
+	background-color: var(--note-bg);
+	color: var(--note-fg);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+	font-size: 1.1em;
+	text-align: center;
+}
+@keyframes dropoverlay-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+  @media (prefers-reduced-motion: reduce) {
+	.dropoverlay {
+		animation: none;
+	}
+  }

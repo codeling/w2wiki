@@ -5,7 +5,8 @@
  *
  * Script of the wiki's pages: the keyboard shortcuts of every page, the navigation drawer (which can be dragged) and the
  * editor (local drafts, warning about unsaved changes, Ctrl+S and Ctrl+Enter to save, keys for bold, italic and links,
- * the formatting toolbar, indenting lines with Tab, inserting text files, preview).
+ * the formatting toolbar, indenting lines with Tab, inserting text files, preview), the dialog to upload files, and
+ * dropping files and images on the editor and the upload page.
  * Every page works without it: the shortcuts only follow the links and use the fields which the page has.
  */
 
@@ -195,8 +196,9 @@ function isTextFile(file)
 
 /**
  * Inserting Markdown and text files into the text of the editor, at the cursor: chosen with the button below the text,
- * or dropped on the text. A new page without a title gets the name of the (first) file. The text is then saved like
- * typed text, so nothing is stored before the page is saved.
+ * or dropped on the editor (see setupDrops(), which puts the cursor where they are dropped). A new page without a title
+ * gets the name of the (first) file. The text is then saved like typed text, so nothing is stored before the page is
+ * saved. Returns the function which inserts files.
  */
 function setupImport(form, textArea, titleInput)
 {
@@ -251,24 +253,8 @@ function setupImport(form, textArea, titleInput)
 			insertFiles(files);
 		});
 	}
-	let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
-	// (also without uploads, when there is no other handler for dropped files)
-	textArea.addEventListener('dragover', (event) =>
-	{
-		if (hasFiles(event))
-		{
-			event.preventDefault();
-		}
-	});
-	textArea.addEventListener('drop', (event) =>
-	{
-		let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter(isTextFile) : [];
-		if (files.length > 0)
-		{
-			event.preventDefault();
-			insertFiles(files);
-		}
-	});
+	// (dropped files come from setupDrops())
+	return insertFiles;
 }
 
 const INDENT = '    ';
@@ -395,16 +381,18 @@ function setupIndent(textArea)
  * page) opens a dialog to choose files. Images can be cropped in the dialog (the server does it, with the part to keep
  * sent as fractions of the image) and shrunk, which is shown as the size the image will have, and a file can be
  * stored under another name.
- * In the editor (with a text area), files dropped on the text and images pasted into it open the dialog with the
- * files already chosen, and the link to each file is inserted at the cursor; the text is not touched otherwise.
+ * In the editor (with a text area), images pasted into the text open the dialog with the files already chosen, and the
+ * link to each file is inserted at the cursor; the text is not touched otherwise. Dropped files are chosen the same way
+ * (see setupDrops(), which first puts the cursor where they are dropped).
  * On the upload page (no text area), the page is loaded again to show the new files in its list.
+ * Returns the function which chooses files for the dialog (and opens it), or null without uploads.
  */
 function setupUpload(dialog, textArea)
 {
 	let openButton = document.getElementById('uploadbutton');
 	if (!openButton || !dialog || !dialog.showModal)
 	{
-		return;
+		return null;
 	}
 	let fileInput = document.getElementById('uploadfile');
 	let nameLabel = document.getElementById('uploadname');
@@ -766,31 +754,9 @@ function setupUpload(dialog, textArea)
 		fileInput.value = '';
 	});
 
-	// (dropping files and pasting images need the text)
+	// (pasting images needs the text; dropped files come from setupDrops())
 	if (textArea)
 	{
-		let box = textArea.parentNode;
-		let hasFiles = (event) => event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
-		textArea.addEventListener('dragover', (event) =>
-		{
-			if (hasFiles(event))
-			{
-				event.preventDefault();
-				box.classList.add('dropping');
-			}
-		});
-		textArea.addEventListener('dragleave', () => box.classList.remove('dropping'));
-		textArea.addEventListener('drop', (event) =>
-		{
-			box.classList.remove('dropping');
-			// (Markdown and text files are inserted into the text instead, see setupImport())
-			let files = hasFiles(event) ? Array.from(event.dataTransfer.files).filter((file) => !isTextFile(file)) : [];
-			if (files.length > 0)
-			{
-				event.preventDefault();
-				chooseFiles(files);
-			}
-		});
 		textArea.addEventListener('paste', (event) =>
 		{
 			let clipboard = event.clipboardData;
@@ -809,6 +775,441 @@ function setupUpload(dialog, textArea)
 			}));
 		});
 	}
+	return chooseFiles;
+}
+
+/** Whether a drag carries files (from the computer; browsers may add the picture of an image dragged from a page too) */
+function dragHasFiles(event)
+{
+	return !!event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+}
+
+// (the styles of a text area which decide where its lines break, see textOffsetAt())
+const MIRROR_STYLES = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontVariant', 'fontStretch', 'fontKerning',
+	'fontFeatureSettings', 'fontVariantLigatures', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textIndent', 'textTransform',
+	'tabSize', 'whiteSpace', 'wordBreak', 'overflowWrap', 'direction', 'textAlign', 'paddingTop', 'paddingRight',
+	'paddingBottom', 'paddingLeft'];
+
+/**
+ * The position in the text of the text area under the point (in the coordinates of the window, like clientX and clientY
+ * of an event), or null if the point is not on the text area or the browser can't tell.
+ * Browsers don't tell where dropped files land in a text area: a copy of its text, with its font, size, padding and
+ * scroll position, is laid over it for a moment (invisible), and the browser finds the position in the copy.
+ */
+function textOffsetAt(textArea, x, y)
+{
+	let rect = textArea.getBoundingClientRect();
+	if (!(x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom)
+		|| !(document.caretPositionFromPoint || document.caretRangeFromPoint))
+	{
+		return null;
+	}
+	let style = getComputedStyle(textArea);
+	let mirror = document.createElement('div');
+	for (let name of MIRROR_STYLES)
+	{
+		mirror.style[name] = style[name];
+	}
+	let padding = (side) => parseFloat(style['padding' + side]) || 0;
+	let border = (side) => parseFloat(style['border' + side + 'Width']) || 0;
+	// (inside the border and without the scrollbar, where the text area shows its text)
+	Object.assign(mirror.style, {
+		position: 'fixed', boxSizing: 'content-box', margin: '0', border: '0', overflow: 'hidden', opacity: '0',
+		zIndex: '2147483647', pointerEvents: 'auto',
+		left: (rect.left + border('Left')) + 'px', top: (rect.top + border('Top')) + 'px',
+		width: Math.max(0, textArea.clientWidth - padding('Left') - padding('Right')) + 'px',
+		height: Math.max(0, textArea.clientHeight - padding('Top') - padding('Bottom')) + 'px'
+	});
+	// (the character after the text gives a line break at the end a line of its own, as in the text area)
+	mirror.textContent = textArea.value + '​';
+	document.body.appendChild(mirror);
+	mirror.scrollTop = textArea.scrollTop;
+	mirror.scrollLeft = textArea.scrollLeft;
+	let node = null;
+	let offset = 0;
+	if (document.caretPositionFromPoint)
+	{
+		let position = document.caretPositionFromPoint(x, y);
+		if (position)
+		{
+			node = position.offsetNode;
+			offset = position.offset;
+		}
+	}
+	else
+	{
+		let range = document.caretRangeFromPoint(x, y);
+		if (range)
+		{
+			node = range.startContainer;
+			offset = range.startOffset;
+		}
+	}
+	let text = mirror.firstChild;
+	mirror.remove();
+	if (node === mirror)
+	{
+		return offset > 0 ? textArea.value.length : 0;
+	}
+	return node === text ? Math.min(offset, textArea.value.length) : null;
+}
+
+// (the extensions of image files, for addresses of images without an <img>)
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|avif|svg|bmp|ico)$/i;
+
+/**
+ * The image which a drag from a web page carries (an image of a page, maybe in a link, or the address of an image
+ * file), as { url (URL), alt (text), isImage (bool: certainly an image, not only an address) }; null for other drags
+ * (text, links, files of the computer), which keep their usual behaviour. Only http and https addresses.
+ * The HTML of the drag is only parsed, in a document which loads nothing and runs nothing.
+ */
+function draggedImage(data)
+{
+	let types = Array.from(data.types || []);
+	let source = null;
+	let alt = '';
+	let isImage = false;
+	if (types.includes('text/html'))
+	{
+		let html = new DOMParser().parseFromString(data.getData('text/html'), 'text/html');
+		let images = html.querySelectorAll('img');
+		// (a selection of text with an image is text)
+		if (images.length !== 1 || html.body.textContent.trim() !== '')
+		{
+			return null;
+		}
+		source = images[0].getAttribute('src');
+		alt = images[0].getAttribute('alt') || '';
+		isImage = true;
+	}
+	else if (types.includes('text/uri-list'))
+	{
+		let addresses = data.getData('text/uri-list').split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '' && line[0] !== '#');
+		source = addresses.length === 1 ? addresses[0] : null;
+	}
+	if (!source)
+	{
+		return null;
+	}
+	let url;
+	try
+	{
+		url = new URL(source, location.href);
+	}
+	catch (e)
+	{
+		return null;
+	}
+	// (no javascript:, data:, blob: or file: addresses)
+	return (url.protocol === 'http:' || url.protocol === 'https:') ? { url, alt, isImage } : null;
+}
+
+/**
+ * The Markdown which an image dragged into the editor becomes (see draggedImage()), or null if the drag is no image:
+ * for a file of the wiki's uploads (as file.php serves it, or under the address of the uploads folder) the same link as
+ * after uploading it, for other images ![alt](address).
+ * form.dataset: fileUrl (the address of file.php), uploadPrefix (the address of the uploads folder in links, with a
+ * slash at the end), msgImageAlt (the alt text of the links to uploads)
+ */
+function imageMarkdown(form, image)
+{
+	if (!image)
+	{
+		return null;
+	}
+	let url = image.url;
+	let name = null;
+	if (url.origin === location.origin)
+	{
+		let fileUrl = new URL(form.dataset.fileUrl, location.href);
+		let prefix = new URL(form.dataset.uploadPrefix, location.href).pathname;
+		if (url.pathname === fileUrl.pathname)
+		{
+			name = url.searchParams.get('name');
+		}
+		else if (url.pathname.startsWith(prefix))
+		{
+			try
+			{
+				name = decodeURIComponent(url.pathname.slice(prefix.length));
+			}
+			catch (e)
+			{
+				name = null;
+			}
+		}
+	}
+	// (a name the uploads can have: no folders, no hidden files, nothing which would end the link)
+	if (name && !/[\/\\\s<>()\[\]\u0000-\u001f\u007f]/.test(name) && name[0] !== '.')
+	{
+		return (image.isImage || IMAGE_EXTENSIONS.test(name)) ? '![' + form.dataset.msgImageAlt + '](' + form.dataset.uploadPrefix + name + ')' : null;
+	}
+	if (!image.isImage && !IMAGE_EXTENSIONS.test(url.pathname))
+	{
+		return null;
+	}
+	let alt = image.alt.replace(/\s+/g, ' ').trim().slice(0, 200).replace(/[\\\[\]]/g, '\\$&');
+	// (parentheses would end the address early)
+	return '![' + alt + '](' + url.href.replace(/\(/g, '%28').replace(/\)/g, '%29') + ')';
+}
+
+/**
+ * The whole page as a place to drop files (the editor, or the upload page): while files are dragged over it, a hint
+ * covers it (only to be seen: the overlay lets the events through, and screen readers skip it), and files dropped
+ * anywhere are taken, so that the browser does not open them instead of the page (which would lose the text).
+ * Nothing changes for drags within the page or of text and links, except that a link dropped next to the text is not
+ * opened either.
+ * In the editor (textArea), files dropped on the text go where they are dropped: the cursor is put there before the
+ * files are inserted or the dialog to upload them opens (while they are dragged over the text, the cursor follows the
+ * mouse, and goes back if they are not dropped there). Files dropped elsewhere go to the cursor, or at the end of the
+ * text if it never had the focus. An image dragged from a page (another tab, the upload page, the preview) becomes a
+ * link to it, see imageMarkdown().
+ * options: message (the text of the hint), files(files) (takes the dropped files), image(dataTransfer) (the text which a
+ * dropped image becomes, or null; not on the upload page), uploadFiles(files) (chooses files for the open dialog to upload)
+ */
+function setupDrops(textArea, options)
+{
+	let overlay = document.createElement('div');
+	overlay.className = 'dropoverlay';
+	overlay.hidden = true;
+	overlay.setAttribute('aria-hidden', 'true');
+	let label = document.createElement('p');
+	label.textContent = options.message;
+	overlay.appendChild(label);
+	document.body.appendChild(overlay);
+	let box = textArea ? textArea.parentNode : null;
+	// (dragenter and dragleave come for every element: the hint goes when the drag has left them all)
+	let depth = 0;
+	// (a drag which started in this page: an image of the preview, selected text)
+	let internal = false;
+	// (the cursor before the drag moved it, to go back to)
+	let saved = null;
+	let lastPoint = null;
+	let everFocused = false;
+
+	let dialogOpen = () => document.querySelector('dialog[open]');
+	let isFileInput = (element) => element instanceof HTMLInputElement && element.type === 'file';
+	let isEditable = (element) => element instanceof HTMLTextAreaElement || (element instanceof HTMLInputElement && element.type !== 'file')
+		|| (element instanceof HTMLElement && element.isContentEditable);
+	let fileDrag = (event) => !internal && dragHasFiles(event);
+
+	if (textArea)
+	{
+		textArea.addEventListener('focus', () => { everFocused = true; });
+	}
+
+	function moveCaret(event)
+	{
+		let point = event.clientX + ',' + event.clientY + ',' + textArea.scrollTop;
+		if (point === lastPoint)
+		{
+			return;
+		}
+		lastPoint = point;
+		let offset = textOffsetAt(textArea, event.clientX, event.clientY);
+		if (offset === null)
+		{
+			return;
+		}
+		if (!saved)
+		{
+			saved = {
+				start: textArea.selectionStart, end: textArea.selectionEnd, direction: textArea.selectionDirection,
+				scrollTop: textArea.scrollTop, active: document.activeElement, everFocused
+			};
+		}
+		textArea.focus({ preventScroll: true });
+		textArea.setSelectionRange(offset, offset);
+	}
+
+	function restoreCaret()
+	{
+		lastPoint = null;
+		if (!saved)
+		{
+			return;
+		}
+		let previous = saved;
+		saved = null;
+		textArea.setSelectionRange(previous.start, previous.end, previous.direction);
+		textArea.scrollTop = previous.scrollTop;
+		if (previous.active !== textArea)
+		{
+			if (previous.active && previous.active !== document.body && previous.active.focus)
+			{
+				previous.active.focus({ preventScroll: true });
+			}
+			else
+			{
+				textArea.blur();
+			}
+			everFocused = previous.everFocused;
+		}
+	}
+
+	/** The drag is over: dropped (in the text: the cursor stays where it was dropped), cancelled, or gone */
+	function endDrag(droppedInText)
+	{
+		depth = 0;
+		overlay.hidden = true;
+		if (box)
+		{
+			box.classList.remove('dropping');
+		}
+		if (droppedInText)
+		{
+			saved = null;
+			lastPoint = null;
+		}
+		else if (textArea)
+		{
+			restoreCaret();
+		}
+	}
+
+	/** Puts the cursor where something is dropped: at the offset in the text, or else where it was (the end of a text which never had the focus) */
+	function placeCaret(offset)
+	{
+		if (offset !== null)
+		{
+			textArea.focus({ preventScroll: true });
+			textArea.setSelectionRange(offset, offset);
+		}
+		else if (!everFocused)
+		{
+			textArea.setSelectionRange(textArea.value.length, textArea.value.length);
+		}
+	}
+
+	document.addEventListener('dragstart', () => { internal = true; });
+	document.addEventListener('dragend', () =>
+	{
+		internal = false;
+		endDrag(false);
+	});
+	document.addEventListener('dragenter', (event) =>
+	{
+		if (fileDrag(event) && !dialogOpen())
+		{
+			depth++;
+			overlay.hidden = false;
+		}
+	});
+	document.addEventListener('dragleave', (event) =>
+	{
+		if (!fileDrag(event) || overlay.hidden)
+		{
+			return;
+		}
+		depth = Math.max(0, depth - 1);
+		if (depth === 0)
+		{
+			endDrag(false);
+		}
+	});
+	document.addEventListener('dragover', (event) =>
+	{
+		// (the file chooser of the dialog takes files itself)
+		if (!event.dataTransfer || isFileInput(event.target))
+		{
+			return;
+		}
+		let files = fileDrag(event);
+		if (files && !dialogOpen())
+		{
+			// (also when dragenter was missed)
+			overlay.hidden = false;
+			if (textArea && event.target === textArea)
+			{
+				event.preventDefault();
+				event.dataTransfer.dropEffect = 'copy';
+				box.classList.add('dropping');
+				moveCaret(event);
+				return;
+			}
+		}
+		if (textArea && event.target === textArea)
+		{
+			// (text, links and images: the browser shows where they go)
+			return;
+		}
+		if (box)
+		{
+			box.classList.remove('dropping');
+			restoreCaret();
+		}
+		// (files, and in the editor links and images, are not opened instead of the page)
+		if (files || (textArea && !isEditable(event.target) && Array.from(event.dataTransfer.types || []).includes('text/uri-list')))
+		{
+			event.preventDefault();
+			event.dataTransfer.dropEffect = 'copy';
+		}
+	});
+	document.addEventListener('drop', (event) =>
+	{
+		let data = event.dataTransfer;
+		if (!data || isFileInput(event.target))
+		{
+			endDrag(false);
+			return;
+		}
+		let files = fileDrag(event);
+		let inText = !!textArea && event.target === textArea;
+		let offset = inText ? textOffsetAt(textArea, event.clientX, event.clientY) : null;
+		endDrag(inText);
+		internal = false;
+		if (dialogOpen())
+		{
+			if (files)
+			{
+				event.preventDefault();
+				// (on the dialog to upload files, as with its file chooser)
+				if (options.uploadFiles && document.getElementById('uploaddialog') === dialogOpen())
+				{
+					options.uploadFiles(Array.from(data.files));
+				}
+			}
+			return;
+		}
+		let image = (textArea && options.image) ? options.image(data) : null;
+		if (image !== null)
+		{
+			event.preventDefault();
+			placeCaret(offset);
+			insertTyped(textArea, image);
+		}
+		else if (files && data.files.length > 0)
+		{
+			event.preventDefault();
+			if (textArea)
+			{
+				placeCaret(offset);
+			}
+			options.files(Array.from(data.files));
+		}
+		else if (textArea && !isEditable(event.target) && Array.from(data.types || []).includes('text/uri-list'))
+		{
+			event.preventDefault();
+		}
+	});
+	// (no drag events come any more: the drag has ended somehow, e.g. outside of the window)
+	for (let type of ['mousemove', 'pointerdown'])
+	{
+		document.addEventListener(type, () =>
+		{
+			if (!overlay.hidden)
+			{
+				endDrag(false);
+			}
+		});
+	}
+	document.addEventListener('keydown', (event) =>
+	{
+		if (event.key === 'Escape' && !overlay.hidden)
+		{
+			endDrag(false);
+		}
+	});
 }
 
 const PREVIEW_DELAY = 400;
@@ -1962,10 +2363,16 @@ document.addEventListener('DOMContentLoaded', () =>
 		removeDraft(document.body.dataset.savedDraft);
 	}
 	// (the editor has the text area, the upload page only the button)
-	setupUpload(document.getElementById('uploaddialog'), document.getElementById('text'));
+	let chooseUploads = setupUpload(document.getElementById('uploaddialog'), document.getElementById('text'));
 	let form = document.getElementById("edit");
 	if (!form)
 	{
+		// (the upload page: files dropped anywhere are uploaded)
+		let dropHint = document.querySelector('.uploadaction[data-msg-drop]');
+		if (chooseUploads && dropHint)
+		{
+			setupDrops(null, { message: dropHint.dataset.msgDrop, files: chooseUploads, uploadFiles: chooseUploads });
+		}
 		return;
 	}
 	makeElementDraggable(document.getElementById("drawer"));
@@ -2113,7 +2520,26 @@ document.addEventListener('DOMContentLoaded', () =>
 	setupIndent(textArea);
 	setupFormatKeys(textArea);
 	setupFormatBar(textArea);
-	setupImport(form, textArea, titleInput);
+	let importFiles = setupImport(form, textArea, titleInput);
+	// (Markdown and text files are inserted as text, other files uploaded; without uploads, the others are refused with a message)
+	setupDrops(textArea, {
+		message: form.dataset.msgDrop,
+		files: (files) =>
+		{
+			let texts = chooseUploads ? files.filter(isTextFile) : files;
+			let others = chooseUploads ? files.filter((file) => !isTextFile(file)) : [];
+			if (texts.length > 0)
+			{
+				importFiles(texts);
+			}
+			if (others.length > 0)
+			{
+				chooseUploads(others);
+			}
+		},
+		image: (data) => imageMarkdown(form, draggedImage(data)),
+		uploadFiles: chooseUploads
+	});
 	preview = setupPreview(form, textArea);
 	setupPreviewShortcut(textArea);
 

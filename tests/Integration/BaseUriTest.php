@@ -25,5 +25,7 @@ final class BaseUriTest extends AppTestCase
 			}
 		}
 		$this->assertStringNotContainsString('"/w2-icons/', $body . $edit);
+		// (which images dragged into the text are uploads of the wiki, see setupDrops() in wiki.js)
+		$this->assertStringContainsString('data-upload-prefix="/sub/w2/images/" data-file-url="/sub/w2/file.php"', $edit);
 	}
 }

@@ -16,6 +16,9 @@
  *         after the form so that Enter in it can't save the page; the button for it is in the formatting toolbar),
  *         previewUrl (text: the address which renders the text for the preview, see api.php; the preview and its
  *         button are hidden until the script shows them),
+ *         uploadPrefix (text: how links in pages refer to uploads, followed by the name of the file, see uploadUrlPrefix()),
+ *         fileUrl (text: the address of file.php, which serves the uploads in rendered pages; both tell the script which
+ *         images dragged into the text are uploads of the wiki, which are linked like after uploading them),
  *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save()),
  *         diff (null, or Html: the lines which differ between the current text of the page and the text in the editor, with
  *         some lines around them, see diff-lines)
@@ -46,7 +49,7 @@
 <?php endif ?>
 </div>
 <?php endif ?>
-<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>" data-msg-import-too-large="<?= __('The file %s is larger than 2 MB and was not inserted.') ?>" data-msg-import-not-text="<?= __('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.') ?>">
+<form id="edit" method="post" action="<?= $this->e(SELF) ?>" data-draft-key="<?= $this->draftKey ?>"<?= $this->unsaved ? ' data-unsaved="true"' : '' ?> data-msg-restored="<?= __('Restored unsaved draft from %s.') ?>" data-msg-conflict="<?= __('Warning: the page was changed since this draft was started.') ?>" data-msg-discard="<?= __('Discard draft') ?>" data-msg-import-too-large="<?= __('The file %s is larger than 2 MB and was not inserted.') ?>" data-msg-import-not-text="<?= __('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.') ?>" data-msg-drop="<?= $this->uploadDialog !== null ? __('Drop files to upload them and insert links') : __('Drop Markdown or text files to insert their text') ?>" data-upload-prefix="<?= $this->uploadPrefix ?>" data-file-url="<?= $this->fileUrl ?>" data-msg-image-alt="<?= __('Image Description') ?>">
 <?= $this->csrfField ?>
 
 <input type="hidden" name="draftKey" value="<?= $this->draftKey ?>" />

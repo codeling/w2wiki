@@ -71,7 +71,6 @@ $w2_word_set = array(
 	'Whole image' => 'Ganzes Bild',
 	'Cropped to %s.' => 'Auf %s zugeschnitten.',
 	'%s can not be cropped: only bitmap images can be, and only if image processing (the PHP extension imagick) is available on this server.' => '%s kann nicht zugeschnitten werden: Das geht nur bei Pixelbildern, und nur wenn die Bildverarbeitung (die PHP-Erweiterung imagick) auf diesem Server verfügbar ist.',
-	'Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)' => 'Eine Datei hochladen und den Link darauf an der Cursorposition einfügen (auch durch Ablegen von Dateien auf dem Text oder Einfügen eines Bildes)',
 	'The server did not answer as expected (maybe the session has expired). Please reload the page.' => 'Der Server hat nicht wie erwartet geantwortet (vielleicht ist die Sitzung abgelaufen). Bitte lade die Seite neu.',
 	// Messages
 	'Upload error' => 'Fehler beim Hochladen',
@@ -246,4 +245,9 @@ $w2_word_set = array(
 	'Rows below the header row' => 'Zeilen unter der Kopfzeile',
 	'The first row of a table is its header row: replace the names of the columns.' => 'Die erste Zeile einer Tabelle ist ihre Kopfzeile: Ersetze die Namen der Spalten.',
 	'Insert' => 'Einfügen',
+	// Dropping files and images on the editor and the upload page
+	'Upload a file and insert a link to it at the cursor (also by dropping files on the editor, or pasting an image)' => 'Eine Datei hochladen und den Link darauf an der Cursorposition einfügen (auch durch Ablegen von Dateien im Editor oder Einfügen eines Bildes)',
+	'Drop files to upload them and insert links' => 'Dateien ablegen, um sie hochzuladen und Links darauf einzufügen',
+	'Drop Markdown or text files to insert their text' => 'Markdown- oder Textdateien ablegen, um ihren Text einzufügen',
+	'Drop files to upload them' => 'Dateien ablegen, um sie hochzuladen',
 );

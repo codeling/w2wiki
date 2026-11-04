@@ -33,7 +33,7 @@
 <button type="button" data-format="rule" title="<?= __('Horizontal rule') ?>"><?= iconSvg('format-horizontal-rule', translate('Horizontal rule')) ?></button>
 <button type="button" id="tablebutton" title="<?= __('Table: of a size to choose, or of the selected lines with cells separated by tabs or commas (as copied from a spreadsheet)') ?>" aria-haspopup="dialog"><?= iconSvg('insert-table', translate('Table: of a size to choose, or of the selected lines with cells separated by tabs or commas (as copied from a spreadsheet)')) ?></button>
 <?php if ($this->uploads): ?>
-<button type="button" id="uploadbutton" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)') ?>" aria-haspopup="dialog"><?= iconSvg('upload', translate('Upload a file and insert a link to it at the cursor (also by dropping files on the text or pasting an image)')) ?></button>
+<button type="button" id="uploadbutton" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the editor, or pasting an image)') ?>" aria-haspopup="dialog"><?= iconSvg('upload', translate('Upload a file and insert a link to it at the cursor (also by dropping files on the editor, or pasting an image)')) ?></button>
 <?php endif ?>
 <button type="button" id="drawer-control" class="helpbutton" title="<?= __('Formatting help') ?>" aria-controls="drawer" aria-expanded="false"><?= iconSvg('help', translate('Formatting help')) ?></button>
 </div>

@@ -75,6 +75,18 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('w2wiki-draft:/index.php:new:', $form->getAttribute('data-draft-key'));
 	}
 
+	public function testEditorTellsTheScriptAboutDroppedFilesAndImages(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
+			$form = $this->form($this->http->get('/index.php', $query)->body, 'edit');
+			// (the hint while files are dragged over the editor, and what images of the uploads become: see setupDrops())
+			$this->assertSame('Drop files to upload them and insert links', $form->getAttribute('data-msg-drop'));
+			$this->assertSame('/images/', $form->getAttribute('data-upload-prefix'));
+			$this->assertSame('/file.php', $form->getAttribute('data-file-url'));
+			$this->assertSame('Image Description', $form->getAttribute('data-msg-image-alt'));
+		}
+	}
+
 	public function testTextOfTheEditorIsDescribedWithTheKeysForIndenting(): void
 	{
 		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home']] as $query) {
@@ -252,7 +264,7 @@ final class FormsTest extends AppTestCase
 		$body = $this->http->get('/index.php', ['action' => 'upload', 'page' => 'Home'])->body;
 		// (no form of its own and no script in the page: the same dialog as in the editor, opened by the script of the wiki)
 		$this->assertStringNotContainsString('<form id="upload"', $body);
-		$this->assertStringContainsString('<input id="uploadbutton" type="button" value="Upload" />', $body);
+		$this->assertStringContainsString('<p class="uploadaction" data-msg-drop="Drop files to upload them"><input id="uploadbutton" type="button" value="Upload" />', $body);
 		$this->assertStringContainsString('<dialog id="uploaddialog"', $body);
 		$this->assertStringContainsString('<script src="/wiki.js', $body);
 		$this->assertNoActiveContent($body);
