@@ -21,7 +21,7 @@ if (PHP_SAPI !== 'cli') {
 	exit(1);
 }
 const APP_FILES = ['index.php', 'api.php', 'auth.php', 'auth_functions.php', 'functions.php', 'defaults.php', 'config.sample.php', 'index.css', 'wiki.js'];
-const APP_DIRS = ['Michelf', 'locales', 'src', 'w2-icons', 'webauth', 'vendor'];
+const APP_DIRS = ['Michelf', 'locales', 'src', 'w2-icons', 'webicons', 'webauth', 'vendor'];
 
 // --- the child process: one request ---------------------------------------------------------------------------
 
