@@ -29,7 +29,8 @@ final class PageFrameTest extends AppTestCase
 		$this->assertMatchesRegularExpression('#<script src="/wiki\.js\?v=\d+" defer="defer"></script>#', $body);
 		$this->assertStringContainsString('<body class="editor">', $body);
 		$this->assertStringContainsString('<div id="drawer" class="inactive">', $body);
-		$this->assertStringContainsString('<a id="drawer-control" href=""', $body);
+		// (the button which shows it is the last one of the formatting toolbar above the text, see FormatBarTest)
+		$this->assertStringContainsString('<button type="button" id="drawer-control" class="helpbutton"', $body);
 		$this->assertStringNotContainsString('class="sidebar"', $body, 'no sidebar in the editor');
 	}
 

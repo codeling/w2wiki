@@ -68,9 +68,11 @@ test('page text in the editor is shown as text', async ({ page, request }) => {
   const text = '</textarea><img src=x onerror=alert(1)><script>alert(2)</script>';
   await savePage(request, 'Editor payload', text);
   await page.goto('/index.php?action=edit&page=Editor%20payload');
+  await expect(page.locator('#text')).toHaveValue(text);
   await interact(page);
   expect(dialogs).toEqual([]);
-  await expect(page.locator('#text')).toHaveValue(text);
+  // (the buttons of the formatting toolbar, which interact() clicks too, add their formatting to it)
+  expect(await page.locator('#text').inputValue()).toContain(text);
 });
 
 test('uploaded file names are shown as text', async ({ page, request }) => {

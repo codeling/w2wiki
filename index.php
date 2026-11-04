@@ -704,7 +704,7 @@ print templates()->render('layout', array(
 			'icons' => array_map(fn($mode) => iconSvg('theme-' . $mode, sprintf(translate('Color scheme: %s'),
 				array('auto' => translate('System'), 'light' => translate('Light'), 'dark' => translate('Dark'))[$mode])), THEME_MODES)
 		)),
-		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix(), 'uploads' => !DISABLE_UPLOADS)) : null,
+		'drawer' => isEditorAction($action) ? templates()->render('drawer', array('uploadUrl' => uploadUrlPrefix())) : null,
 		'sidebar' => $sidebar, 'linksHere' => $linksHere,
 		'note' => $note->isEmpty() ? null : \W2\Html::raw($note->render()),
 		'content' => $content,

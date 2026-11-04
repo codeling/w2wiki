@@ -5,13 +5,20 @@
  *
  * Script of the wiki's pages: the keyboard shortcuts of every page, the navigation drawer (which can be dragged) and the
  * editor (local drafts, warning about unsaved changes, Ctrl+S and Ctrl+Enter to save, keys for bold, italic and links,
- * indenting lines with Tab, inserting text files, preview).
+ * the formatting toolbar, indenting lines with Tab, inserting text files, preview).
  * Every page works without it: the shortcuts only follow the links and use the fields which the page has.
  */
 
 function toggleDrawer()
 {
-	document.getElementById('drawer').classList.toggle('inactive');
+	let drawer = document.getElementById('drawer');
+	drawer.classList.toggle('inactive');
+	// (the button of the formatting toolbar which shows it; the drawer is also closed by its own link)
+	let control = document.getElementById('drawer-control');
+	if (control)
+	{
+		control.setAttribute('aria-expanded', drawer.classList.contains('inactive') ? 'false' : 'true');
+	}
 }
 
 // The button in the toolbar to change the color scheme: the change is applied at once and saved in the background,
@@ -267,21 +274,33 @@ function setupImport(form, textArea, titleInput)
 const INDENT = '    ';
 
 /**
- * Indents (by INDENT) or outdents (by up to INDENT, or one tab) the lines of the text which the selection from start to
- * end touches; empty lines are left as they are. Returns the part of the text to replace (start, end), its replacement,
- * and the selection afterwards (selectionStart, selectionEnd); or null if no line changes.
+ * The lines of the text which the selection from start to end touches: where they start and end in the text, and the
+ * lines (without line breaks). A selection of whole lines ends after the line break of the last one: the next line is
+ * not part of it.
  */
-function indentLines(text, start, end, outdent)
+function touchedLines(text, start, end)
 {
-	let blockStart = text.lastIndexOf('\n', start - 1) + 1;
-	// (a selection of whole lines ends after the line break of the last one: the next line is not part of it)
+	let blockStart = start > 0 ? text.lastIndexOf('\n', start - 1) + 1 : 0;
 	let lastPosition = (end > start && text[end - 1] === '\n') ? end - 1 : end;
 	let blockEnd = text.indexOf('\n', lastPosition);
 	if (blockEnd < 0)
 	{
 		blockEnd = text.length;
 	}
-	let lines = text.slice(blockStart, blockEnd).split('\n');
+	return { start: blockStart, end: blockEnd, lines: text.slice(blockStart, blockEnd).split('\n') };
+}
+
+/**
+ * Indents (by INDENT) or outdents (by up to INDENT, or one tab) the lines of the text which the selection from start to
+ * end touches; empty lines are left as they are. Returns the part of the text to replace (start, end), its replacement,
+ * and the selection afterwards (selectionStart, selectionEnd); or null if no line changes.
+ */
+function indentLines(text, start, end, outdent)
+{
+	let block = touchedLines(text, start, end);
+	let blockStart = block.start;
+	let blockEnd = block.end;
+	let lines = block.lines;
 	let changes = lines.map((line) =>
 	{
 		if (outdent)
@@ -1134,6 +1153,342 @@ function linkSelection(text, start, end)
 	return { start: start, end: end, replacement: '[' + selected + '](url)', selectionStart: url, selectionEnd: url + 3 };
 }
 
+/** Whether the line has no text (only spaces, or nothing) */
+function isBlank(line)
+{
+	return line.trim() === '';
+}
+
+/**
+ * Changes the starts of the lines which the selection from start to end touches (see touchedLines()): starts(lines)
+ * gives for every line the length of the part at its start which is replaced, and its replacement. The selection moves
+ * with the text: a position in a replaced part goes to the end of its replacement, except the start of a selection at
+ * the start of a line, which stays there (so that whole lines stay selected). Returns the change like toggleEmphasis(),
+ * or null if the text stays as it is.
+ */
+function changeLineStarts(text, start, end, starts)
+{
+	let block = touchedLines(text, start, end);
+	let parts = starts(block.lines);
+	let replacement = block.lines.map((line, i) => parts[i][1] + line.slice(parts[i][0])).join('\n');
+	if (replacement === text.slice(block.start, block.end))
+	{
+		return null;
+	}
+	function moved(position, isStart)
+	{
+		let lineStart = block.start;
+		let newLineStart = block.start;
+		for (let i = 0; i < block.lines.length; i++)
+		{
+			let [length, prefix] = parts[i];
+			let lineEnd = lineStart + block.lines[i].length;
+			// (the end of a selection of whole lines is after the last of them)
+			if (position <= lineEnd || i === block.lines.length - 1)
+			{
+				let column = position - lineStart;
+				return (isStart && column === 0) ? newLineStart : newLineStart + prefix.length + Math.max(0, column - length);
+			}
+			newLineStart += prefix.length + block.lines[i].length - length + 1;
+			lineStart = lineEnd + 1;
+		}
+		return position;
+	}
+	return { start: block.start, end: block.end, replacement: replacement,
+		selectionStart: moved(start, start !== end), selectionEnd: moved(end, false) };
+}
+
+/** The level of the heading which the line is (the number of "#" at its start), or 0 */
+function headingLevel(line)
+{
+	let match = /^#{1,6}/.exec(line);
+	return match ? match[0].length : 0;
+}
+
+/**
+ * Headings of the level (1 to 6) for the lines which the selection from start to end touches: their "#" are set, or
+ * replaced if they are headings of another level; if all of them are headings of this level already, the "#" are
+ * removed. Empty lines stay as they are, unless all lines are empty (like the line of the cursor): then the heading
+ * starts there. Returns the change like toggleEmphasis(), or null.
+ */
+function setHeading(text, start, end, level)
+{
+	return changeLineStarts(text, start, end, (lines) =>
+	{
+		let used = lines.filter((line) => !isBlank(line));
+		let remove = used.length > 0 && used.every((line) => headingLevel(line) === level);
+		return lines.map((line) =>
+		{
+			if (used.length > 0 && isBlank(line))
+			{
+				return [0, ''];
+			}
+			return [/^#{0,6}[ \t]*/.exec(line)[0].length, remove ? '' : '#'.repeat(level) + ' '];
+		});
+	});
+}
+
+// The start of an item of a list: the indentation, the marker ("-", "*", "+", or a number with "." or ")"), spaces
+const LIST_ITEM = /^([ \t]*)([-*+]|\d+[.)])[ \t]+/;
+
+/**
+ * A bulleted ("- ") or numbered ("1. ", "2. ", ...) list of the lines which the selection from start to end touches
+ * (empty lines are skipped, unless all are empty); the marker of another kind of list is replaced, and the indentation
+ * is kept. If all lines are items of such a list already, their markers are removed. Returns the change like
+ * toggleEmphasis(), or null.
+ */
+function toggleList(text, start, end, numbered)
+{
+	return changeLineStarts(text, start, end, (lines) =>
+	{
+		let used = lines.filter((line) => !isBlank(line));
+		let isItem = (line) =>
+		{
+			let match = LIST_ITEM.exec(line);
+			return !!match && /\d/.test(match[2]) === numbered;
+		};
+		let remove = used.length > 0 && used.every(isItem);
+		let number = 0;
+		return lines.map((line) =>
+		{
+			if (used.length > 0 && isBlank(line))
+			{
+				return [0, ''];
+			}
+			let match = LIST_ITEM.exec(line);
+			let indentation = match ? match[1] : /^[ \t]*/.exec(line)[0];
+			let length = match ? match[0].length : indentation.length;
+			if (remove)
+			{
+				return [length, indentation];
+			}
+			number++;
+			return [length, indentation + (numbered ? number + '. ' : '- ')];
+		});
+	});
+}
+
+/**
+ * A quote ("> ") of the lines which the selection from start to end touches; empty lines between them get ">", so that
+ * they stay one quote, and those before and after them stay as they are. If all lines are quoted already, the ">" are
+ * removed. Returns the change like toggleEmphasis(), or null.
+ */
+function toggleQuote(text, start, end)
+{
+	return changeLineStarts(text, start, end, (lines) =>
+	{
+		let first = lines.findIndex((line) => !isBlank(line));
+		let last = lines.length - 1 - lines.slice().reverse().findIndex((line) => !isBlank(line));
+		let remove = first >= 0 && lines.every((line) => isBlank(line) || /^ {0,3}>/.test(line));
+		return lines.map((line, i) =>
+		{
+			if (remove)
+			{
+				let match = /^ {0,3}> ?/.exec(line);
+				return [match ? match[0].length : 0, ''];
+			}
+			if (first < 0)
+			{
+				return [line.length, '> '];
+			}
+			if (i < first || i > last)
+			{
+				return [0, ''];
+			}
+			return isBlank(line) ? [line.length, '>'] : [0, '> '];
+		});
+	});
+}
+
+/**
+ * Puts the block (lines, like a table) in place of the part of the text from start to end, with blank lines before and
+ * after it as needed, so that it is a block of its own. Returns the change like toggleEmphasis(), with the cursor after
+ * the block, and where the block starts in the text afterwards (blockStart).
+ */
+function asBlock(text, start, end, block)
+{
+	let before = text.slice(0, start);
+	let after = text.slice(end);
+	let pre = (before === '' || before.endsWith('\n\n')) ? '' : (before.endsWith('\n') ? '\n' : '\n\n');
+	let post = after.startsWith('\n\n') ? '' : ((after === '' || after.startsWith('\n')) ? '\n' : '\n\n');
+	let replacement = pre + block + post;
+	return { start: start, end: end, replacement: replacement, selectionStart: start + replacement.length,
+		selectionEnd: start + replacement.length, blockStart: start + pre.length };
+}
+
+/**
+ * Where a new block goes for the cursor (or the end of the selection) at the position: before its line if it is at the
+ * start of the line, else after the line, so that no line is split
+ */
+function blockPosition(text, position)
+{
+	if (position === 0 || text[position - 1] === '\n')
+	{
+		return position;
+	}
+	let lineEnd = text.indexOf('\n', position);
+	return lineEnd < 0 ? text.length : lineEnd;
+}
+
+/**
+ * Code: `code` for a selection within a line (or `` ` `` at the cursor, removed again by the next press), removing the
+ * backticks of code which is marked already; a selection which contains a backtick gets two, with spaces. Returns the
+ * change like toggleEmphasis().
+ */
+function toggleInlineCode(text, start, end)
+{
+	[start, end] = trimSelection(text, start, end);
+	let selected = text.slice(start, end);
+	if (start > 0 && text[start - 1] === '`' && text[end] === '`')
+	{
+		return { start: start - 1, end: end + 1, replacement: selected, selectionStart: start - 1, selectionEnd: end - 1 };
+	}
+	let marked = /^(`+) ?([^]*?) ?\1$/.exec(selected);
+	if (selected.length >= 2 && marked)
+	{
+		return { start: start, end: end, replacement: marked[2], selectionStart: start, selectionEnd: start + marked[2].length };
+	}
+	let [open, close] = selected.includes('`') ? ['`` ', ' ``'] : ['`', '`'];
+	return { start: start, end: end, replacement: open + selected + close, selectionStart: start + open.length,
+		selectionEnd: end + open.length };
+}
+
+// A line which starts or ends a fenced code block
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/**
+ * Code for the selection from start to end: inline code for a selection within a line, or the cursor in a line with
+ * text (see toggleInlineCode()); a fenced code block of the lines for a selection of several lines, or the cursor in
+ * an empty line, with the cursor after the opening ``` to type the language (like ```php, see the highlighting of code
+ * in toHTML()). Lines which are a fenced code block already, with the fences, lose the fences. Returns the change like
+ * toggleEmphasis().
+ */
+function toggleCode(text, start, end)
+{
+	let block = touchedLines(text, start, end);
+	let lines = block.lines;
+	if (lines.length >= 2 && FENCE.test(lines[0]) && FENCE.test(lines[lines.length - 1]))
+	{
+		let inner = lines.slice(1, -1).join('\n');
+		return { start: block.start, end: block.end, replacement: inner, selectionStart: block.start, selectionEnd: block.start + inner.length };
+	}
+	if (!text.slice(start, end).includes('\n') && (start !== end || !isBlank(lines[0])))
+	{
+		return toggleInlineCode(text, start, end);
+	}
+	let change = asBlock(text, block.start, block.end, '```\n' + (lines.every(isBlank) ? '' : lines.join('\n') + '\n') + '```');
+	change.selectionStart = change.selectionEnd = change.blockStart + 3;
+	return change;
+}
+
+/** A horizontal rule after the line of the cursor (see blockPosition()), as a block of its own; returns the change like toggleEmphasis() */
+function insertRule(text, start, end)
+{
+	let position = blockPosition(text, end);
+	return asBlock(text, position, position, '---');
+}
+
+/**
+ * The lines of a table of PHP Markdown Extra: the rows are lists of cells (the first one is the header row; rows with
+ * fewer cells get empty ones), and the columns are as wide as their widest cell, so that the table can be read as text
+ */
+function tableLines(rows)
+{
+	let columns = Math.max(...rows.map((row) => row.length));
+	let cells = rows.map((row) => Array.from({ length: columns }, (_, i) => row[i] || ''));
+	let widths = Array.from({ length: columns }, (_, i) => Math.max(3, ...cells.map((row) => row[i].length)));
+	let line = (row) => '| ' + row.map((cell, i) => cell + ' '.repeat(widths[i] - cell.length)).join(' | ') + ' |';
+	return [line(cells[0]), line(widths.map((width) => '-'.repeat(width)))].concat(cells.slice(1).map(line)).join('\n');
+}
+
+/**
+ * A table with the number of columns, and of rows below the header row, after the line of the cursor (see
+ * blockPosition()), as a block of its own. The header cells are named by columnName (with the number of the column for
+ * %s); the first one is selected, to type the name of the column. Returns the change like toggleEmphasis().
+ */
+function insertTable(text, start, end, columns, rows, columnName)
+{
+	let header = Array.from({ length: columns }, (_, i) => columnName.replace('%s', () => String(i + 1)));
+	let position = blockPosition(text, end);
+	let change = asBlock(text, position, position, tableLines([header].concat(Array.from({ length: rows }, () => []))));
+	change.selectionStart = change.blockStart + 2;
+	change.selectionEnd = change.selectionStart + header[0].length;
+	return change;
+}
+
+/**
+ * A table of the selected lines if they are rows of cells separated by tabs (as copied from a spreadsheet) or by commas
+ * (the same number in every line, no quotes): at least two lines, the first of which is the header row. Returns the
+ * change like toggleEmphasis(), or null if the selection is not such a list.
+ */
+function tableOfSelection(text, start, end)
+{
+	if (start === end)
+	{
+		return null;
+	}
+	let block = touchedLines(text, start, end);
+	let lines = block.lines.filter((line) => !isBlank(line));
+	if (lines.length < 2)
+	{
+		return null;
+	}
+	let separator = null;
+	if (lines.every((line) => line.includes('\t')))
+	{
+		separator = '\t';
+	}
+	else if (lines[0].includes(',') && !lines.some((line) => /["|]/.test(line))
+		&& lines.every((line) => line.split(',').length === lines[0].split(',').length))
+	{
+		separator = ',';
+	}
+	if (separator === null)
+	{
+		return null;
+	}
+	// (a "|" in a cell would end it: it is escaped)
+	let rows = lines.map((line) => line.split(separator).map((cell) => cell.trim().replace(/\|/g, '\\|')));
+	return asBlock(text, block.start, block.end, tableLines(rows));
+}
+
+/**
+ * A link to a page of the wiki: [[selection]], with the name selected (or the cursor between the brackets); the
+ * brackets are removed if the selection is such a link already. Returns the change like toggleEmphasis().
+ */
+function wikiLinkSelection(text, start, end)
+{
+	[start, end] = trimSelection(text, start, end);
+	let selected = text.slice(start, end);
+	if (start >= 2 && text.slice(start - 2, start) === '[[' && text.slice(end, end + 2) === ']]')
+	{
+		return { start: start - 2, end: end + 2, replacement: selected, selectionStart: start - 2, selectionEnd: end - 2 };
+	}
+	if (/^\[\[[^\]]*\]\]$/.test(selected))
+	{
+		let inner = selected.slice(2, -2);
+		return { start: start, end: end, replacement: inner, selectionStart: start, selectionEnd: start + inner.length };
+	}
+	return { start: start, end: end, replacement: '[[' + selected + ']]', selectionStart: start + 2, selectionEnd: end + 2 };
+}
+
+/**
+ * The changes of the formatting toolbar (see setupFormatBar()) and of the keys of the editor (setupFormatKeys()), by
+ * the name in data-format of the buttons: each takes the text and the selection, and returns the change (see
+ * toggleEmphasis()) or null
+ */
+const FORMATS = {
+	bold: (text, start, end) => toggleEmphasis(text, start, end, '**'),
+	italic: (text, start, end) => toggleEmphasis(text, start, end, '*'),
+	link: linkSelection,
+	wikilink: wikiLinkSelection,
+	bullets: (text, start, end) => toggleList(text, start, end, false),
+	numbers: (text, start, end) => toggleList(text, start, end, true),
+	quote: toggleQuote,
+	code: toggleCode,
+	rule: insertRule
+};
+
 /** Makes the change (see toggleEmphasis()) in the text area as if it was typed: it can be undone, and counts as input */
 function applyChange(textArea, change)
 {
@@ -1145,11 +1500,8 @@ function applyChange(textArea, change)
 /** Ctrl+B (bold), Ctrl+I (italic) and Ctrl+K (link) in the text, Cmd on a Mac; see toggleEmphasis() and linkSelection() */
 function setupFormatKeys(textArea)
 {
-	let changes = {
-		b: (text, start, end) => toggleEmphasis(text, start, end, '**'),
-		i: (text, start, end) => toggleEmphasis(text, start, end, '*'),
-		k: linkSelection
-	};
+	// (the same as the buttons of the formatting toolbar)
+	let changes = { b: FORMATS.bold, i: FORMATS.italic, k: FORMATS.link };
 	textArea.addEventListener('keydown', (event) =>
 	{
 		let change = isCommand(event, false) && !event.isComposing ? changes[letterOf(event)] : null;
@@ -1164,6 +1516,261 @@ function setupFormatKeys(textArea)
 			applyChange(textArea, change(textArea.value, textArea.selectionStart, textArea.selectionEnd));
 		}
 	});
+}
+
+/**
+ * The number in the field (of type number), within its limits, or its default for no number (its limits keep the
+ * dialog open with a number outside of them; this is for browsers which don't check them)
+ */
+function numberIn(input)
+{
+	let value = parseInt(input.value, 10);
+	return Number.isNaN(value) ? Number(input.defaultValue) : Math.max(Number(input.min), Math.min(Number(input.max), value));
+}
+
+/**
+ * The formatting toolbar above the text (format-bar.php), which is hidden without the script: its buttons change the
+ * text like the keys of the editor (FORMATS, the same functions as Ctrl+B, Ctrl+I and Ctrl+K), as if it was typed (see
+ * applyChange(): one step to undo, and an input event for the draft, the warning about leaving and the preview).
+ * The buttons don't take the focus from the text when they are clicked, so that the selection stays; used with the
+ * keyboard, the text gets the focus back after the change. The toolbar is one stop of Tab: the arrow keys (and Home,
+ * End) move between its buttons, Esc goes back to the text, and Alt+F10 in the text goes to the toolbar.
+ * The heading button opens a menu of the levels (the level of the cursor's line is checked), the table button a dialog
+ * for the size of a table (table-dialog.php) unless the selected lines can be made a table (see tableOfSelection()),
+ * the last button shows the Markdown help (the drawer).
+ */
+function setupFormatBar(textArea)
+{
+	let bar = document.getElementById('formatbar');
+	if (!bar)
+	{
+		return;
+	}
+	let items = Array.from(bar.querySelectorAll('button:not([role^="menuitem"])'));
+	let menuButton = document.getElementById('headingbutton');
+	let menu = document.getElementById('headingmenu');
+	let menuItems = Array.from(menu.querySelectorAll('[role="menuitemradio"]'));
+	let dialog = document.getElementById('tabledialog');
+	let current = 0;
+
+	function apply(format)
+	{
+		let change = format(textArea.value, textArea.selectionStart, textArea.selectionEnd);
+		if (change)
+		{
+			applyChange(textArea, change);
+		}
+		else
+		{
+			textArea.focus();
+		}
+	}
+
+	// (one button can have the focus with Tab: the last one which had it)
+	function setCurrent(index, focus)
+	{
+		current = index;
+		items.forEach((item, i) => { item.tabIndex = (i === index) ? 0 : -1; });
+		if (focus)
+		{
+			items[index].focus();
+		}
+	}
+
+	function openMenu(focus)
+	{
+		let level = headingLevel(touchedLines(textArea.value, textArea.selectionStart, textArea.selectionStart).lines[0]);
+		for (let item of menuItems)
+		{
+			item.setAttribute('aria-checked', Number(item.dataset.level) === level ? 'true' : 'false');
+		}
+		menu.hidden = false;
+		menuButton.setAttribute('aria-expanded', 'true');
+		if (focus !== null)
+		{
+			menuItems[focus === 'last' ? menuItems.length - 1 : Math.max(0, level - 1)].focus();
+		}
+	}
+
+	function closeMenu(focusButton)
+	{
+		if (menu.hidden)
+		{
+			return;
+		}
+		menu.hidden = true;
+		menuButton.setAttribute('aria-expanded', 'false');
+		if (focusButton)
+		{
+			menuButton.focus();
+		}
+	}
+
+	bar.hidden = false;
+	setCurrent(0, false);
+	// (a click on a button leaves the focus, and the selection, in the text)
+	bar.addEventListener('mousedown', (event) =>
+	{
+		if (event.target.closest('button'))
+		{
+			event.preventDefault();
+		}
+	});
+	bar.addEventListener('focusin', (event) =>
+	{
+		let index = items.indexOf(event.target);
+		if (index >= 0)
+		{
+			setCurrent(index, false);
+		}
+	});
+	bar.addEventListener('keydown', (event) =>
+	{
+		let index = items.indexOf(event.target);
+		if (index < 0 || event.ctrlKey || event.altKey || event.metaKey)
+		{
+			return;
+		}
+		let next = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: items.length - 1 }[event.key];
+		if (next !== undefined)
+		{
+			event.preventDefault();
+			setCurrent((next + items.length) % items.length, true);
+		}
+		else if (event.key === 'Escape')
+		{
+			event.preventDefault();
+			textArea.focus();
+		}
+		else if (event.target === menuButton && (event.key === 'ArrowDown' || event.key === 'ArrowUp'))
+		{
+			event.preventDefault();
+			openMenu(event.key === 'ArrowUp' ? 'last' : 'first');
+		}
+	});
+	textArea.addEventListener('keydown', (event) =>
+	{
+		if (event.key === 'F10' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey)
+		{
+			event.preventDefault();
+			closeMenu(false);
+			items[current].focus();
+		}
+	});
+	// (Esc closes the menu wherever the focus is; in the menu, see below, it goes back to its button)
+	document.addEventListener('keydown', (event) =>
+	{
+		if (event.key === 'Escape')
+		{
+			closeMenu(false);
+		}
+	});
+
+	for (let button of bar.querySelectorAll('button[data-format]'))
+	{
+		button.addEventListener('click', () => apply(FORMATS[button.dataset.format]));
+	}
+
+	// the menu of the headings: opened by a click (the text keeps the focus) or with the keyboard (the menu gets it)
+	menuButton.addEventListener('click', (event) =>
+	{
+		if (!menu.hidden)
+		{
+			closeMenu(false);
+			return;
+		}
+		openMenu(event.detail === 0 || document.activeElement === menuButton ? 'first' : null);
+	});
+	for (let item of menuItems)
+	{
+		item.addEventListener('click', () =>
+		{
+			closeMenu(false);
+			apply((text, start, end) => setHeading(text, start, end, Number(item.dataset.level)));
+		});
+	}
+	menu.addEventListener('keydown', (event) =>
+	{
+		let index = menuItems.indexOf(event.target);
+		if (index < 0)
+		{
+			return;
+		}
+		let next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: menuItems.length - 1 }[event.key];
+		if (next !== undefined)
+		{
+			event.preventDefault();
+			menuItems[(next + menuItems.length) % menuItems.length].focus();
+		}
+		else if (event.key === 'Escape' || event.key === 'Tab' || event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+		{
+			event.preventDefault();
+			event.stopPropagation();
+			closeMenu(true);
+		}
+	});
+	document.addEventListener('mousedown', (event) =>
+	{
+		if (!menu.hidden && !menu.contains(event.target) && !menuButton.contains(event.target))
+		{
+			closeMenu(false);
+		}
+	});
+	menu.addEventListener('focusout', (event) =>
+	{
+		if (event.relatedTarget && !menu.contains(event.relatedTarget) && event.relatedTarget !== menuButton)
+		{
+			closeMenu(false);
+		}
+	});
+
+	// the table: of the selected lines, or of the size chosen in the dialog, at the selection which the text had
+	let tableButton = document.getElementById('tablebutton');
+	let columnsInput = document.getElementById('tablecolumns');
+	let rowsInput = document.getElementById('tablerows');
+	let selection = null;
+	let insertTableOf = (columns, rows) => apply((text, start, end) => insertTable(text, start, end, columns, rows, dialog.dataset.msgColumn));
+	tableButton.addEventListener('click', () =>
+	{
+		let converted = tableOfSelection(textArea.value, textArea.selectionStart, textArea.selectionEnd);
+		if (converted)
+		{
+			applyChange(textArea, converted);
+		}
+		else if (!dialog.showModal)
+		{
+			insertTableOf(Number(columnsInput.defaultValue), Number(rowsInput.defaultValue));
+		}
+		else
+		{
+			selection = [textArea.selectionStart, textArea.selectionEnd];
+			dialog.returnValue = '';
+			dialog.showModal();
+			columnsInput.focus();
+			columnsInput.select();
+		}
+	});
+	document.getElementById('tablecancel').addEventListener('click', () => dialog.close());
+	// (however it is closed: Insert sends its form, which closes it with the value of the button)
+	dialog.addEventListener('close', () =>
+	{
+		if (!selection)
+		{
+			return;
+		}
+		textArea.setSelectionRange(selection[0], selection[1]);
+		selection = null;
+		if (dialog.returnValue === 'insert')
+		{
+			insertTableOf(numberIn(columnsInput), numberIn(rowsInput));
+		}
+		else
+		{
+			textArea.focus();
+		}
+	});
+
+	document.getElementById('drawer-control').addEventListener('click', toggleDrawer);
 }
 
 /**
@@ -1505,6 +2112,7 @@ document.addEventListener('DOMContentLoaded', () =>
 	setupBacklinks(textArea);
 	setupIndent(textArea);
 	setupFormatKeys(textArea);
+	setupFormatBar(textArea);
 	setupImport(form, textArea, titleInput);
 	preview = setupPreview(form, textArea);
 	setupPreviewShortcut(textArea);

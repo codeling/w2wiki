@@ -609,10 +609,10 @@ svg.icon {
 	height: 1.5em;
 	vertical-align: middle;
 }
-a > svg.icon:hover, a > span.icongroup:hover {
+a > svg.icon:hover {
 	outline: 1px outset var(--icon-outline);
 }
-a > svg.icon:active, a > span.icongroup:active {
+a > svg.icon:active {
 	outline: 1px inset var(--icon-outline);
 }
 svg.icon {
@@ -899,4 +899,172 @@ body.editor form#edit > .editorbox {
 #shortcuts .shortcutsclose:hover, #shortcuts .shortcutsclose:focus-visible {
 	background-color: var(--switch-active);
 	outline: 1px solid var(--icon-outline);
+}
+
+/*
+ * The formatting toolbar directly above the text of the editor (format-bar.php, setupFormatBar() in wiki.js): flat
+ * buttons with icons (or short labels in the font of the text), in groups with lines between them, which wrap on narrow
+ * screens; the button of the Markdown help is at the end, apart from them. The menu of the headings drops down from its
+ * button, with the level of the cursor's line checked. The dialog for the size of a table looks like the one to upload
+ * files. Where the preview takes the place of the text (narrow screens), the toolbar goes with the text.
+ */
+.formatbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px;
+	margin-top: .5em;
+}
+body.editor form#edit > .formatbar + .editorbox {
+	margin-top: .25em;
+}
+.formatbar button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 2em;
+	height: 2em;
+	padding: 0 .3em;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	background: none;
+	color: var(--page-fg);
+	font-size: 1em;
+	cursor: pointer;
+}
+.formatbar button:hover, .formatbar button[aria-expanded="true"] {
+	background-color: var(--switch-active);
+	border-color: var(--icon-outline);
+}
+.formatbar button:active {
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45);
+}
+.formatbar button:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 1px;
+}
+.formatbar svg.icon {
+	width: 1.25em;
+	height: 1.25em;
+	color: var(--page-fg);
+}
+.formatbar .textlabel {
+	font-family: Courier, monospace;
+	font-weight: bold;
+	white-space: nowrap;
+}
+.formatsep {
+	align-self: stretch;
+	width: 1px;
+	margin: 4px 4px;
+	background-color: var(--rule);
+}
+.formatbar .helpbutton {
+	margin-left: auto;
+}
+.formatmenu {
+	position: relative;
+	display: inline-flex;
+}
+.headingmenu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	min-width: 10em;
+	padding: 3px;
+	border: 1px solid var(--dialog-border);
+	border-radius: 3px;
+	background-color: var(--search-bg);
+	color: var(--search-fg);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+}
+.formatbar .headingmenu button {
+	justify-content: flex-start;
+	height: auto;
+	padding: .2em .5em;
+	color: var(--search-fg);
+	font-weight: bold;
+	white-space: nowrap;
+}
+.headingmenu button[data-level="1"] {
+	font-size: 1.4em;
+}
+.headingmenu button[data-level="2"] {
+	font-size: 1.25em;
+}
+.headingmenu button[data-level="3"] {
+	font-size: 1.1em;
+}
+.headingmenu button[aria-checked="true"]::after {
+	content: "\2713";
+	margin-left: auto;
+	padding-left: 1em;
+}
+  @media (pointer: coarse) {
+	.formatbar button {
+		min-width: 2.5em;
+		height: 2.5em;
+	}
+  }
+  @media (max-width: 700px) {
+	.formatbar:has(+ .editorbox.previewing) {
+		display: none;
+	}
+  }
+#tabledialog {
+	width: 24em;
+	max-width: 95vw;
+	max-height: 95vh;
+	box-sizing: border-box;
+	overflow: auto;
+	margin: auto;
+	padding: .5em 1em 1em;
+	border: 1px solid var(--dialog-border);
+	border-radius: 5px;
+	background-color: var(--page-bg);
+	color: var(--page-fg);
+}
+#tabledialog::backdrop {
+	background-color: var(--dialog-backdrop);
+}
+#tabledialog h5 {
+	margin: 0 0 .5em;
+	font-size: 1.2em;
+}
+#tabledialog p {
+	margin: .5em 0;
+}
+#tabledialog label {
+	display: inline-block;
+	min-width: 12em;
+}
+#tabledialog input[type="number"] {
+	width: 5em;
+	padding: 2px;
+}
+#tabledialog .hint {
+	font-size: smaller;
+}
+#tabledialog button {
+	border: none;
+	border-radius: 3px;
+	padding: .5em 1em;
+	margin-right: .5em;
+	background-color: var(--button-bg);
+	color: var(--button-fg);
+	cursor: pointer;
+}
+#tabledialog button:hover {
+	background-color: var(--button-bg-hover);
+}
+#tabledialog button[type="submit"] {
+	background-color: rgb(30, 101, 201);
+	color: white;
+}
+#tabledialog button[type="submit"]:hover {
+	background-color: rgb(69, 135, 226);
 }

@@ -2,7 +2,8 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * The form to edit a page, or to write a new one (inside the main part of page).
+ * The form to edit a page, or to write a new one (inside the main part of page), with the formatting toolbar above the
+ * text (format-bar) and its dialog for tables (table-dialog) after the form.
  *
  * Values: draftKey (text, for the drafts kept in the browser), unsaved (bool: saving has failed, the text is
  *         not saved), isNew (bool), csrfField (Html),
@@ -12,7 +13,7 @@
  *         pages which link to it, mentions (href, name, snippet, baseHash) the pages which write its name without a link),
  *         text (text), rows (number), gitEnabled (bool), gitMessage (text),
  *         uploadDialog (Html, or null if uploads are disabled: the dialog to upload files, see upload-dialog, which comes
- *         after the form so that Enter in it can't save the page),
+ *         after the form so that Enter in it can't save the page; the button for it is in the formatting toolbar),
  *         previewUrl (text: the address which renders the text for the preview, see api.php; the preview and its
  *         button are hidden until the script shows them),
  *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save()),
@@ -68,6 +69,7 @@
 <div class="diff"><?= __('The current version of the page (lines marked -) compared with your text (lines marked +):') ?>
 <?= $this->diff ?></div>
 <?php endif ?>
+<?= $this->render('format-bar', array('uploads' => $this->uploadDialog !== null)) ?>
 <div class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="texthint"><?= $this->text ?></textarea><span id="texthint" class="visuallyhidden"><?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?></span>
 <div id="preview" class="preview" role="region" aria-label="<?= __('Preview') ?>" hidden="hidden" data-url="<?= $this->previewUrl ?>" data-msg-unavailable="<?= __('No preview:') ?>" data-msg-error="<?= __('The server did not answer as expected.') ?>" data-msg-offline="<?= __('The server cannot be reached.') ?>"><p class="previewstatus" role="status"></p><div class="previewcontent"></div></div></div>
 <?php if ($this->gitEnabled): ?>
@@ -81,4 +83,5 @@
 <input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />
 <input id="previewbutton" type="button" value="<?= __('Preview') ?>" title="<?= __('Show the text as it will look in the page (next to the text on wide screens, instead of it on narrow ones)') ?>" aria-pressed="false" aria-controls="preview" aria-keyshortcuts="Control+Alt+P Meta+Alt+P" hidden="hidden" />
 </p></form>
+<?= $this->render('table-dialog') ?>
 <?= $this->uploadDialog ?>

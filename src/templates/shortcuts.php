@@ -34,6 +34,7 @@
           <tr><th scope="row"><kbd><?= __('Ctrl') ?></kbd>+<kbd>I</kbd></th><td><?= __('Italic: the selected text, or * * at the cursor (again: removes it)') ?></td></tr>
           <tr><th scope="row"><kbd><?= __('Ctrl') ?></kbd>+<kbd>K</kbd></th><td><?= __('Link: [selected text](url), with url selected to type the address; without a selection [[ ]] for a link to a page') ?></td></tr>
           <tr><th scope="row"><kbd><?= __('Ctrl') ?></kbd>+<kbd>Alt</kbd>+<kbd>P</kbd></th><td><?= __('Show or hide the preview') ?></td></tr>
+          <tr><th scope="row"><kbd>Alt</kbd>+<kbd>F10</kbd></th><td><?= __('Go to the formatting toolbar above the text (arrow keys: the next button, Esc: back to the text)') ?></td></tr>
           <tr><th scope="row"><kbd>Tab</kbd>, <kbd><?= __('Shift') ?></kbd>+<kbd>Tab</kbd></th><td><?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?></td></tr>
         </tbody>
       </table>
