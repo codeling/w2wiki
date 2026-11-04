@@ -53,7 +53,7 @@ final class GitHistoryTest extends GitTestCase
 	public function testThePageActionsHaveTheHistory(): void
 	{
 		$body = $this->http->get($this->pageUrl('Home'))->body;
-		$this->assertMatchesRegularExpression('#<a href="/index\.php\?action=history&amp;page=Home"><svg class="icon icon-history" viewBox="0 0 16 16" role="img" aria-label="History"><title>History</title><use href="/w2-icons/history\.svg\?v=\d+\#i"/></svg></a>#', $body);
+		$this->assertMatchesRegularExpression('#<a href="/index\.php\?action=history&amp;page=Home"><svg class="icon icon-history" viewBox="0 0 16 16" role="img" aria-label="History"><title>History</title><use href="/webicons/icons/history\.svg\?v=\d+\#i"/></svg></a>#', $body);
 		$this->assertStringContainsString('icon-history', $this->http->get('/index.php', ['action' => 'all'])->body);
 		// (not in the list of versions itself)
 		$this->assertStringNotContainsString('icon-history', $this->view('history', 'Home')->body);
