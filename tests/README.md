@@ -44,6 +44,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `UploadResponseTest` tests `W2\UploadResponse`, which decides how `file.php` answers requests for uploaded files
   (types, refused names, headers, caching) in a temporary folder; `UploadServingTest` and `UploadServingAuthTest` (integration)
   `file.php` itself, also with a password.
+  `PreviewTest` and `PreviewAuthTest` (integration) test the preview of the editor (`api.php?task=preview`): the same HTML
+  as the view of the page, token and login required, nothing stored, and texts larger than `post_max_size`.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
   `HighlighterTest` tests `W2\Highlighter`, the syntax highlighting of fenced code blocks (the tokens of every language,
   aliases, escaping of script payloads, well-formed output, large and pathological inputs, the parser hook);

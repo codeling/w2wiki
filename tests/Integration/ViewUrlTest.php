@@ -52,4 +52,11 @@ final class ViewUrlTest extends AppTestCase
 		$html = $this->http->get('/index.php')->body;
 		$this->assertMatchesRegularExpression('/href="\/index\.php\?action=upload&amp;page=Home"/', $html);
 	}
+
+	public function testPreviewLinksToThePagesLikeTheView(): void
+	{
+		$response = $this->http->post('/api.php', ['csrf_token' => $this->csrfToken(), 'newText' => 'see [[Home]]'], ['task' => 'preview']);
+		$this->assertSame(200, $response->status);
+		$this->assertStringContainsString('href="/index.php?action=view&amp;page=Home"', json_decode($response->body, true)['html']);
+	}
 }
