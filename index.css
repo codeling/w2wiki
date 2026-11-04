@@ -672,3 +672,50 @@ svg.icon.icon-delete {
 	vertical-align: middle;
 	padding-left:5px;
 }
+
+/*
+ * The history of a page in git (with GIT_COMMIT_ENABLED, see history.php and version.php): the list of versions, and the
+ * banner above an old version or its differences (which have the box of the editor's differences, .diff)
+ */
+.historynav a {
+	margin-left: 1em;
+}
+table.history td {
+	word-break: normal;
+	overflow-wrap: anywhere;
+	vertical-align: top;
+}
+table.history tr.deleted {
+	color: var(--snippet);
+}
+.historylinks a {
+	margin-right: .7em;
+	white-space: nowrap;
+}
+.oldversion {
+	background-color: var(--note-bg);
+	color: var(--note-fg);
+	border: solid 1px var(--note-border);
+	padding: 4px;
+	margin: .5em 0 1em 0;
+}
+.oldversion p {
+	margin: .2em 0;
+}
+.oldversion code {
+	background: none;
+	padding: 0;
+}
+.versionmessage {
+	overflow-wrap: anywhere;
+}
+.versionlinks a, .versionlinks span.current {
+	margin-right: 1em;
+	white-space: nowrap;
+}
+.versionlinks span.current {
+	font-weight: bold;
+}
+.nodiff {
+	font-style: italic;
+}

@@ -51,7 +51,13 @@ final class PageStore
 	/** The file of a page (which may not exist; the name is not checked) */
 	public function path(string $page): string
 	{
-		return "$this->root/$page.$this->extension";
+		return "$this->root/" . $this->fileName($page);
+	}
+
+	/** The file of a page relative to the pages folder, like "sub/Page.md" (the name is not checked) */
+	public function fileName(string $page): string
+	{
+		return "$page.$this->extension";
 	}
 
 	public function exists(string $page): bool

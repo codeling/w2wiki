@@ -145,7 +145,7 @@ function hasMalformedRequestData(array $get, array $post, array $server, array $
 {
 	$textParameters = array('action', 'page', 'q', 'sortBy', 'task', 'filename', 'newname', 'newName', 'oldPageName',
 		'imgName', 'prevpage', 'csrf_token', 'newText', 'isNew', 'gitmsg', 'overwrite', 'resize', 'maxsize', 'linkshere', 'p', 'draftKey', 'baseHash', 'json',
-		'name', 'v');
+		'name', 'v', 'rev', 'to');
 	foreach ( array($get, $post) as $values )
 	{
 		foreach ( $textParameters as $name )
@@ -217,6 +217,15 @@ function writePage($page, $text)
 function isEditorAction($action)
 {
 	return $action === 'edit' || $action === 'new';
+}
+
+/**
+ * Whether the action shows the history of a page from git, or one of its versions (see W2\History): the list of versions,
+ * a version, what changed in it, and the editor with the text of a version to restore it. They need GIT_COMMIT_ENABLED.
+ */
+function isHistoryAction($action)
+{
+	return in_array($action, array('history', 'version', 'diff', 'restore'), true);
 }
 
 /**
@@ -997,14 +1006,18 @@ function themeReturnUrl($url, $self)
 }
 
 /**
- * The icons to do something with a page (edit, delete, rename, show the pages which link to it), except for
- * the action which is being done, as links to the actions.
+ * The icons to do something with a page (edit, delete, rename, show its history if changes are committed to git, show
+ * the pages which link to it), except for the action which is being done, as links to the actions.
  *
  * return W2\Html
  */
 function getPageActions($page, $action)
 {
 	$pageActions = array('edit' => translate('Edit'), 'delete' => translate('Delete'), 'rename' => translate('Rename'));
+	if (GIT_COMMIT_ENABLED)
+	{
+		$pageActions['history'] = translate('History');
+	}
 	$items = array();
 	foreach ($pageActions as $name => $label)
 	{

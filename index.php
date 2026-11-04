@@ -357,7 +357,7 @@ $text = "";
 $baseHash = null;
 $diff = null;
 $content = \W2\Html::raw('');
-if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete')
+if ($action === 'view' || $action === 'edit' || $action === 'save' || $action === 'rename' || $action === 'delete' || isHistoryAction($action))
 {
 	// Look for page name following the script name in the URL, like this:
 	// http://stevenf.com/w2demo/index.php/Markdown%20Syntax
@@ -473,20 +473,38 @@ if ( $action == 'save' )
 	$_SESSION['note'] = $note->toArray();
 }
 
+// The history of a page in git (see W2\HistoryViews): the views only read; restoring a version opens the editor with its
+// text, which is saved like any other text (with the hash of the current text, so that a change made since is not lost)
+$historyView = null;
+if ( isHistoryAction($action) )
+{
+	$historyView = (new \W2\HistoryViews(new \W2\History(new \W2\Git(PAGES_PATH), pageStore())))
+		->show($action, $page, $_GET['rev'] ?? '', ($_GET['to'] ?? '') === 'current', (int)($_GET['p'] ?? 1));
+	http_response_code($historyView['status']);
+	$content = $historyView['content'];
+	if ( $historyView['restore'] !== null )
+	{
+		$action = 'edit';
+		$text = $historyView['restore']['text'];
+		$baseHash = $historyView['restore']['baseHash'];
+		$oldgitmsg = $historyView['restore']['gitMessage'];
+	}
+}
+
 if ( isEditorAction($action) )
 {
 	$showContext = ($action === 'new' && $newPage != "" && !$triedSave);
 	$similarPages = $showContext ? (new \W2\Lists())->similarPages($newPage) : null;
 	$pageContext = $showContext ? (new \W2\Lists())->pageContext($newPage) : null;
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
-	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey :
-		"w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage");
+	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey : ($historyView['restore']['draftKey'] ??
+		("w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage")));
 	$content = templates()->render('editor', array(
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
-		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff,
+		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff === null ? null : templates()->render('diff-lines', array('lines' => $diff)),
 		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog()
 	));
 }
@@ -581,6 +599,10 @@ else if ( $action === 'search' )
 {
 	$content = (new \W2\Lists())->search($_REQUEST['q'] ?? '');
 }
+else if ( isHistoryAction($action) )
+{
+	// (the content was made above, see W2\HistoryViews)
+}
 else
 {
 	$content = \W2\Html::raw(empty($text) ? '' : toHTML($text));
@@ -603,6 +625,11 @@ else if ( $action === 'new' )
 else if ( $action === 'search' )
 {
 	$title = translate("Search");
+}
+else if ( isHistoryAction($action) )
+{
+	$title = $historyView['title'];
+	$modified = $historyView['date'];
 }
 else if (isset($filename) && $filename != '')
 {
@@ -649,6 +676,10 @@ $linksHere = ($action === 'view' && isset($_GET['linkshere'])) ? (new \W2\Lists(
 
 $note = \W2\Note::fromArray($_SESSION['note'] ?? null);
 unset($_SESSION['note']);
+if ( ($historyView['note'] ?? null) !== null )
+{
+	$note->append($historyView['note']);
+}
 
 // (the key of the local draft which the browser can remove, because its text has just been saved)
 $savedDraft = $_SESSION['savedDraft'] ?? '';
@@ -663,7 +694,7 @@ print templates()->render('layout', array(
 	'script' => isEditorAction($action) || ($action === 'upload' && !DISABLE_UPLOADS) || $savedDraft !== '', 'savedDraft' => $savedDraft,
 	'content' => templates()->render('page', array(
 		'title' => $title, 'modified' => $modified,
-		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit')
+		'pageActions' => ($action === 'view' || $action === 'rename' || $action === 'delete' || $action === 'edit' || ($historyView['pageExists'] ?? false))
 			? getPageActions($page, $action) : null,
 		'toolbar' => $toolbar,
 		'themeSwitch' => templates()->render('theme-switch', array(

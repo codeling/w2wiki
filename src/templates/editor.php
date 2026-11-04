@@ -14,9 +14,8 @@
  *         uploadDialog (Html, or null if uploads are disabled: the dialog to upload files, see upload-dialog, which comes
  *         after the form so that Enter in it can't save the page),
  *         baseHash (text, or null for a new page: identifies the text of the page as it was opened, see Changes::save()),
- *         diff (null, or the lines which differ between the current text of the page and the text in the editor, with some
- *         lines around them: see LineDiff::withContext(); each is a list of the kind (LineDiff::SAME, REMOVED, ADDED,
- *         GAP) and the line, or for a gap the number of lines left out)
+ *         diff (null, or Html: the lines which differ between the current text of the page and the text in the editor, with
+ *         some lines around them, see diff-lines)
  */
 ?>
 <?php if ($this->pageContext !== null && ($this->pageContext['links'] || $this->pageContext['mentions'])): ?>
@@ -65,17 +64,7 @@
 <?php endif ?>
 <?php if ($this->diff !== null): ?>
 <div class="diff"><?= __('The current version of the page (lines marked -) compared with your text (lines marked +):') ?>
-<pre><?php foreach ($this->diff as $line): ?>
-<?php if ($line[0] === 'gap'): ?>
-<span class="gap">@@ <?= sprintf(__('%s unchanged lines'), $line[1]) ?> @@</span>
-<?php elseif ($line[0] === 'removed'): ?>
-<span class="removed">- <?= $line[1] ?></span>
-<?php elseif ($line[0] === 'added'): ?>
-<span class="added">+ <?= $line[1] ?></span>
-<?php else: ?>
-<span class="same">  <?= $line[1] ?></span>
-<?php endif ?>
-<?php endforeach ?></pre></div>
+<?= $this->diff ?></div>
 <?php endif ?>
 <p class="editorbox"><textarea id="text" name="newText" rows="<?= $this->rows ?>" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="texthint"><?= $this->text ?></textarea><span id="texthint" class="visuallyhidden"><?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?></span></p>
 <?php if ($this->gitEnabled): ?>

@@ -2,7 +2,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * The icons to do something with a page: edit, delete, rename, show the pages which link to it.
+ * The icons to do something with a page: edit, delete, rename, show its history (with git), show the pages which link to it.
  *
  * Values: items (list of: href, icon (Html, see iconSvg()), label)
  */
