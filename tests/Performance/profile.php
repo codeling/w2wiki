@@ -70,7 +70,7 @@ timed('getPageActions() for every page (the icons of a row)', function () use ($
 timed('assetURL() 4 times for every page (is_file + filemtime)', function () use ($names) {
 	foreach ($names as $page) {
 		foreach (['edit', 'delete', 'rename', 'link'] as $icon) {
-			assetURL("w2-icons/$icon.svg");
+			assetURL("webicons/icons/$icon.svg");
 		}
 	}
 });
