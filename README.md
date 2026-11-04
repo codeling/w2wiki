@@ -39,6 +39,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
         - Mark external links with globe icon
 	- Image uploads:
 		- One dialog to upload files, in the editor (a button of the formatting toolbar above the text; drag & drop of files and paste of images open it with the files chosen, and the link is inserted at the cursor) and on the upload page (a button above the list)
+		- Drag & drop: files dropped on the text are linked where they are dropped (the cursor follows them while they are dragged over it); dropped anywhere else in the editor, at the cursor, and never opened by the browser instead of the page; on the upload page, anywhere on the page. A hint covers the page while files are dragged over it. Images dragged from other pages become images in the text: those of the wiki's uploads (from the list of uploads, the preview, or a page in another tab) with the same link as after uploading, others with their address (`![alt](https://...)`)
 		- Store a file under another name
 		- Crop uploaded images in the dialog (drag the frame over the image), with the size of the result shown
 		- Option to shrink uploaded images (based on maximum side length, after cropping)

@@ -27,6 +27,8 @@
 <br/>
 <?= __('The buttons above the text format the selected text or the lines of the cursor, and insert rules and tables; each change can be undone with Ctrl+Z. Alt+F10 in the text goes to the buttons, the arrow keys move between them, and Esc goes back to the text.') ?><br/>
 <br/>
+<?= __('Files dropped on the text go where they are dropped (elsewhere in the editor: to the cursor): Markdown and text files are inserted, other files uploaded and linked. Images dragged from other pages or the list of uploads are linked.') ?><br/>
+<br/>
 <?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?><br/>
 <br/>
 <?= __('The Preview button below the text shows how the page will look, next to the text or (on narrow screens) instead of it.') ?><br/>

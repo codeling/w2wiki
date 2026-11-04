@@ -250,4 +250,5 @@ $w2_word_set = array(
 	'Drop files to upload them and insert links' => 'Dateien ablegen, um sie hochzuladen und Links darauf einzufügen',
 	'Drop Markdown or text files to insert their text' => 'Markdown- oder Textdateien ablegen, um ihren Text einzufügen',
 	'Drop files to upload them' => 'Dateien ablegen, um sie hochzuladen',
+	'Files dropped on the text go where they are dropped (elsewhere in the editor: to the cursor): Markdown and text files are inserted, other files uploaded and linked. Images dragged from other pages or the list of uploads are linked.' => 'Auf dem Text abgelegte Dateien kommen an die Stelle, an der sie abgelegt werden (anderswo im Editor: an die Cursorposition): Markdown- und Textdateien werden eingefügt, andere Dateien hochgeladen und verlinkt. Aus anderen Seiten oder der Liste der hochgeladenen Dateien gezogene Bilder werden verlinkt.',
 );
