@@ -13,7 +13,7 @@
  * The colors are custom properties with a value for the light and one for the dark color scheme (light-dark()).
  * The scheme is that of the system, or the one chosen with the buttons of the toolbar (data-theme of the root element).
  *
- * The icons (w2-icons/*.svg) are inline SVGs in the pages which show the shape in a file (<use>, see iconSvg()). The
+ * The icons (webicons/icons/*.svg, the subtree of codeling/webicons) are inline SVGs in the pages which show the shape in a file (<use>, see iconSvg()). The
  * files draw with currentColor, so the color of the icons is set here (svg.icon), also for the dark scheme. The
  * globe after external links is a mask, painted with the color of the text.
  */
@@ -418,8 +418,8 @@ input#gitmsg {
 	margin-left: .2em;
 	vertical-align: -.15em;
 	background-color: currentColor;
-	-webkit-mask: url('w2-icons/internet.svg') center / contain no-repeat;
-	mask: url('w2-icons/internet.svg') center / contain no-repeat;
+	-webkit-mask: url('webicons/icons/internet.svg') center / contain no-repeat;
+	mask: url('webicons/icons/internet.svg') center / contain no-repeat;
 }
 
 .main a.literalMatch {

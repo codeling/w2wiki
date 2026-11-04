@@ -18,12 +18,13 @@ final class BaseUriTest extends AppTestCase
 		$body = $this->http->get('/index.php')->body;
 		$edit = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home'])->body;
 		foreach ([$body, $edit] as $html) {
-			preg_match_all('/(?:src|href)="(\/[^"]*w2-icons\/[^"]*|\/[^"]*\.(?:css|js))"/', $html, $matches);
+			preg_match_all('/(?:src|href)="(\/[^"]*(?:w2-icons|webicons)\/[^"]*|\/[^"]*\.(?:css|js))"/', $html, $matches);
 			$this->assertNotEmpty($matches[1]);
 			foreach ($matches[1] as $url) {
 				$this->assertStringStartsWith('/sub/w2/', $url);
 			}
 		}
 		$this->assertStringNotContainsString('"/w2-icons/', $body . $edit);
+		$this->assertStringNotContainsString('"/webicons/', $body . $edit);
 	}
 }
