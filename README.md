@@ -25,6 +25,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Markdown formatting syntax help on edit page
     - Insert the text of Markdown or text files into the editor (button below the text, or drag & drop on the text); a new page gets the file's name
     - Live preview in the editor (button below the text): rendered by the server like the page itself (links, embeds, uploads), next to the text on wide screens and instead of it on narrow ones; the choice is remembered in the browser
+    - Keyboard shortcuts (`?` shows the list): `/` search, `e` edit, `n` new page, `g` `h` home page, `g` `a` all pages, `h` history (with git); in the editor Ctrl+S or Ctrl+Enter save, Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+Alt+P preview, Tab indents (Cmd and Option on a Mac). They only use the links of the page, and are left alone while typing; the pages work without them (and without JavaScript)
     - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
     - Optional sidebar fed by a special page (shown when viewing pages, in the page list and in search results, but not when editing)

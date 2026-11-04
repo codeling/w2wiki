@@ -44,6 +44,8 @@ also fails if the wiki logged PHP warnings, notices or deprecations while it ran
   `UploadResponseTest` tests `W2\UploadResponse`, which decides how `file.php` answers requests for uploaded files
   (types, refused names, headers, caching) in a temporary folder; `UploadServingTest` and `UploadServingAuthTest` (integration)
   `file.php` itself, also with a password.
+  `KeyboardShortcutsTest` (integration) the keys of the keyboard shortcuts in the links which they use (`data-shortcut`), the list of
+  them in every page, and the script in every page (not on the login page, see `AuthTest`).
   `PreviewTest` and `PreviewAuthTest` (integration) test the preview of the editor (`api.php?task=preview`): the same HTML
   as the view of the page, token and login required, nothing stored, and texts larger than `post_max_size`.
   `NoteTest` tests `W2\Note`, the note after an action (plain text in, escaped HTML out).
@@ -124,7 +126,7 @@ What the container tests found out (and the Containerfile does, see "Running in 
 browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP tests use), uploaded
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
-The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`, the preview in `preview.spec.js`: updates while typing, the button and the remembered choice, the layout on wide and narrow screens, links, errors, and payloads which must not run in it)
+The other specs check behaviour of pages that needs a browser: the keyboard shortcuts of every page (`shortcuts.spec.js`: each key, the keys which are left alone while typing, with modifiers, repeated or during an input method, the list which `?` shows, the history with git, and the pages without a script), the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`: saving, bold, italic, links and undoing them, the preview, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`, the preview in `preview.spec.js`: updates while typing, the button and the remembered choice, the layout on wide and narrow screens, links, errors, and payloads which must not run in it)
 the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), the history of a page with git (`history.spec.js`: from the page to the versions, the changes of a version and restoring it), highlighted code blocks (`code-highlighting.spec.js`: readable in both color schemes, without violating the content security policy), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
 
 ```
