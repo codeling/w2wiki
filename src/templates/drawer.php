@@ -24,6 +24,8 @@
 > <?= __('Blockquote') ?><br/>```<?= __('Code') ?>```<br/>```php<br/><?= __('Code') ?><br/>```<br/>`<?= __('Inline code') ?>`<br/><br/>*** <?= __('Horizontal rule') ?><br/>--- <?= __('Horizontal rule') ?><br/>
 <br/>
 <?= __('Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.') ?><br/>
+<br/>
+<?= __('The Preview button below the text shows how the page will look, next to the text or (on narrow screens) instead of it.') ?><br/>
         </div>
       </div>
       <a id="drawer-control" href="" onclick="<?= HANDLER_TOGGLE_DRAWER ?>">

@@ -195,6 +195,12 @@ $w2_word_set = array(
 	'date_format'         => 'd.m.Y H:i',
 	'date_format_no_time' => 'd.m.Y',
 	// Preview in the editor
+	'Preview' => 'Vorschau',
+	'Show the text as it will look in the page (next to the text on wide screens, instead of it on narrow ones)' => 'Zeigt den Text so, wie er auf der Seite aussehen wird (auf breiten Bildschirmen neben dem Text, auf schmalen an seiner Stelle)',
+	'The Preview button below the text shows how the page will look, next to the text or (on narrow screens) instead of it.' => 'Die Schaltfläche „Vorschau“ unter dem Text zeigt, wie die Seite aussehen wird, neben dem Text oder (auf schmalen Bildschirmen) an seiner Stelle.',
+	'No preview:' => 'Keine Vorschau:',
+	'The server did not answer as expected.' => 'Der Server hat nicht wie erwartet geantwortet.',
+	'The server cannot be reached.' => 'Der Server ist nicht erreichbar.',
 	'You are not logged in (any more). Please log in again, in another tab to keep the text of this one.' => 'Du bist nicht (mehr) angemeldet. Bitte melde dich erneut an, in einem anderen Tab, damit der Text in diesem erhalten bleibt.',
 	'The text is too large for the preview: the server accepts requests of up to %s (post_max_size).' => 'Der Text ist zu groß für die Vorschau: Der Server nimmt Anfragen bis %s an (post_max_size).',
 	'The security token is missing or wrong, for example because the session has expired. Save the page or reload it to get a new one; the text is kept.' => 'Das Sicherheitstoken fehlt oder ist falsch, zum Beispiel weil die Sitzung abgelaufen ist. Speichere die Seite oder lade sie neu, um ein neues zu bekommen; der Text bleibt erhalten.',

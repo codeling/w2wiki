@@ -505,7 +505,7 @@ if ( isEditorAction($action) )
 		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
 		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff === null ? null : templates()->render('diff-lines', array('lines' => $diff)),
-		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog()
+		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog(), 'previewUrl' => BASE_URI . '/api.php?task=preview'
 	));
 }
 else if ( $action === 'logout' )

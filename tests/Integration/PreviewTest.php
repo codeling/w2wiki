@@ -215,4 +215,23 @@ final class PreviewTest extends AppTestCase
 	{
 		$this->assertStringContainsString(str_repeat('b', 1000), $this->previewHtml(str_repeat('b', 50 * 1024)));
 	}
+
+	public function testTheEditorsHaveThePreviewForTheScript(): void
+	{
+		foreach ([['action' => 'new'], ['action' => 'edit', 'page' => 'Home'], ['action' => 'edit', 'page' => 'Not there']] as $query) {
+			$body = $this->http->get('/index.php', $query)->body;
+			$this->assertStringContainsString('<div id="preview" class="preview" role="region" aria-label="Preview" hidden="hidden" data-url="/api.php?task=preview"', $body);
+			$this->assertStringContainsString('<input id="previewbutton" type="button" value="Preview"', $body);
+			$this->assertMatchesRegularExpression('/<input id="previewbutton"[^>]* aria-pressed="false" aria-controls="preview" hidden="hidden" \/>/', $body);
+			// (inside the box of the text, which is side by side with it)
+			$this->assertMatchesRegularExpression('/<div class="editorbox"><textarea id="text".*?<\/textarea>.*?<div id="preview"/s', $body);
+			$this->assertNoActiveContent($body);
+		}
+	}
+
+	public function testTheFormattingHelpMentionsThePreview(): void
+	{
+		$body = $this->http->get('/index.php', ['action' => 'new'])->body;
+		$this->assertStringContainsString('The Preview button below the text shows how the page will look', $body);
+	}
 }

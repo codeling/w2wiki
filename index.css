@@ -772,3 +772,50 @@ pre code span {
 .hl-d-del {
 	background-color: var(--diff-removed);
 }
+
+/*
+ * The preview in the editor (see setupPreview() in wiki.js): next to the text on wide screens, each with a scrollbar
+ * of its own, and instead of the text on narrow ones. Its content is in .main, so it looks like the page.
+ */
+body.editor form#edit > .editorbox {
+	margin-top: .5em;
+	gap: .5em;
+}
+.editorbox .preview {
+	flex: 1 1 0;
+	min-width: 0;
+	overflow: auto;
+	box-sizing: border-box;
+	padding: .3em .5em;
+	border: 1px solid var(--rule);
+	background-color: var(--page-bg);
+	color: var(--page-fg);
+	overflow-wrap: break-word;
+	/* (the size of the text in .main of a page: every element has .97em of its parent, see "*" above) */
+	font-size: calc(1rem * .97 * .97);
+}
+.preview .previewcontent {
+	font-size: 1em;
+}
+.editorbox .preview[aria-busy="true"] {
+	border-style: dashed;
+}
+.preview .previewstatus {
+	margin: 0 0 .5em;
+	padding: 4px;
+	background-color: var(--note-bg);
+	color: var(--note-fg);
+	border: solid 1px var(--note-border);
+}
+.preview .previewstatus:empty {
+	display: none;
+}
+#previewbutton[aria-pressed="true"] {
+	background-color: var(--button-bg-hover);
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, .45);
+}
+  @media (max-width: 700px) {
+	body.editor .editorbox.previewing textarea {
+		display: none;
+	}
+  }

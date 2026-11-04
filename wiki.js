@@ -4,7 +4,7 @@
  * W2
  *
  * Script of the wiki's pages: the navigation drawer (which can be dragged) and the editor
- * (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files).
+ * (local drafts, warning about unsaved changes, Ctrl+S to save, indenting lines with Tab, inserting text files, preview).
  */
 
 function toggleDrawer()
@@ -155,7 +155,9 @@ function sendUpload(url, formData, onProgress)
 function insertTyped(textArea, text)
 {
 	textArea.focus();
-	if (!document.execCommand || !document.execCommand('insertText', false, text))
+	// (a text area which is not shown, like behind the preview on narrow screens, can't get the focus: the text would go
+	// into the element which has it)
+	if (document.activeElement !== textArea || !document.execCommand || !document.execCommand('insertText', false, text))
 	{
 		textArea.setRangeText(text, textArea.selectionStart, textArea.selectionEnd, 'end');
 		textArea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -782,6 +784,244 @@ function setupUpload(dialog, textArea)
 	}
 }
 
+const PREVIEW_DELAY = 400;
+const PREVIEW_STORAGE_KEY = 'w2wiki-preview';
+
+function readPreviewChoice()
+{
+	try
+	{
+		return localStorage.getItem(PREVIEW_STORAGE_KEY) === 'shown';
+	}
+	catch (e)
+	{
+		return false;
+	}
+}
+
+function writePreviewChoice(shown)
+{
+	try
+	{
+		localStorage.setItem(PREVIEW_STORAGE_KEY, shown ? 'shown' : 'hidden');
+	}
+	catch (e)
+	{
+		// (without storage, the preview starts hidden every time)
+	}
+}
+
+/**
+ * The preview of the text: the button below the text shows it next to the text (on wide screens) or instead of it (on
+ * narrow ones, see index.css), and the choice is remembered in the browser. The server renders the text as it renders
+ * the page (api.php?task=preview), so that links, embeds, anchors and uploads look the same; a while after the last
+ * change of the text it is sent again (a request which is still running is cancelled). Errors, like a session which has
+ * expired, are shown in the preview; the text is not touched.
+ * The HTML comes from the renderer of the pages, which escapes the text: it is safe to insert (and the
+ * Content-Security-Policy would not run scripts in it anyway). The ids of its anchors are moved to data-anchor, so that
+ * they can't be mistaken for the elements of the editor; links within the text scroll the preview, others open in a new
+ * tab, so that the editor stays as it is.
+ * Returns an object whose update() renders the text again, for changes of the text without an input event.
+ */
+function setupPreview(form, textArea)
+{
+	let pane = document.getElementById('preview');
+	let button = document.getElementById('previewbutton');
+	if (!pane || !button || !window.fetch || !window.AbortController)
+	{
+		return { update() {} };
+	}
+	let box = textArea.parentNode;
+	let status = pane.querySelector('.previewstatus');
+	let content = pane.querySelector('.previewcontent');
+	let shown = false;
+	let timer = null;
+	let request = null;
+	// (the text which the preview shows, or null)
+	let renderedText = null;
+
+	function showError(message)
+	{
+		status.textContent = '';
+		if (message)
+		{
+			let label = document.createElement('strong');
+			label.textContent = pane.dataset.msgUnavailable;
+			status.append(label, ' ', message);
+		}
+	}
+
+	/** Makes the links of the rendered text work in the preview, see above */
+	function prepare()
+	{
+		for (let element of content.querySelectorAll('[id]'))
+		{
+			element.dataset.anchor = element.id;
+			element.removeAttribute('id');
+		}
+		for (let link of content.querySelectorAll('a[href]'))
+		{
+			if (!link.getAttribute('href').startsWith('#'))
+			{
+				link.target = '_blank';
+				link.rel = 'noopener';
+			}
+		}
+	}
+
+	content.addEventListener('click', (event) =>
+	{
+		let link = event.target.closest('a[href]');
+		if (!link || !link.getAttribute('href').startsWith('#'))
+		{
+			return;
+		}
+		event.preventDefault();
+		let name;
+		try
+		{
+			name = decodeURIComponent(link.getAttribute('href').slice(1));
+		}
+		catch (e)
+		{
+			name = link.getAttribute('href').slice(1);
+		}
+		let target = Array.from(content.querySelectorAll('[data-anchor]')).find((element) => element.dataset.anchor === name);
+		if (target)
+		{
+			target.scrollIntoView({ block: 'start' });
+		}
+	});
+
+	async function render()
+	{
+		clearTimeout(timer);
+		timer = null;
+		if (request)
+		{
+			request.abort();
+		}
+		let current = request = new AbortController();
+		let text = textArea.value;
+		let data = new URLSearchParams();
+		data.append('csrf_token', form.elements.csrf_token.value);
+		data.append('newText', text);
+		pane.setAttribute('aria-busy', 'true');
+		try
+		{
+			let response = await fetch(pane.dataset.url, { method: 'POST', body: data, credentials: 'same-origin', signal: current.signal });
+			let answer = null;
+			try
+			{
+				answer = await response.json();
+			}
+			catch (e)
+			{
+				if (e.name === 'AbortError')
+				{
+					throw e;
+				}
+				// (not JSON: e.g. the page of a web server which refused the request)
+			}
+			if (response.ok && answer && typeof answer.html === 'string')
+			{
+				content.innerHTML = answer.html;
+				prepare();
+				renderedText = text;
+				showError('');
+			}
+			else
+			{
+				showError(answer && typeof answer.message === 'string' && answer.message ? answer.message : pane.dataset.msgError);
+			}
+		}
+		catch (e)
+		{
+			if (e.name === 'AbortError')
+			{
+				return;
+			}
+			showError(pane.dataset.msgOffline);
+		}
+		finally
+		{
+			if (request === current)
+			{
+				request = null;
+				pane.removeAttribute('aria-busy');
+			}
+		}
+	}
+
+	function schedule()
+	{
+		if (!shown)
+		{
+			return;
+		}
+		clearTimeout(timer);
+		timer = setTimeout(render, PREVIEW_DELAY);
+	}
+
+	function show(value)
+	{
+		shown = value;
+		pane.hidden = !shown;
+		box.classList.toggle('previewing', shown);
+		button.setAttribute('aria-pressed', shown ? 'true' : 'false');
+		if (shown)
+		{
+			if (renderedText !== textArea.value)
+			{
+				render();
+			}
+		}
+		else
+		{
+			clearTimeout(timer);
+			timer = null;
+			if (request)
+			{
+				request.abort();
+				request = null;
+				pane.removeAttribute('aria-busy');
+			}
+		}
+	}
+
+	button.hidden = false;
+	button.addEventListener('click', () =>
+	{
+		show(!shown);
+		writePreviewChoice(shown);
+	});
+	// (also the changes made by the editor itself, like inserted links of uploads, which are input events too)
+	textArea.addEventListener('input', schedule);
+	// (roughly the same part of the text in both, while they are side by side)
+	textArea.addEventListener('scroll', () =>
+	{
+		let range = textArea.scrollHeight - textArea.clientHeight;
+		if (shown && range > 0)
+		{
+			pane.scrollTop = textArea.scrollTop / range * (pane.scrollHeight - pane.clientHeight);
+		}
+	});
+	show(readPreviewChoice());
+	return {
+		update()
+		{
+			if (shown)
+			{
+				render();
+			}
+			else
+			{
+				renderedText = null;
+			}
+		}
+	};
+}
+
 /**
  * Ctrl+S (Cmd+S on a Mac) in the editor saves the page, as the Save button does (instead of saving the HTML of the
  * page in the browser). The form is sent like with the button, so the draft is kept until the page is saved.
@@ -851,6 +1091,8 @@ document.addEventListener('DOMContentLoaded', () =>
 	// (the editor shown again after saving failed contains the unsaved text, not the saved one)
 	let unsaved = form.dataset.unsaved === "true";
 	let draftBase = baseText;
+	// (see setupPreview(), after the draft is restored)
+	let preview = null;
 
 	// autosave the current content as local draft, so that it survives
 	// the tab being unloaded (e.g. by mobile browsers after inactivity):
@@ -956,6 +1198,10 @@ document.addEventListener('DOMContentLoaded', () =>
 				removeDraft(key);
 				modified = false;
 				note.remove();
+				if (preview)
+				{
+					preview.update();
+				}
 			});
 			note.appendChild(discardBtn);
 			form.parentNode.insertBefore(note, form);
@@ -965,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () =>
 	setupBacklinks(textArea);
 	setupIndent(textArea);
 	setupImport(form, textArea, titleInput);
+	preview = setupPreview(form, textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
 	function leaveWithDraft()
