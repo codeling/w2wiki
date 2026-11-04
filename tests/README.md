@@ -61,7 +61,10 @@ they make the pages folder of the test copy a git repository (with a local bare 
 and `pagesFolder` renames the pages folder, e.g. to a path with spaces and quotes. `uploadsFolder` puts the
 uploads elsewhere (`UPLOAD_PATH`, e.g. `data/media` next to `data/pages`, see `UploadPathTest`), and `gitRoot`
 makes another folder the repository, e.g. `data` with both of them (`GitUploadPathTest`). The `Git*Test` classes
-check commits (`git log`), pushes, shell escaping and the generic error messages. They need `git` (2.28+).
+check commits (`git log`), pushes, shell escaping and the generic error messages, and the `GitHistory*Test` classes
+the history of pages (list of versions, old versions, differences and restoring; also with special characters in the
+names, a repository above the pages folder, every locale, and without `GIT_COMMIT_ENABLED`). `HistoryTest` (unit) tests
+`W2\History`, which reads the versions from git, in a temporary repository (`W2\HistoryViews` makes the views of them). They need `git` (2.28+).
 
 ## Running the tests against another version of the wiki
 
@@ -117,7 +120,7 @@ browser (Chromium): stored and reflected XSS payloads (the same texts as the PHP
 file names, and uploaded SVG files opened directly. Any `alert()` or event handler that runs fails a
 test. `canary.spec.js` checks that the helpers really notice scripts.
 The other specs check behaviour of pages that needs a browser: the editor (`editor.spec.js`, `autosave.spec.js`, its keys in `editor-keys.spec.js`, indenting with Tab in `editor-indent.spec.js`, inserting text files in `editor-import.spec.js`)
-the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
+the search box of the toolbar (`search.spec.js`) and uploading with the dialog and the crop frame, from the editor (`editor-upload.spec.js`) and the upload page (`upload-page.spec.js`), the history of a page with git (`history.spec.js`: from the page to the versions, the changes of a version and restoring it), and the color schemes (`dark-mode.spec.js`: contrast of the text in every view, and light mode staying as it was; `theme-switch.spec.js`: the buttons of the toolbar, with and without a script, and that the icons are drawn from their files without violating the content security policy).
 
 ```
 cd tests/Browser
@@ -126,8 +129,8 @@ npx playwright install chromium    # not needed if the browsers are already inst
 npx playwright test                # or: composer test:browser
 ```
 
-The wiki is started by `tests/bin/serve-app.php` (on the ports 8090, 8091 with SVG uploads, and 8092 with a password, hunter2).
-With `W2_BASE_URL` the tests use a wiki which is already running instead (and `W2_SVG_URL`, `W2_LOGIN_URL` for the other two). `W2_BROWSER=1
+The wiki is started by `tests/bin/serve-app.php` (on the ports 8090, 8091 with SVG uploads, 8092 with a password, hunter2, and 8093 with git, `--git`).
+With `W2_BASE_URL` the tests use a wiki which is already running instead (and `W2_SVG_URL`, `W2_LOGIN_URL`, `W2_GIT_URL` for the others). `W2_BROWSER=1
 tests/Server/run.sh apache` (or `nginx`) runs part of them against the real web servers, including
 the check that scripts in old SVG files of the uploads folder are blocked by their headers.
 
