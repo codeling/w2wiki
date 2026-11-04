@@ -15,7 +15,7 @@ final class ThemeTest extends TestCase
 		foreach (THEME_MODES as $mode) {
 			$this->assertTrue(isThemeMode($mode));
 			// (every mode has an icon)
-			$this->assertFileExists(dirname(__DIR__, 2) . "/w2-icons/theme-$mode.svg");
+			$this->assertFileExists(dirname(__DIR__, 2) . "/webicons/icons/theme-$mode.svg");
 		}
 	}
 
@@ -77,7 +77,7 @@ final class ThemeTest extends TestCase
 		$icon = (string)iconSvg('edit', 'Edit <it> & "more"', 'rightaligned');
 		$this->assertMatchesRegularExpression(
 			'#^<svg class="icon icon-edit rightaligned" viewBox="0 0 16 16" role="img" aria-label="Edit &lt;it&gt; &amp; &quot;more&quot;">'
-			. '<title>Edit &lt;it&gt; &amp; &quot;more&quot;</title><use href="/w2-icons/edit\.svg\?v=\d+\#i"/></svg>$#',
+			. '<title>Edit &lt;it&gt; &amp; &quot;more&quot;</title><use href="/webicons/icons/edit\.svg\?v=\d+\#i"/></svg>$#',
 			$icon
 		);
 	}
@@ -85,7 +85,7 @@ final class ThemeTest extends TestCase
 	/** The files are shown by <use>: every one has the element with the id, and paints with currentColor (no style elements, which the policy of the pages blocks) */
 	public function testIconFilesCanBeUsed(): void
 	{
-		$files = glob(dirname(__DIR__, 2) . '/w2-icons/*.svg') ?: [];
+		$files = glob(dirname(__DIR__, 2) . '/webicons/icons/*.svg') ?: [];
 		$this->assertNotEmpty($files);
 		foreach ($files as $file) {
 			$svg = (string)file_get_contents($file);

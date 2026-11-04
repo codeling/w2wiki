@@ -18,7 +18,7 @@ final class BaseUriTest extends AppTestCase
 		$body = $this->http->get('/index.php')->body;
 		$edit = $this->http->get('/index.php', ['action' => 'edit', 'page' => 'Home'])->body;
 		foreach ([$body, $edit] as $html) {
-			preg_match_all('/(?:src|href)="(\/[^"]*w2-icons\/[^"]*|\/[^"]*\.(?:css|js))"/', $html, $matches);
+			preg_match_all('/(?:src|href)="(\/[^"]*(?:w2-icons|webicons)\/[^"]*|\/[^"]*\.(?:css|js))"/', $html, $matches);
 			$this->assertNotEmpty($matches[1]);
 			foreach ($matches[1] as $url) {
 				$this->assertStringStartsWith('/sub/w2/', $url);
@@ -27,5 +27,6 @@ final class BaseUriTest extends AppTestCase
 		$this->assertStringNotContainsString('"/w2-icons/', $body . $edit);
 		// (which images dragged into the text are uploads of the wiki, see setupDrops() in wiki.js)
 		$this->assertStringContainsString('data-upload-prefix="/sub/w2/images/" data-file-url="/sub/w2/file.php"', $edit);
+		$this->assertStringNotContainsString('"/webicons/', $body . $edit);
 	}
 }

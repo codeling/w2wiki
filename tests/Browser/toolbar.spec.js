@@ -87,14 +87,14 @@ test('bold and italic: the same as Ctrl+B and Ctrl+I, also removing them again; 
   const problems = watchProblems(page);
   await editorWith(page, 'some words here', 5, 10);
   await button(page, 'bold').click();
-  expect(await marked(page)).toBe('some **[words]** here');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => marked(page)).toBe('some **[words]** here');
+  await expect.poll(() => focused(page)).toBe('text');
   await button(page, 'italic').click();
-  expect(await marked(page)).toBe('some ***[words]*** here');
+  await expect.poll(() => marked(page)).toBe('some ***[words]*** here');
   await button(page, 'bold').click();
-  expect(await marked(page)).toBe('some *[words]* here');
+  await expect.poll(() => marked(page)).toBe('some *[words]* here');
   await button(page, 'italic').click();
-  expect(await marked(page)).toBe('some [words] here');
+  await expect.poll(() => marked(page)).toBe('some [words] here');
   // (without a selection: the markers, with the cursor between them, to type the text)
   await editorWith(page, 'x ', 2);
   await button(page, 'bold').click();
@@ -127,22 +127,22 @@ test('every change is one step to undo with Ctrl+Z', async ({ page }) => {
 test('headings: the menu sets the level of the lines, replaces another one, and removes it when chosen again', async ({ page }) => {
   await editorWith(page, 'Title\ntext', 2);
   await heading(page, 1);
-  expect(await marked(page)).toBe('# Ti|tle\ntext');
+  await expect.poll(() => marked(page)).toBe('# Ti|tle\ntext');
   await heading(page, 3);
-  expect(await marked(page)).toBe('### Ti|tle\ntext');
+  await expect.poll(() => marked(page)).toBe('### Ti|tle\ntext');
   // (the level of the line is checked in the menu)
   await page.click('#headingbutton');
   await expect(page.locator('#headingmenu [data-level="3"]')).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('#headingmenu [data-level="1"]')).toHaveAttribute('aria-checked', 'false');
   await page.click(`#headingmenu [data-level="3"]`);
-  expect(await marked(page)).toBe('Ti|tle\ntext');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => marked(page)).toBe('Ti|tle\ntext');
+  await expect.poll(() => focused(page)).toBe('text');
   // (several lines, the empty one between them stays as it is; a heading without a space after # is one too)
   await editorWith(page, 'one\n\n#two\nthree', 0, 15);
   await heading(page, 2);
-  expect(await marked(page)).toBe('[## one\n\n## two\n## three]');
+  await expect.poll(() => marked(page)).toBe('[## one\n\n## two\n## three]');
   await heading(page, 2);
-  expect(await marked(page)).toBe('[one\n\ntwo\nthree]');
+  await expect.poll(() => marked(page)).toBe('[one\n\ntwo\nthree]');
   // (an empty line: the heading starts there)
   await editorWith(page, 'text\n\n', 6);
   await heading(page, 4);
@@ -155,26 +155,26 @@ test('the menu of the headings: keyboard, Esc, a click next to it', async ({ pag
   await page.keyboard.press('Alt+F10');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
-  expect(await focused(page)).toBe('headingbutton');
+  await expect.poll(() => focused(page)).toBe('headingbutton');
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('#headingbutton')).toHaveAttribute('aria-expanded', 'true');
-  expect(await focused(page)).toBe('1');
+  await expect.poll(() => focused(page)).toBe('1');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
-  expect(await focused(page)).toBe('3');
+  await expect.poll(() => focused(page)).toBe('3');
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Enter');
   await expect(page.locator('#headingmenu')).toBeHidden();
   await expect(page.locator('#text')).toHaveValue('## Title');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => focused(page)).toBe('text');
   // (Esc closes it and goes back to its button; Enter on the button opens it at the level of the line)
   await page.keyboard.press('Alt+F10');
-  expect(await focused(page)).toBe('headingbutton');
+  await expect.poll(() => focused(page)).toBe('headingbutton');
   await page.keyboard.press('Enter');
-  expect(await focused(page)).toBe('2');
+  await expect.poll(() => focused(page)).toBe('2');
   await page.keyboard.press('Escape');
   await expect(page.locator('#headingmenu')).toBeHidden();
-  expect(await focused(page)).toBe('headingbutton');
+  await expect.poll(() => focused(page)).toBe('headingbutton');
   await expect(page.locator('#text')).toHaveValue('## Title');
   // (a click next to the menu closes it)
   await page.click('#headingbutton');
@@ -187,15 +187,15 @@ test('the menu of the headings: keyboard, Esc, a click next to it', async ({ pag
 test('lists: bulleted and numbered lists of the lines, and back', async ({ page }) => {
   await editorWith(page, 'apples\npears\n\nplums\nafter', 0, 19);
   await button(page, 'bullets').click();
-  expect(await marked(page)).toBe('[- apples\n- pears\n\n- plums]\nafter');
+  await expect.poll(() => marked(page)).toBe('[- apples\n- pears\n\n- plums]\nafter');
   await button(page, 'numbers').click();
-  expect(await marked(page)).toBe('[1. apples\n2. pears\n\n3. plums]\nafter');
+  await expect.poll(() => marked(page)).toBe('[1. apples\n2. pears\n\n3. plums]\nafter');
   await button(page, 'numbers').click();
-  expect(await marked(page)).toBe('[apples\npears\n\nplums]\nafter');
+  await expect.poll(() => marked(page)).toBe('[apples\npears\n\nplums]\nafter');
   // (whole lines selected with the line break after them: the next line is not part of it; indentation stays)
   await editorWith(page, '* one\n  * two\nnext', 0, 14);
   await button(page, 'numbers').click();
-  expect(await marked(page)).toBe('[1. one\n  2. two\n]next');
+  await expect.poll(() => marked(page)).toBe('[1. one\n  2. two\n]next');
   // (the cursor in an empty line: the item starts there)
   await editorWith(page, '', 0);
   await button(page, 'bullets').click();
@@ -203,41 +203,41 @@ test('lists: bulleted and numbered lists of the lines, and back', async ({ page 
   await expect(page.locator('#text')).toHaveValue('- item');
   await editorWith(page, 'one item', 3);
   await button(page, 'numbers').click();
-  expect(await marked(page)).toBe('1. one| item');
+  await expect.poll(() => marked(page)).toBe('1. one| item');
 });
 
 test('quote: the lines become one quote, and back', async ({ page }) => {
   await editorWith(page, 'said\n\nmore\n\nafter', 0, 10);
   await button(page, 'quote').click();
-  expect(await marked(page)).toBe('[> said\n>\n> more]\n\nafter');
+  await expect.poll(() => marked(page)).toBe('[> said\n>\n> more]\n\nafter');
   await button(page, 'quote').click();
-  expect(await marked(page)).toBe('[said\n\nmore]\n\nafter');
+  await expect.poll(() => marked(page)).toBe('[said\n\nmore]\n\nafter');
 });
 
 test('code: inline in a line, a fenced block for lines or an empty line, and back', async ({ page }) => {
   await editorWith(page, 'run ls -l now', 4, 9);
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('run `[ls -l]` now');
+  await expect.poll(() => marked(page)).toBe('run `[ls -l]` now');
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('run [ls -l] now');
+  await expect.poll(() => marked(page)).toBe('run [ls -l] now');
   // (with a backtick in it: two, with spaces)
   await editorWith(page, 'a`b', 0, 3);
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('`` [a`b] ``');
+  await expect.poll(() => marked(page)).toBe('`` [a`b] ``');
   // (several lines: a block, with the cursor after ``` to type the language)
   await editorWith(page, 'text\necho 1\necho 2\nmore', 5, 18);
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('text\n\n```|\necho 1\necho 2\n```\n\nmore');
+  await expect.poll(() => marked(page)).toBe('text\n\n```|\necho 1\necho 2\n```\n\nmore');
   await page.keyboard.type('bash');
   await expect(page.locator('#text')).toHaveValue('text\n\n```bash\necho 1\necho 2\n```\n\nmore');
   // (the block with its fences selected: the fences go)
   await selectText(page, '```bash\necho 1\necho 2\n```');
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('text\n\n[echo 1\necho 2]\n\nmore');
+  await expect.poll(() => marked(page)).toBe('text\n\n[echo 1\necho 2]\n\nmore');
   // (an empty line: an empty block)
   await editorWith(page, 'text\n', 5);
   await button(page, 'code').click();
-  expect(await marked(page)).toBe('text\n\n```|\n```\n');
+  await expect.poll(() => marked(page)).toBe('text\n\n```|\n```\n');
   await page.keyboard.type('php');
   await page.keyboard.press('Enter');
   await page.keyboard.type('echo 1;');
@@ -247,25 +247,25 @@ test('code: inline in a line, a fenced block for lines or an empty line, and bac
 test('rule: a horizontal rule as a block of its own after the line', async ({ page }) => {
   await editorWith(page, 'above\nbelow', 2);
   await button(page, 'rule').click();
-  expect(await marked(page)).toBe('above\n\n---\n|\nbelow');
+  await expect.poll(() => marked(page)).toBe('above\n\n---\n|\nbelow');
   await editorWith(page, 'text', 4);
   await button(page, 'rule').click();
-  expect(await marked(page)).toBe('text\n\n---\n|');
+  await expect.poll(() => marked(page)).toBe('text\n\n---\n|');
   // (at the start of a line: before it)
   await editorWith(page, 'first\n\nsecond', 7);
   await button(page, 'rule').click();
-  expect(await marked(page)).toBe('first\n\n---\n\n|second');
+  await expect.poll(() => marked(page)).toBe('first\n\n---\n\n|second');
 });
 
 test('links: the link button is Ctrl+K, the other one makes a link to a page', async ({ page }) => {
   await editorWith(page, 'see the docs here', 8, 12);
   await button(page, 'link').click();
-  expect(await marked(page)).toBe('see the [docs]([url]) here');
+  await expect.poll(() => marked(page)).toBe('see the [docs]([url]) here');
   await editorWith(page, 'see Home here', 4, 8);
   await button(page, 'wikilink').click();
-  expect(await marked(page)).toBe('see [[[Home]]] here');
+  await expect.poll(() => marked(page)).toBe('see [[[Home]]] here');
   await button(page, 'wikilink').click();
-  expect(await marked(page)).toBe('see [Home] here');
+  await expect.poll(() => marked(page)).toBe('see [Home] here');
   await editorWith(page, 'see ', 4);
   await button(page, 'wikilink').click();
   await page.keyboard.type('Home');
@@ -280,7 +280,7 @@ test('table: the dialog asks for the size, and the table is inserted as a block 
   // (the default: 3 columns, 3 rows; the number of columns is selected, to type another one)
   await expect(page.locator('#tablecolumns')).toHaveValue('3');
   await expect(page.locator('#tablerows')).toHaveValue('3');
-  expect(await focused(page)).toBe('tablecolumns');
+  await expect.poll(() => focused(page)).toBe('tablecolumns');
   await page.keyboard.press('Enter');
   await expect(page.locator('#tabledialog')).toBeHidden();
   const table = [
@@ -290,8 +290,8 @@ test('table: the dialog asks for the size, and the table is inserted as a block 
     '|          |          |          |',
     '|          |          |          |',
   ].join('\n');
-  expect(await marked(page)).toBe('before\n\n| [Column 1]' + table.slice(10) + '\n\nafter');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => marked(page)).toBe('before\n\n| [Column 1]' + table.slice(10) + '\n\nafter');
+  await expect.poll(() => focused(page)).toBe('text');
   await page.keyboard.type('Name');
   await expect(page.locator('#text')).toHaveValue(/^before\n\n\| Name \| Column 2 \|/);
 
@@ -327,14 +327,14 @@ test('table: sizes outside the limits keep the dialog open; Cancel and Esc inser
   await page.click('#tablecancel');
   await expect(page.locator('#tabledialog')).toBeHidden();
   await expect(page.locator('#text')).toHaveValue('text');
-  expect(await marked(page)).toBe('te|xt');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => marked(page)).toBe('te|xt');
+  await expect.poll(() => focused(page)).toBe('text');
   await page.click('#tablebutton');
   await page.fill('#tablecolumns', '5');
   await page.keyboard.press('Escape');
   await expect(page.locator('#tabledialog')).toBeHidden();
   await expect(page.locator('#text')).toHaveValue('text');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => focused(page)).toBe('text');
   // (while the dialog is open, the keys of the shortcuts are not used)
   await page.click('#tablebutton');
   await page.keyboard.press('?');
@@ -387,39 +387,39 @@ test('keyboard: one stop of Tab, arrow keys between the buttons, Esc back to the
   await page.fill('#text', 'word');
   await page.click('#title');
   await page.keyboard.press('Tab');
-  expect(await focused(page)).toBe('bold');
+  await expect.poll(() => focused(page)).toBe('bold');
   await page.keyboard.press('ArrowRight');
-  expect(await focused(page)).toBe('italic');
+  await expect.poll(() => focused(page)).toBe('italic');
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
-  expect(await focused(page)).toBe('drawer-control');
+  await expect.poll(() => focused(page)).toBe('drawer-control');
   await page.keyboard.press('Home');
-  expect(await focused(page)).toBe('bold');
+  await expect.poll(() => focused(page)).toBe('bold');
   await page.keyboard.press('End');
-  expect(await focused(page)).toBe('drawer-control');
+  await expect.poll(() => focused(page)).toBe('drawer-control');
   const tabStops = await page.locator('#formatbar button[tabindex="0"]').count();
   expect(tabStops).toBe(1);
   // (Tab goes on to the text)
   await page.keyboard.press('Tab');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => focused(page)).toBe('text');
   // (Shift+Tab comes back to the button which had the focus; Esc first, as Shift+Tab outdents in the text)
   await page.keyboard.press('Escape');
   await page.keyboard.press('Shift+Tab');
-  expect(await focused(page)).toBe('drawer-control');
+  await expect.poll(() => focused(page)).toBe('drawer-control');
   await page.keyboard.press('Escape');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => focused(page)).toBe('text');
   // (Enter on a button formats the selection, and the text gets the focus)
   await select(page, 0, 4);
   await page.keyboard.press('Alt+F10');
-  expect(await focused(page)).toBe('drawer-control');
+  await expect.poll(() => focused(page)).toBe('drawer-control');
   await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
-  expect(await marked(page)).toBe('**[word]**');
-  expect(await focused(page)).toBe('text');
+  await expect.poll(() => marked(page)).toBe('**[word]**');
+  await expect.poll(() => focused(page)).toBe('text');
   await page.keyboard.press('Alt+F10');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press(' ');
-  expect(await marked(page)).toBe('***[word]***');
+  await expect.poll(() => marked(page)).toBe('***[word]***');
 });
 
 test('help and upload: the last buttons show the Markdown help and the dialog to upload files', async ({ page }) => {
