@@ -304,8 +304,10 @@ test('table: the dialog asks for the size, and the table is inserted as a block 
   await page.keyboard.press('Escape');
   await editorWith(page, 'end', 3);
   await insertTable(page, 20, 100);
-  const lines = (await page.locator('#text').inputValue()).split('\n');
-  expect(lines.length).toBe(2 + 2 + 100 + 1);
+  // (the table is inserted when the dialog has closed, in its "close" event, which comes after the click)
+  const text = () => page.locator('#text').inputValue();
+  await expect.poll(async () => (await text()).split('\n').length).toBe(2 + 2 + 100 + 1);
+  const lines = (await text()).split('\n');
   expect(lines[2].split('|').length - 2).toBe(20);
   expect(lines[2]).toContain('| Column 20 |');
   expect(lines[3]).toMatch(/^\| -{8} \|.* \| -{9} \|$/);
