@@ -84,6 +84,60 @@ test('new page: the backlink button inserts a link to the page at the cursor', a
   await expect(page.locator('#text')).toHaveValue('start [[Page linking to it]]');
 });
 
+test('new page: the mentions of the title are looked for a moment after it was typed, like for a link to a missing page', async ({ page, request }) => {
+  await savePage(request, 'Page mentioning typed name', 'I like Typedgadget a lot.');
+  await page.goto('/index.php?action=new');
+  await expect(page.locator('#newpagehints')).toBeEmpty();
+  await page.click('#title');
+  await page.keyboard.type('Typedgadget');
+  await expect(page.locator('#newpagehints .pagecontext')).toContainText('Page mentioning typed name');
+  await expect(page.locator('#newpagehints .note').first()).toContainText('Creating new page since no page with given title exists!');
+  // (the same buttons as for a link: the text is typed, the other page is changed)
+  await page.click('#text');
+  await page.keyboard.type('start ');
+  await page.click('button.backlink');
+  await expect(page.locator('#text')).toHaveValue('start [[Page mentioning typed name]]');
+  await page.click('form.linkmention input[type=submit]');
+  await expect(page.locator('.note').first()).toContainText('Linked Typedgadget in the page Page mentioning typed name');
+  await expect(page.locator('#text')).toHaveValue('start [[Page mentioning typed name]]');
+  await expect(page.locator('#title')).toHaveValue('Typedgadget');
+});
+
+test('new page: the hints change with the title, and are gone when it is cleared', async ({ page, request }) => {
+  await savePage(request, 'Hint source one', 'Alphahint is here.');
+  await savePage(request, 'Hint source two', 'Betahint is here.');
+  await page.goto('/index.php?action=new');
+  await page.fill('#title', 'Alphahint');
+  await expect(page.locator('#newpagehints .pagecontext')).toContainText('Hint source one');
+  await page.fill('#title', 'Betahint');
+  await expect(page.locator('#newpagehints .pagecontext')).toContainText('Hint source two');
+  await expect(page.locator('#newpagehints .pagecontext')).not.toContainText('Hint source one');
+  await page.fill('#title', '');
+  await expect(page.locator('#newpagehints')).toBeEmpty();
+});
+
+test('new page: it says at once that a page with the title exists already', async ({ page, request }) => {
+  await savePage(request, 'Existing title', 'x');
+  await page.goto('/index.php?action=new');
+  await page.fill('#title', 'Existing title');
+  const note = page.locator('#newpagehints .pageexists');
+  await expect(note).toContainText('A page with the title Existing title exists already.');
+  await expect(note.locator('a').first()).toHaveAttribute('href', '/index.php/Existing%20title');
+  await expect(note.locator('a').nth(1)).toHaveAttribute('href', /action=edit&page=Existing\+title/);
+  await page.fill('#title', 'Existing title two');
+  await expect(page.locator('#newpagehints .pageexists')).toHaveCount(0);
+  await expect(page.locator('#newpagehints .note').first()).toContainText('Creating new page');
+});
+
+test('new page: a link to a page which does not exist gets the same hints', async ({ page, request }) => {
+  await savePage(request, 'Page linking missing', 'See [[Software/Missinglink]].');
+  await savePage(request, 'Software/Missinglinc', 'x');
+  await page.goto('/index.php/' + encodeURIComponent('Software/Missinglink'));
+  await expect(page.locator('#title')).toHaveValue('Software/Missinglink');
+  await expect(page.locator('#newpagehints .pagecontext')).toContainText('Page linking missing');
+  await expect(page.locator('#newpagehints .note').first()).toContainText('Found similar page');
+});
+
 test('existing page: leaving with changes asks for confirmation', async ({ page, request }) => {
   await savePage(request, 'Page to edit', 'old text');
   await page.goto('/index.php?action=edit&page=' + encodeURIComponent('Page to edit'));

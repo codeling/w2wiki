@@ -172,7 +172,7 @@ final class LocaleTest extends AppTestCase
 	{
 		$words = self::words($locale);
 		$this->savePage('Similar Page', 'x');
-		$body = $this->http->get($this->pageUrl('Simular Page'))->body;
+		$body = $this->newPageHints('Simular Page')['html'];
 		$this->assertStringContainsString('<strong>' . self::text($words, 'Note') . ':</strong>', $body, $locale);
 		$this->assertStringContainsString(
 			sprintf(self::text($words, 'Found similar page %s. Maybe you meant to edit this instead?'), '<a href="/index.php/Similar%20Page">Similar Page</a>'),

@@ -5,12 +5,12 @@ namespace W2\Tests\Integration;
 
 use W2\Tests\Support\AppTestCase;
 
-/** The new page tells which pages link to it or mention its name (by file name: the page may be in a folder) */
+/** The editor of a new page tells (by the answer of the API) which pages link to the title or mention it (by file name: the page may be in a folder) */
 final class PageContextTest extends AppTestCase
 {
 	private function newPageBody(string $page): string
 	{
-		return $this->http->get($this->pageUrl($page))->body;
+		return $this->newPageHints($page)['html'];
 	}
 
 	public function testPagesWhichLinkToTheFileNameAreListedWithABacklinkButton(): void
@@ -38,9 +38,21 @@ final class PageContextTest extends AppTestCase
 
 	public function testNothingIsShownWithoutContextAndForExistingPages(): void
 	{
+		$this->savePage('Mentions Home', 'Back to Home.');
 		$body = $this->newPageBody('Completely Unknown');
 		$this->assertStringNotContainsString('class="pagecontext"', $body);
-		$this->assertStringNotContainsString('class="pagecontext"', $this->http->get($this->pageUrl('Home'))->body);
+		$this->assertStringNotContainsString('class="pagecontext"', $this->newPageBody('Home'));
+	}
+
+	public function testTheEditorOfANewPageHasTheBoxForTheHintsAndNoHintsOfItsOwn(): void
+	{
+		$this->savePage('Notes', 'I like Firefox.');
+		foreach (['/index.php?action=new', $this->pageUrl('Software/Firefox')] as $url) {
+			$body = $this->http->get($url)->body;
+			$this->assertStringContainsString('<div id="newpagehints" class="newpagehints" data-url="/api.php?task=newpage" aria-live="polite"></div>', $body, $url);
+			$this->assertStringNotContainsString('Pages which mention', $body, $url);
+		}
+		$this->assertStringNotContainsString('id="newpagehints"', $this->http->get('/index.php?action=edit&page=Home')->body);
 	}
 
 	public function testMentionCanBeLinkedInTheOtherPage(): void

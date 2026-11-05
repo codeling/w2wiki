@@ -197,12 +197,12 @@ final class FormsTest extends AppTestCase
 	{
 		$this->savePage('Hello World', 'text');
 		$this->savePage('Hello Worl<d', 'text');
-		$body = $this->http->get('/index.php/' . rawurlencode('Hello Worlds'))->body;
+		$body = $this->newPageHints('Hello Worlds')['html'];
 		$this->assertStringContainsString('<div class="note">Creating new page since no page with given title exists!', $body);
 		$this->assertStringContainsString('<strong>Note:</strong> Found similar page <a href="/index.php/Hello%20World">Hello World</a>.', $body);
 		$this->assertStringContainsString('<a href="/index.php/Hello%20Worl%3Cd">Hello Worl&lt;d</a>', $body);
 		$this->assertStringNotContainsString('Worl<d', $body);
-		$this->assertStringNotContainsString('Found similar page', $this->http->get('/index.php/' . rawurlencode('Quite Different Name'))->body);
+		$this->assertStringNotContainsString('Found similar page', $this->newPageHints('Quite Different Name')['html']);
 	}
 
 	// --- rename and delete --------------------------------------------------------------

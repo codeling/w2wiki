@@ -201,7 +201,7 @@ final class GitCommitTest extends GitTestCase
 
 		// a link to a page which doesn't exist yet leads to the form for a new page
 		$missing = $this->http->get($this->pageUrl('Does not exist'))->body;
-		$this->assertStringContainsString('Creating new page', $missing);
+		$this->assertStringContainsString('<input id="title"', $missing);
 		$this->assertStringContainsString('name="gitmsg"', $missing);
 	}
 

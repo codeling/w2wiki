@@ -170,6 +170,32 @@ final class Lists
 	}
 
 	/**
+	 * What the editor of a new page tells about the title which is being entered: whether a page of that name exists
+	 * already (the name is made like the one which is saved), and else which pages have a similar name and what other
+	 * pages say about it (see pageContext())
+	 *
+	 * @return array{name: string, exists: ?array, similarPages: array[], pageContext: array}	exists: href, editHref, name
+	 */
+	public function newPageHints(string $title): array
+	{
+		$name = str_replace(array('|', '#'), '', sanitizeFilename($title));
+		$hints = array('name' => $name, 'exists' => null, 'similarPages' => array(), 'pageContext' => array('links' => array(), 'mentions' => array()));
+		$term = trim($name);
+		if ($term === '')
+		{
+			return $hints;
+		}
+		if (isExistingPage($name))
+		{
+			$hints['exists'] = array('href' => pageURL($name), 'editHref' => SELF . '?action=edit&page=' . urlencode($name), 'name' => $name);
+			return $hints;
+		}
+		$hints['similarPages'] = $this->similarPages($term);
+		$hints['pageContext'] = $this->pageContext($term);
+		return $hints;
+	}
+
+	/**
 	 * What the other pages say about a page which does not exist yet: the pages which already link to it (under the
 	 * file name only: "Firefox" for "Software/Firefox"), and the pages which write the name without a link
 	 *

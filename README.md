@@ -35,6 +35,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
         - Possibility to display pages that link to the current page
         - Support for links to sub-captions (using # in links)
 	    - When navigating to a non-existing page, show links to similar pages
+	    - In the editor of a new page, the title is checked a moment after it was typed (or at once, if the editor was opened by a link to a missing page): it says whether a page of that name exists already (with links to it and to its editor), else shows similar pages, and the pages which link to the name or mention it without a link (with buttons to insert a link at the cursor, or to link the mention in that page)
 	    - Mark links to non-existing pages (by default in red)
         - Mark external links with globe icon
 	- Image uploads:
