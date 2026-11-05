@@ -46,7 +46,7 @@ final class FormsTest extends AppTestCase
 		$this->assertSame('w2wiki-draft:/index.php:edit:Home', $form->getAttribute('data-draft-key'));
 		$this->assertFalse($form->hasAttribute('data-unsaved'));
 		$this->assertSame('w2wiki-draft:/index.php:edit:Home', $this->fields($form)['draftKey']);
-		$this->assertSame('Restored unsaved draft from %s.', $form->getAttribute('data-msg-restored'));
+		$this->assertSame('An unsaved draft from %s is available.', $form->getAttribute('data-msg-available'));
 		$fields = $this->fields($form);
 		$this->assertEqualsCanonicalizing(['csrf_token', 'draftKey', 'page', 'baseHash', 'newText', 'action', 'isNew'], array_keys($fields));
 		$this->assertSame('Home', $fields['page']);

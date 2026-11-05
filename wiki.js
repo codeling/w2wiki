@@ -128,6 +128,131 @@ function removeDraft(key)
 	}
 }
 
+/**
+ * The lines which differ between two texts, as the server shows them in the history (see LineDiff): a list of [kind, line]
+ * with the kind "same", "removed", "added" or "gap" (the line is then the number of lines left out), with some lines
+ * around each change. The texts are compared by their lines; if they are too long or too different, all the
+ * lines between the common start and end are shown as removed and added.
+ */
+function diffLines(oldText, newText)
+{
+	const CONTEXT = 3;
+	const MAX_CELLS = 4000000;
+	let a = oldText.split("\n");
+	let b = newText.split("\n");
+	let start = 0;
+	let endA = a.length;
+	let endB = b.length;
+	while (start < endA && start < endB && a[start] === b[start])
+	{
+		start++;
+	}
+	while (endA > start && endB > start && a[endA - 1] === b[endB - 1])
+	{
+		endA--;
+		endB--;
+	}
+	let n = endA - start;
+	let m = endB - start;
+	let ops = a.slice(0, start).map((line) => ["same", line]);
+	if ((n + 1) * (m + 1) > MAX_CELLS)
+	{
+		ops.push(...a.slice(start, endA).map((line) => ["removed", line]));
+		ops.push(...b.slice(start, endB).map((line) => ["added", line]));
+	}
+	else
+	{
+		// table[i][j]: the length of the longest common run of lines from i of the old and from j of the new text
+		let table = [];
+		for (let i = 0; i <= n; i++)
+		{
+			table.push(new Array(m + 1).fill(0));
+		}
+		for (let i = n - 1; i >= 0; i--)
+		{
+			for (let j = m - 1; j >= 0; j--)
+			{
+				table[i][j] = (a[start + i] === b[start + j]) ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+			}
+		}
+		let i = 0;
+		let j = 0;
+		while (i < n || j < m)
+		{
+			if (i < n && j < m && a[start + i] === b[start + j])
+			{
+				ops.push(["same", a[start + i]]);
+				i++;
+				j++;
+			}
+			else if (j >= m || (i < n && table[i + 1][j] >= table[i][j + 1]))
+			{
+				ops.push(["removed", a[start + i]]);
+				i++;
+			}
+			else
+			{
+				ops.push(["added", b[start + j]]);
+				j++;
+			}
+		}
+	}
+	ops.push(...a.slice(endA).map((line) => ["same", line]));
+
+	let keep = new Array(ops.length).fill(false);
+	ops.forEach((op, i) =>
+	{
+		if (op[0] !== "same")
+		{
+			for (let k = Math.max(0, i - CONTEXT); k <= Math.min(ops.length - 1, i + CONTEXT); k++)
+			{
+				keep[k] = true;
+			}
+		}
+	});
+	let result = [];
+	let skipped = 0;
+	ops.forEach((op, i) =>
+	{
+		if (keep[i])
+		{
+			if (skipped > 0)
+			{
+				result.push(["gap", String(skipped)]);
+				skipped = 0;
+			}
+			result.push(op);
+		}
+		else
+		{
+			skipped++;
+		}
+	});
+	if (skipped > 0)
+	{
+		result.push(["gap", String(skipped)]);
+	}
+	return result;
+}
+
+/** The box with the lines which differ (the same as the server's, see diff-lines.php); unchanged lines: "%s unchanged lines" */
+function diffBox(oldText, newText, unchangedMessage)
+{
+	let box = document.createElement("div");
+	box.className = "diff";
+	let pre = document.createElement("pre");
+	for (let [kind, line] of diffLines(oldText, newText))
+	{
+		let span = document.createElement("span");
+		span.className = kind;
+		span.textContent = kind === "gap" ? "@@ " + unchangedMessage.replace("%s", line) + " @@"
+			: (kind === "removed" ? "- " : (kind === "added" ? "+ " : "  ")) + line;
+		pre.appendChild(span);
+	}
+	box.appendChild(pre);
+	return box;
+}
+
 /** Sends a file to the wiki, with the progress (a fraction between 0 and 1) reported while the request is sent */
 function sendUpload(url, formData, onProgress)
 {
@@ -2399,6 +2524,11 @@ document.addEventListener('DOMContentLoaded', () =>
 	// (the editor shown again after saving failed contains the unsaved text, not the saved one)
 	let unsaved = form.dataset.unsaved === "true";
 	let draftBase = baseText;
+	// the draft is meant to come back with the page (the forms which reload it, see leaveWithDraft()), and is not only offered
+	let restoreNext = false;
+	// the visitor has chosen to leave with the Cancel button: the draft is not kept when the page is left
+	// (if the visitor stays after all, the next interaction with the page ends this)
+	let abandoning = false;
 	// (see setupPreview(), after the draft is restored)
 	let preview = null;
 
@@ -2406,7 +2536,8 @@ document.addEventListener('DOMContentLoaded', () =>
 	// the tab being unloaded (e.g. by mobile browsers after inactivity):
 	function saveDraft()
 	{
-		if (!modified)
+		// (not when the visitor is leaving with Cancel: the page is hidden, which saves the draft, before it is removed)
+		if (!modified || abandoning)
 		{
 			return;
 		}
@@ -2415,6 +2546,7 @@ document.addEventListener('DOMContentLoaded', () =>
 			title: titleInput ? titleInput.value : "",
 			gitmsg: gitmsgInput ? gitmsgInput.value : "",
 			base: draftBase,
+			restore: restoreNext,
 			time: Date.now()
 		});
 	}
@@ -2425,6 +2557,7 @@ document.addEventListener('DOMContentLoaded', () =>
 			input.addEventListener('input', () =>
 			{
 				modified = true;
+				abandoning = false;
 				saveDraft();
 			});
 		}
@@ -2436,7 +2569,22 @@ document.addEventListener('DOMContentLoaded', () =>
 			saveDraft();
 		}
 	});
-	addEventListener('pagehide', saveDraft);
+	addEventListener('pagehide', () =>
+	{
+		// (a saved draft which was only offered, and not touched, stays)
+		if (abandoning && modified)
+		{
+			removeDraft(key);
+		}
+		else
+		{
+			saveDraft();
+		}
+	});
+	for (let type of ['pointerdown', 'keydown'])
+	{
+		document.addEventListener(type, () => { abandoning = false; }, true);
+	}
 	// (back from a failed save to this page from the browser's cache: its text is still unsaved)
 	addEventListener('pageshow', (event) =>
 	{
@@ -2446,7 +2594,38 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	});
 
-	// restore a previously autosaved draft:
+	// puts the text of a draft into the editor (typed: it can be undone)
+	function applyDraft(draft, typed)
+	{
+		draftBase = draft.base;
+		if (typed)
+		{
+			textArea.focus();
+			textArea.select();
+			insertTyped(textArea, draft.text);
+		}
+		else
+		{
+			textArea.value = draft.text;
+		}
+		if (titleInput)
+		{
+			titleInput.value = draft.title;
+		}
+		if (gitmsgInput && draft.gitmsg)
+		{
+			gitmsgInput.value = draft.gitmsg;
+		}
+		modified = true;
+		// (the draft is kept, and not only offered the next time)
+		saveDraft();
+		if (preview)
+		{
+			preview.update();
+		}
+	}
+
+	// offer a previously autosaved draft:
 	let draft = readDraft(key);
 	if (unsaved)
 	{
@@ -2464,23 +2643,19 @@ document.addEventListener('DOMContentLoaded', () =>
 		{
 			removeDraft(key);
 		}
+		else if (draft.restore)
+		{
+			// (the page was reloaded by a form of the editor, the text must not go: no offer, it comes back)
+			applyDraft(draft, false);
+		}
 		else
 		{
-			textArea.value = draft.text;
-			if (titleInput)
-			{
-				titleInput.value = draft.title;
-			}
-			if (gitmsgInput && draft.gitmsg)
-			{
-				gitmsgInput.value = draft.gitmsg;
-			}
-			modified = true;
-
+			// the saved draft is only offered: the editor shows the text of the page, until the visitor applies the draft
+			// (it is kept until it is applied, discarded, or replaced by text typed now)
 			let note = document.createElement("div");
 			note.className = "note";
 			note.appendChild(document.createTextNode(
-				form.dataset.msgRestored.replace("%s", new Date(draft.time).toLocaleString())));
+				form.dataset.msgAvailable.replace("%s", new Date(draft.time).toLocaleString())));
 			if (draft.base !== baseText)
 			{
 				note.appendChild(document.createElement("br"));
@@ -2489,29 +2664,43 @@ document.addEventListener('DOMContentLoaded', () =>
 				note.appendChild(warning);
 			}
 			note.appendChild(document.createTextNode(" "));
-			let discardBtn = document.createElement("input");
-			discardBtn.type = "button";
-			discardBtn.value = form.dataset.msgDiscard;
-			discardBtn.addEventListener('click', () =>
+			let changes = null;
+			let addButton = (label, onclick) =>
 			{
-				textArea.value = baseText;
-				if (titleInput)
+				let button = document.createElement("input");
+				button.type = "button";
+				button.value = label;
+				button.addEventListener('click', onclick);
+				note.appendChild(button);
+				note.appendChild(document.createTextNode(" "));
+				return button;
+			};
+			// (the changes the draft would make to what the editor shows now; a new page has a title as its first line)
+			let showButton = addButton(form.dataset.msgShow, () =>
+			{
+				if (changes)
 				{
-					titleInput.value = baseTitle;
+					changes.remove();
+					changes = null;
+					showButton.value = form.dataset.msgShow;
+					return;
 				}
-				if (gitmsgInput)
-				{
-					gitmsgInput.value = baseGitmsg;
-				}
-				removeDraft(key);
-				modified = false;
-				note.remove();
-				if (preview)
-				{
-					preview.update();
-				}
+				let current = (titleInput ? titleInput.value + "\n" : "") + textArea.value;
+				let offered = (titleInput ? draft.title + "\n" : "") + draft.text;
+				changes = diffBox(current, offered, form.dataset.msgUnchanged);
+				note.appendChild(changes);
+				showButton.value = form.dataset.msgHide;
 			});
-			note.appendChild(discardBtn);
+			addButton(form.dataset.msgApply, () =>
+			{
+				applyDraft(draft, true);
+				note.remove();
+			});
+			addButton(form.dataset.msgDiscard, () =>
+			{
+				removeDraft(key);
+				note.remove();
+			});
 			form.parentNode.insertBefore(note, form);
 		}
 	}
@@ -2544,20 +2733,24 @@ document.addEventListener('DOMContentLoaded', () =>
 	setupPreviewShortcut(textArea);
 
 	// (the draft is only removed once the server reports that the text was saved, see data-saved-draft)
-	function leaveWithDraft()
+	function leaveWithDraft(restore)
 	{
+		restoreNext = restore === true;
 		saveDraft();
 		modified = false;
 	}
-	form.addEventListener('submit', leaveWithDraft);
+	form.addEventListener('submit', () => leaveWithDraft(false));
 	setupSaveShortcut(form);
 	// (the forms which link a mention in another page reload this page, which restores the draft: no warning needed)
 	for (let linkForm of document.querySelectorAll('form.linkmention'))
 	{
-		linkForm.addEventListener('submit', leaveWithDraft);
+		// (the page is shown again with the text: the draft comes back without being asked for)
+		linkForm.addEventListener('submit', () => leaveWithDraft(true));
 	}
+	// (the button goes back; the warning about unsaved changes asks for confirmation, and only if that is given,
+	// the draft is removed - when the page is hidden, which is the last chance to keep it from being written again)
 	document.getElementById("cancel").addEventListener('click', () =>
 	{
-		removeDraft(key);
+		abandoning = true;
 	});
 });
