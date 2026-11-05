@@ -269,17 +269,18 @@ test('errors are shown in the preview, and the text is kept', async ({ page }) =
   await expect(status).toBeHidden();
 });
 
-test('a restored draft is previewed, and discarding it previews the saved text', async ({ page, request }) => {
+test('an applied draft is previewed, until the saved text is back', async ({ page, request }) => {
   await savePage(request, 'Preview draft', 'saved text');
   await page.goto('/index.php?action=edit&page=' + encodeURIComponent('Preview draft'));
   await page.fill('#text', 'draft text');
   await openPreview(page);
   await expect(page.locator('#preview .previewcontent p')).toHaveText('draft text');
   await page.reload();
-  await expect(page.locator('#preview .previewcontent p')).toHaveText('draft text');
-  await page.click('.main .note input[type="button"]');
-  await expect(page.locator('#text')).toHaveValue('saved text');
+  // (the draft is only offered: the preview shows what the editor shows)
   await expect(page.locator('#preview .previewcontent p')).toHaveText('saved text');
+  await page.click('.main .note input[value="Apply draft"]');
+  await expect(page.locator('#text')).toHaveValue('draft text');
+  await expect(page.locator('#preview .previewcontent p')).toHaveText('draft text');
 });
 
 test('dark color scheme: the preview has the colors of the page', async ({ browser }) => {
