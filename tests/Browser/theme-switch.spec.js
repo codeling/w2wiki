@@ -132,6 +132,15 @@ test.describe('with a light system', () => {
   });
 });
 
+test('the choice is posted to the script of the wiki (the form has a field called "action", which form.action would be)', async ({ page, baseURL }) => {
+  const posts = [];
+  page.on('request', (request) => { if (request.method() === 'POST') posts.push(request.url()); });
+  await page.goto('/index.php/Home');
+  await toggle(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/);
+  expect(posts).toEqual([baseURL + '/index.php']);
+});
+
 test('in the editor the change is applied without loading the page again, so the text stays', async ({ page, request }) => {
   await savePage(request, 'Switch edit', 'saved text');
   await page.goto('/index.php?action=edit&page=Switch%20edit');

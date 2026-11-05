@@ -70,6 +70,19 @@ abstract class AppTestCase extends TestCase
 	}
 
 	/**
+	 * What the editor of a new page shows about the title (the answer of the API which its script asks): the HTML
+	 * ("html", empty without hints) and whether a page of that name exists ("exists")
+	 *
+	 * @return array{exists: bool, html: string}
+	 */
+	protected function newPageHints(string $title): array
+	{
+		$response = $this->http->get('/api.php', ['task' => 'newpage', 'title' => $title]);
+		$this->assertSame(200, $response->status);
+		return json_decode($response->body, true, 512, JSON_THROW_ON_ERROR);
+	}
+
+	/**
 	 * CSRF token of the (new or existing) session of the given client; empty
 	 * if the wiki doesn't have any, which lets the other tests also run
 	 * against versions without CSRF protection (see W2_APP_ROOT)

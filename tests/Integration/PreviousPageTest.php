@@ -114,7 +114,7 @@ final class PreviousPageTest extends AppTestCase
 	public function testUploadLinkOfThePageBeingCreatedLeadsToAWorkingUploadPage(): void
 	{
 		$page = $this->http->get($this->pageUrl('Not yet existing'));
-		$this->assertStringContainsString('Creating new page', $page->body);
+		$this->assertStringContainsString('<input id="title"', $page->body, 'the form for a new page');
 		$this->assertSame(1, preg_match('/href="([^"]*action=upload[^"]*)"/', $page->body, $matches));
 		$upload = $this->http->get(html_entity_decode($matches[1]));
 		$this->assertSame(200, $upload->status);

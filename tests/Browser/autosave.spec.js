@@ -192,7 +192,7 @@ test('a save which the server refuses keeps the draft, and the editor shows the 
   // (like an expired session: the token in the form is no longer the one of the session)
   await context.clearCookies();
   await page.click('#save');
-  await expect(page.locator('.main .note')).toContainText('was not saved');
+  await expect(page.locator('.main .note', { hasText: 'was not saved' })).toHaveCount(1);
   await expect(page.locator('#text')).toHaveValue('a long edit');
   await expect(page.locator('#title')).toHaveValue('Refused save');
   expect(await page.evaluate(() => localStorage.length)).toBe(1);

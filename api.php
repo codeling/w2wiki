@@ -6,8 +6,8 @@ define('W2APP', true);
  * W2
  *
  * JSON interface for the scripts of the wiki's own pages (index.php is the other entry point):
- * answers whether an upload with a given name already exists, and renders the text of the editor
- * for its preview.
+ * answers whether an upload with a given name already exists, renders the text of the editor
+ * for its preview, and tells what exists under the title of a new page.
  */
 
 require_once "functions.php";
@@ -90,4 +90,17 @@ elseif ($task === 'preview')
 	$text = $_POST['newText'] ?? '';
 	// (like index.php shows a page)
 	apiAnswer(200, array('html' => empty($text) ? '' : toHTML($text)));
+}
+elseif ($task === 'newpage')
+{
+	// What the editor of a new page shows about the title which was entered (as HTML, rendered like the page which is
+	// opened with that title): that a page of the name exists already, similar pages, and the pages which link to the name
+	// or mention it. Nothing is changed.
+	$title = mb_substr((string)($_GET['title'] ?? ''), 0, 200);
+	$hints = (new \W2\Lists())->newPageHints($title);
+	$html = trim($hints['name']) === '' ? '' : (string)templates()->render('new-page-hints', array(
+		'csrfField' => \W2\Html::raw(csrfField()), 'name' => $hints['name'], 'exists' => $hints['exists'],
+		'similarPages' => $hints['similarPages'], 'pageContext' => $hints['pageContext']));
+	session_write_close();
+	apiAnswer(200, array('exists' => $hints['exists'] !== null, 'html' => $html));
 }

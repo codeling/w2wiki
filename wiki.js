@@ -39,7 +39,8 @@ document.addEventListener('submit', function (event)
 		data.append(field.name, field.value);
 	}
 	data.append('mode', mode);
-	fetch(form.action, {method: 'POST', body: data, credentials: 'same-origin', redirect: 'manual'}).then(function (response)
+	// (getAttribute: the form has a field called "action", which is what form.action then is)
+	fetch(form.getAttribute('action'), {method: 'POST', body: data, credentials: 'same-origin', redirect: 'manual'}).then(function (response)
 	{
 		if (!response.ok && response.type !== 'opaqueredirect')
 		{
@@ -301,14 +302,93 @@ function insertTyped(textArea, text)
 }
 
 /**
- * The buttons of the pages which link to the new page or mention it: they insert a link to that page at the cursor.
+ * The buttons of the pages which link to the new page or mention it (in the box of the hints for the title, see
+ * setupNewPageHints()): they insert a link to that page at the cursor.
  */
-function setupBacklinks(textArea)
+function setupBacklinks(textArea, box)
 {
-	for (let button of document.querySelectorAll('button.backlink'))
+	if (!box)
 	{
-		button.addEventListener('click', () => insertTyped(textArea, '[[' + button.dataset.page + ']]'));
+		return;
 	}
+	// (the buttons come with the hints, which are replaced when the title changes: one listener for all of them)
+	box.addEventListener('click', (event) =>
+	{
+		let button = event.target.closest && event.target.closest('button.backlink');
+		if (button)
+		{
+			insertTyped(textArea, '[[' + button.dataset.page + ']]');
+		}
+	});
+}
+
+const NEW_PAGE_HINTS_DELAY_MS = 400;
+
+/**
+ * What the editor of a new page shows about the title: whether a page of that name exists already, similar pages, and the
+ * pages which link to the name or mention it (HTML from api.php, which the box gets as its content). It is asked for when
+ * the editor is opened with a title (a link to a page which does not exist), and a moment after the title was last changed,
+ * also when the editor was opened without one. Returns the object whose refresh() asks again (at once, or after the
+ * delay), or null if the page has no title field of a new page (or the browser can't ask).
+ */
+function setupNewPageHints(titleInput, box)
+{
+	if (!titleInput || !box || !window.fetch || !window.AbortController)
+	{
+		return null;
+	}
+	let timer = null;
+	let request = null;
+
+	function stop()
+	{
+		clearTimeout(timer);
+		if (request)
+		{
+			request.abort();
+			request = null;
+		}
+	}
+
+	async function load()
+	{
+		stop();
+		let title = titleInput.value;
+		if (title.trim() === '')
+		{
+			box.textContent = '';
+			return;
+		}
+		let current = request = new AbortController();
+		try
+		{
+			let response = await fetch(box.dataset.url + '&title=' + encodeURIComponent(title), {credentials: 'same-origin', signal: current.signal});
+			let answer = await response.json();
+			if (response.ok)
+			{
+				box.innerHTML = answer.html;
+			}
+			else if (answer.message)
+			{
+				// (e.g. the session has expired)
+				let note = document.createElement('div');
+				note.className = 'note';
+				note.textContent = answer.message;
+				box.replaceChildren(note);
+			}
+		}
+		catch (error)
+		{
+			// (the title was changed again, or the server can't be reached: what is shown stays as it was)
+		}
+		if (request === current)
+		{
+			request = null;
+		}
+	}
+
+	titleInput.addEventListener('input', () => { stop(); timer = setTimeout(load, NEW_PAGE_HINTS_DELAY_MS); });
+	return {refresh: load};
 }
 
 const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
@@ -2531,6 +2611,8 @@ document.addEventListener('DOMContentLoaded', () =>
 	let abandoning = false;
 	// (see setupPreview(), after the draft is restored)
 	let preview = null;
+	// (see setupNewPageHints(), after the draft is restored: it may restore the title)
+	let newPageHints = null;
 
 	// autosave the current content as local draft, so that it survives
 	// the tab being unloaded (e.g. by mobile browsers after inactivity):
@@ -2623,6 +2705,10 @@ document.addEventListener('DOMContentLoaded', () =>
 		{
 			preview.update();
 		}
+		if (newPageHints)
+		{
+			newPageHints.refresh();
+		}
 	}
 
 	// offer a previously autosaved draft:
@@ -2705,7 +2791,13 @@ document.addEventListener('DOMContentLoaded', () =>
 		}
 	}
 
-	setupBacklinks(textArea);
+	let hintsBox = document.getElementById('newpagehints');
+	setupBacklinks(textArea, hintsBox);
+	newPageHints = setupNewPageHints(titleInput, hintsBox);
+	if (newPageHints)
+	{
+		newPageHints.refresh();
+	}
 	setupIndent(textArea);
 	setupFormatKeys(textArea);
 	setupFormatBar(textArea);
@@ -2742,10 +2834,26 @@ document.addEventListener('DOMContentLoaded', () =>
 	form.addEventListener('submit', () => leaveWithDraft(false));
 	setupSaveShortcut(form);
 	// (the forms which link a mention in another page reload this page, which restores the draft: no warning needed)
-	for (let linkForm of document.querySelectorAll('form.linkmention'))
+	if (hintsBox)
 	{
-		// (the page is shown again with the text: the draft comes back without being asked for)
-		linkForm.addEventListener('submit', () => leaveWithDraft(true));
+		hintsBox.addEventListener('submit', (event) =>
+		{
+			if (event.target.matches && event.target.matches('form.linkmention'))
+			{
+				// (the page is shown again with the text: the draft comes back without being asked for)
+				leaveWithDraft(true);
+				// (the editor which opens next is the one of the title which the form links to, with the draft of that title;
+				// the title of the editor was typed, so its draft is not the one of that editor yet)
+				let target = event.target.elements.target;
+				let targetKey = target ? key.replace(/:new:[^:]*$/, ':new:' + target.value) : key;
+				let draftOfEditor = readDraft(key);
+				if (targetKey !== key && draftOfEditor)
+				{
+					writeDraft(targetKey, draftOfEditor);
+					removeDraft(key);
+				}
+			}
+		});
 	}
 	// (the button goes back; the warning about unsaved changes asks for confirmation, and only if that is given,
 	// the draft is removed - when the page is hidden, which is the last chance to keep it from being written again)
