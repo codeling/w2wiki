@@ -229,18 +229,28 @@ final class Lists
 	}
 
 	/**
-	 * Pages with a name similar to the given one (a new page which might be a typing error)
+	 * Pages with a name similar to the given one (a new page which might be a typing error). The names are compared
+	 * as a whole, and also without their folders: "Browser" is similar to "Software/Browser"
 	 *
 	 * @return array[] the pages: href, name
 	 */
 	public function similarPages(string $name): array
 	{
 		$similarPages = array();
+		$names = array_unique(array($name, Mentions::fileName($name)));
 		foreach(getAllPageNames() as $pageName)
 		{
-			if (levenshtein(strtoupper($name), strtoupper($pageName)) < sqrt(min(strlen($name), strlen($pageName))) )
+			$pageNames = array_unique(array($pageName, Mentions::fileName($pageName)));
+			foreach ($names as $a)
 			{
-				$similarPages[] = array('href' => pageURL($pageName), 'name' => $pageName);
+				foreach ($pageNames as $b)
+				{
+					if ($a !== '' && $b !== '' && levenshtein(strtoupper($a), strtoupper($b)) < sqrt(min(strlen($a), strlen($b))))
+					{
+						$similarPages[] = array('href' => pageURL($pageName), 'name' => $pageName);
+						continue 3;
+					}
+				}
 			}
 		}
 		return $similarPages;
