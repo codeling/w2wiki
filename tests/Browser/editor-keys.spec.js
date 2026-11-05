@@ -27,7 +27,8 @@ test('new page: Ctrl+S saves the page without asking, and the draft is removed',
   await page.keyboard.press('Control+s');
   await page.waitForURL(/Saved%20with%20the%20keyboard$/);
   await expect(page.locator('.main')).toContainText('text saved with Ctrl+S');
-  expect(await drafts(page)).toEqual([]);
+  // (the script of the page removes the draft when it has loaded, which can be after the text is shown)
+  await expect.poll(() => drafts(page)).toEqual([]);
   expect(dialogs).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -86,7 +87,7 @@ test('Ctrl+Enter in the text saves the page, and the draft is removed', async ({
   await page.keyboard.press('Control+Enter');
   await page.waitForURL(/Saved%20with%20Enter$/);
   await expect(page.locator('.main')).toContainText('text saved with Ctrl+Enter');
-  expect(await drafts(page)).toEqual([]);
+  await expect.poll(() => drafts(page)).toEqual([]);
   expect(dialogs).toEqual([]);
 });
 
