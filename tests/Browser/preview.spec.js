@@ -177,6 +177,7 @@ test('narrow screen: a link inserted while the preview is shown goes into the te
   await page.fill('#text', 'start ');
   await openPreview(page);
   await page.focus('#title');
+  await page.click('#newpagehints .pagecontext summary');
   await page.click('button.backlink');
   await expect(page.locator('#text')).toHaveValue('start [[Page linking to preview]]');
   await expect(page.locator('#title')).toHaveValue('Software/Gadgetpreview');
