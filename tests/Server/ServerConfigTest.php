@@ -193,6 +193,7 @@ final class ServerConfigTest extends TestCase
 			['/README.md'], ['/INSTALL.md'], ['/LICENSE'], ['/CLAUDE.md'], ['/docs/MarkdownLibrary.md'],
 			['/webauth/webauth.php'], ['/webauth/src/ServerAuth.php'], ['/webauth/README.md'], ['/webauth/composer.json'],
 			['/webauth/samples/htaccess.sample'],
+			['/webicons/check.js'], ['/webicons/preview.html'], ['/webicons/preview.css'], ['/webicons/preview.js'], ['/webicons/README.md'], ['/webicons/LICENSE'],
 		];
 	}
 
