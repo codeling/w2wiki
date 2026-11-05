@@ -208,6 +208,10 @@ location ^~ /functions.php { deny all; }
 location ^~ /auth.php { deny all; }
 location ^~ /auth_functions.php { deny all; }
 location ^~ /webauth/ { deny all; }
+location ^~ /webicons/check.js { deny all; }
+location ^~ /webicons/preview. { deny all; }
+location ^~ /webicons/README.md { deny all; }
+location ^~ /webicons/LICENSE { deny all; }
 location ^~ /composer. { deny all; }
 location ^~ /phpunit.xml { deny all; }
 location ^~ /LICENSE { deny all; }

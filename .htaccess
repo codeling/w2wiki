@@ -1,6 +1,10 @@
 # Deny access to hidden files and folders such as .git (except .well-known)
 RedirectMatch 404 /\.(?!well-known/)
 
+# Of webicons/ (a subtree of codeling/webicons) only the icons (webicons/icons/*.svg) are used by the wiki,
+# not its README, check.js and preview page
+RedirectMatch 404 /webicons/(?!icons/)
+
 # Only index.php, api.php and file.php (which serves the uploads) are entry points; the other scripts are included
 # by them and must not be reachable (see also the .htaccess files in the folders which only have such files or nothing public)
 <FilesMatch "(?i)^(?!(index|api|file)\.php$).*\.(php[0-9]?|pht|phtml|phar)$">
