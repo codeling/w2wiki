@@ -108,7 +108,8 @@ final class RegressionTest extends AppTestCase
 	public function testMissingPageOffersToCreateItAndHintsAtSimilarPages(): void
 	{
 		$this->savePage('Similar Page', 'x');
-		$body = $this->http->get($this->pageUrl('Simular Page'))->body;
+		$this->assertStringContainsString('<input id="title"', $this->http->get($this->pageUrl('Simular Page'))->body, 'the form for a new page');
+		$body = $this->newPageHints('Simular Page')['html'];
 		$this->assertStringContainsString('Creating new page', $body);
 		$this->assertStringContainsString('Found similar page', $body);
 		$this->assertStringContainsString('href="/index.php/Similar%20Page"', $body);

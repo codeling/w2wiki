@@ -120,6 +120,7 @@ $w2_word_set = array(
 	'The page %s was changed or deleted since the list was shown. Nothing was changed.' => 'Die Seite %s wurde geändert oder gelöscht, seit die Liste angezeigt wurde. Es wurde nichts geändert.',
 	'No place to add a link to %s was found in the page %s. Nothing was changed.' => 'Für einen Link auf %s wurde in der Seite %s keine Stelle gefunden. Es wurde nichts geändert.',
 	'Linked %s in the page %s' => '%s in der Seite %s verlinkt',
+	'A page with the title %s exists already. Please choose a different title, or %s that page instead.' => 'Eine Seite mit dem Titel %s gibt es schon. Bitte wähle einen anderen Titel oder %s stattdessen diese Seite.',
 	'Found similar page %s. Maybe you meant to edit this instead?' => 'Ähnliche Seite gefunden: %s. Vielleicht wolltest du stattdessen diese bearbeiten?',
 	"Page %s does not exist, redirected instead to first page in a subfolder with matching filename (%s)" => "Die Seite %s existiert nicht, stattdessen wurde auf die erste Seite in einem Unterordner mit passendem Dateinamen weitergeleitet (%s)",
 	'Login is disabled until a password is set: please set W2_PASSWORD_HASH in config.php (see config.sample.php).' => 'Das Einloggen ist gesperrt, bis ein Passwort eingestellt ist: bitte setze W2_PASSWORD_HASH in config.php (siehe config.sample.php).',

@@ -493,16 +493,13 @@ if ( isHistoryAction($action) )
 
 if ( isEditorAction($action) )
 {
-	$showContext = ($action === 'new' && $newPage != "" && !$triedSave);
-	$similarPages = $showContext ? (new \W2\Lists())->similarPages($newPage) : null;
-	$pageContext = $showContext ? (new \W2\Lists())->pageContext($newPage) : null;
 	// (after a failed save, the draft is the one of the editor which sent the text, e.g. of a new page without title)
 	$draftKey = ($triedSave && $postedDraftKey !== '') ? $postedDraftKey : ($historyView['restore']['draftKey'] ??
 		("w2wiki-draft:" . SELF . (($action === 'edit') ? ":edit:$page" : ":new:$newPage")));
 	$content = templates()->render('editor', array(
 		'draftKey' => $draftKey, 'unsaved' => $triedSave,
 		'isNew' => $action !== 'edit', 'csrfField' => \W2\Html::raw(csrfField()),
-		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'similarPages' => $similarPages, 'pageContext' => $pageContext,
+		'page' => $action === 'edit' ? $page : '', 'newPage' => $newPage, 'hintsUrl' => BASE_URI . '/api.php?task=newpage',
 		'text' => $text, 'rows' => EDIT_ROWS, 'gitEnabled' => GIT_COMMIT_ENABLED, 'gitMessage' => $oldgitmsg,
 		'baseHash' => $action === 'edit' ? $baseHash : null, 'diff' => $diff === null ? null : templates()->render('diff-lines', array('lines' => $diff)),
 		'uploadDialog' => DISABLE_UPLOADS ? null : uploadDialog(), 'previewUrl' => BASE_URI . '/api.php?task=preview',
