@@ -501,6 +501,9 @@ input#gitmsg {
 	margin: .5em 0;
 	border: solid 1px var(--note-border);
 }
+.pagecontext summary {
+	cursor: pointer;
+}
 .pagecontext p {
 	margin: .3em 0;
 }

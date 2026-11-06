@@ -108,6 +108,7 @@ $w2_word_set = array(
 	'%s unchanged lines' => '%s unveränderte Zeilen',
 	'The text was not saved, because the security token was missing or wrong (for example because the session has expired). Please check the text and save again.' => 'Der Text wurde nicht gespeichert, weil das Sicherheitstoken fehlte oder falsch war (zum Beispiel, weil die Sitzung abgelaufen ist). Bitte prüfe den Text und speichere erneut.',
 	'Note' => 'Hinweis',
+	'There are %s pages which link to this name or mention it' => 'Es gibt %s Seiten, die auf diesen Namen verweisen oder ihn erwähnen',
 	'Pages which already link to a page of this name:' => 'Seiten, die schon auf eine Seite mit diesem Namen verweisen:',
 	'Pages which mention the name without a link:' => 'Seiten, die den Namen ohne Link erwähnen:',
 	'Save (Ctrl+S)' => 'Speichern (Strg+S)',

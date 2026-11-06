@@ -205,6 +205,15 @@ final class FormsTest extends AppTestCase
 		$this->assertStringNotContainsString('Found similar page', $this->newPageHints('Quite Different Name')['html']);
 	}
 
+	public function testNewPageHintsSimilarPagesInOtherFolders(): void
+	{
+		$this->savePage('Software/Browser', 'text');
+		$body = $this->newPageHints('Browser')['html'];
+		$this->assertStringContainsString('Found similar page <a href="/index.php/Software/Browser">Software/Browser</a>', $body);
+		$this->assertStringContainsString('Found similar page <a href="/index.php/Software/Browser">Software/Browser</a>', $this->newPageHints('Other/Browzer')['html']);
+		$this->assertStringNotContainsString('Found similar page', $this->newPageHints('Quite Different Name')['html']);
+	}
+
 	// --- rename and delete --------------------------------------------------------------
 
 	public function testRenameFormOfAPage(): void

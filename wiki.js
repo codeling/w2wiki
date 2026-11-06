@@ -366,7 +366,14 @@ function setupNewPageHints(titleInput, box)
 			let answer = await response.json();
 			if (response.ok)
 			{
+				// (a list of pages which the user has expanded stays expanded when the hints are refreshed)
+				let wasOpen = box.querySelector('details.pagecontext[open]') !== null;
 				box.innerHTML = answer.html;
+				let context = box.querySelector('details.pagecontext');
+				if (wasOpen && context)
+				{
+					context.open = true;
+				}
 			}
 			else if (answer.message)
 			{

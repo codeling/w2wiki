@@ -24,6 +24,7 @@ final class PageContextTest extends AppTestCase
 		$this->assertStringContainsString('<a href="/index.php/Other">Other</a> <button type="button" class="backlink" data-page="Other"', $body);
 		$this->assertStringNotContainsString('href="/index.php/Unrelated"', $body);
 		$this->assertStringNotContainsString('Pages which mention', $body);
+		$this->assertStringContainsString("<details class=\"pagecontext\">\n<summary>There are 2 pages which link to this name or mention it</summary>", $body);
 	}
 
 	public function testPagesWhichMentionTheNameAreListedWithTheText(): void

@@ -69,6 +69,7 @@ test('new page: linking a mention in another page does not ask for confirmation 
   await page.goto('/index.php/' + encodeURIComponent('Software/Gadgetname'));
   await page.click('#text');
   await page.keyboard.type('text typed before linking');
+  await page.click('#newpagehints .pagecontext summary');
   await page.click('form.linkmention input[type=submit]');
   await expect(page.locator('.note').first()).toContainText('Linked Software/Gadgetname in the page Page with a mention');
   await expect(page.locator('#text')).toHaveValue('text typed before linking');
@@ -80,6 +81,7 @@ test('new page: the backlink button inserts a link to the page at the cursor', a
   await page.goto('/index.php/' + encodeURIComponent('Software/Gadgetlink'));
   await page.click('#text');
   await page.keyboard.type('start ');
+  await page.click('#newpagehints .pagecontext summary');
   await page.click('button.backlink');
   await expect(page.locator('#text')).toHaveValue('start [[Page linking to it]]');
 });
@@ -93,6 +95,8 @@ test('new page: the mentions of the title are looked for a moment after it was t
   await expect(page.locator('#newpagehints .pagecontext')).toContainText('Page mentioning typed name');
   await expect(page.locator('#newpagehints .note').first()).toContainText('Creating new page since no page with given title exists!');
   // (the same buttons as for a link: the text is typed, the other page is changed)
+  await expect(page.locator('#newpagehints .pagecontext')).not.toHaveAttribute('open', '');
+  await page.click('#newpagehints .pagecontext summary');
   await page.click('#text');
   await page.keyboard.type('start ');
   await page.click('button.backlink');
@@ -101,6 +105,23 @@ test('new page: the mentions of the title are looked for a moment after it was t
   await expect(page.locator('.note').first()).toContainText('Linked Typedgadget in the page Page mentioning typed name');
   await expect(page.locator('#text')).toHaveValue('start [[Page mentioning typed name]]');
   await expect(page.locator('#title')).toHaveValue('Typedgadget');
+});
+
+test('new page: the pages which mention the title are collapsed into a count, and stay expanded when the hints refresh', async ({ page, request }) => {
+  await savePage(request, 'Collapse source one', 'Collapsegadget is here.');
+  await savePage(request, 'Collapse source two', 'Also Collapsegadget here.');
+  await page.goto('/index.php?action=new');
+  await page.fill('#title', 'Collapsegadget');
+  const context = page.locator('#newpagehints .pagecontext');
+  await expect(context.locator('summary')).toContainText('There are 2 pages');
+  await expect(context).not.toHaveAttribute('open', '');
+  await expect(page.locator('#newpagehints a[href$="Collapse%20source%20one"]')).toBeHidden();
+  await context.locator('summary').click();
+  await expect(page.locator('#newpagehints a[href$="Collapse%20source%20one"]')).toBeVisible();
+  await page.fill('#title', 'Collapsegadget ');
+  await page.fill('#title', 'Collapsegadget');
+  await expect(context.locator('summary')).toContainText('There are 2 pages');
+  await expect(context).toHaveAttribute('open', '');
 });
 
 test('new page: the hints change with the title, and are gone when it is cleared', async ({ page, request }) => {

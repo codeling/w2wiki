@@ -21,7 +21,8 @@
 <?php endforeach ?>
 </div>
 <?php if ($this->pageContext['links'] || $this->pageContext['mentions']): ?>
-<div class="pagecontext">
+<details class="pagecontext">
+<summary><?= sprintf(__('There are %s pages which link to this name or mention it'), count($this->pageContext['links']) + count($this->pageContext['mentions'])) ?></summary>
 <?php if ($this->pageContext['links']): ?>
 <p><?= __('Pages which already link to a page of this name:') ?></p>
 <ul>
@@ -43,6 +44,6 @@
 <?php endforeach ?>
 </ul>
 <?php endif ?>
-</div>
+</details>
 <?php endif ?>
 <?php endif ?>
