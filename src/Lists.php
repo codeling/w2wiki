@@ -46,7 +46,7 @@ final class Lists
 		return templates()->render('all-pages', array(
 			'total' => count($pageNames), 'rows' => $rows,
 			'head' => sortableHeadings('all', $sortBy, array(
-				array(translate('Name'), 'name'), array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null)))
+				array(translate('Name'), 'name'), array(translate('Modified'), 'recent'), array(translate('Size'), 'size', 'wideonly'), array(translate('Action'), null)))
 		));
 	}
 
@@ -81,8 +81,8 @@ final class Lists
 			}
 		}
 
-		$columns = array(array(translate('Name'), 'name'), array(translate('Usage'), null),
-			array(translate('Modified'), 'recent'), array(translate('Size'), 'size'), array(translate('Action'), null));
+		$columns = array(array(translate('Name'), 'name'), array(translate('Usage'), null, 'wideonly'),
+			array(translate('Modified'), 'recent'), array(translate('Size'), 'size', 'wideonly'), array(translate('Action'), null));
 		if (SHOW_PAGES_WHERE_FILE_USED)
 		{
 			$columns[] = array(translate('Used on page'), null);

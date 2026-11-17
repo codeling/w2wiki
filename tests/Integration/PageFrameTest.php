@@ -44,7 +44,7 @@ final class PageFrameTest extends AppTestCase
 			array_map(fn($item) => [$item[1], $item[2], $item[3]], $items)
 		);
 		$this->assertStringNotContainsString('action=logout', $body, 'no way to log out without a password');
-		$this->assertStringContainsString('<form method="get" action="/index.php">', $body);
+		$this->assertStringContainsString('<form method="get" action="/index.php" class="searchform">', $body);
 		$this->assertStringContainsString('<input type="hidden" name="action" value="search" />', $body);
 	}
 
@@ -99,6 +99,9 @@ final class PageFrameTest extends AppTestCase
 			}
 			$this->assertStringNotContainsString("action=$current&amp;page=Home", $bar, "$current while doing $current");
 		}
+		// (in a group, which stays together when the bar wraps on narrow screens)
+		$this->assertMatchesRegularExpression('#^<span class="title">Home</span><span class="titledate">[^<]+</span><span class="pageactions">(\s*<a [^>]*><svg [^>]*>.*?</svg></a>)+\s*</span>\s*$#s', $this->titleBar('/index.php/Home'));
+		$this->assertStringNotContainsString('pageactions', $this->titleBar('/index.php?action=all'));
 		$this->assertStringNotContainsString('<a ', $this->titleBar('/index.php?action=all'));
 		$this->assertStringNotContainsString('<a ', $this->titleBar('/index.php?action=search&q=x'));
 	}

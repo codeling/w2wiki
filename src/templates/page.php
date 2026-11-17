@@ -4,7 +4,8 @@
  *
  * The page of the wiki (inside layout): title bar, toolbar, sidebar, and the main part with the note.
  *
- * Values: title (text), modified (text, or '' for pages without a date), pageActions (Html or null),
+ * Values: title (text), modified (text, or '' for pages without a date), pageActions (Html or null: the icons in the
+ *         title bar, which are kept together when the bar wraps on narrow screens),
  *         toolbar (list of items: href, icon (Html, see iconSvg(), or null for a link with a text only), label,
  *         shortcut (text: the keys of the keyboard shortcut which follows the link, like "g h"; or null)),
  *         drawer (Html or null), themeSwitch (Html: the buttons to choose the color scheme), sidebar (Html or null),
@@ -14,7 +15,7 @@
  * wiki.js), so that a page only has the shortcuts of what it shows.
  */
 ?>
-    <div class="titlebar"><span class="title"><?= $this->title ?></span><?php if ($this->modified !== ''): ?><span class="titledate"><?= $this->modified ?></span><?php endif ?><?= $this->pageActions ?>
+    <div class="titlebar"><span class="title"><?= $this->title ?></span><?php if ($this->modified !== ''): ?><span class="titledate"><?= $this->modified ?></span><?php endif ?><?php if ($this->pageActions !== null): ?><span class="pageactions"><?= $this->pageActions ?></span><?php endif ?>
 
     </div>
     <div class="toolbar">
@@ -28,7 +29,7 @@
 <?php endforeach ?>
 <?php /* (a GET request: the address of the results can be bookmarked and shared, and reloading them doesn't ask
           to send the form again; the action is a field of the form, as a query in "action" would be dropped) */ ?>
-      <form method="get" action="<?= $this->e(SELF) ?>">
+      <form method="get" action="<?= $this->e(SELF) ?>" class="searchform">
         <input type="hidden" name="action" value="search" />
         <input class="search" placeholder="<?= __('Search') ?>" size="20" id="search" type="text" name="q" data-shortcut="/" aria-keyshortcuts="/" />
       </form>

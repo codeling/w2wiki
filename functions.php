@@ -939,16 +939,18 @@ function humanFilesize($bytes, $decimals = 2) {
  *
  * @param string $action	the action which shows the table (the headings are links to it)
  * @param string $sortBy	the column which the table is sorted by
- * @param array<int, array{0: string, 1: string|null}> $columns	the label of each column, and what to sort by to
- *                          sort by it (or null for a column which can't be sorted by)
+ * @param array<int, array{0: string, 1: string|null, 2?: string}> $columns	the label of each column, what to sort by
+ *                          to sort by it (or null for a column which can't be sorted by), and the class of its cell
+ *                          (optional, e.g. "wideonly" for a column which narrow screens don't show)
  * return W2\Html
  */
 function sortableHeadings($action, $sortBy, $columns)
 {
 	$headings = array();
-	foreach ($columns as list($label, $key))
+	foreach ($columns as $column)
 	{
-		$headings[] = array('label' => $label, 'current' => ($key !== null && $key === $sortBy),
+		list($label, $key) = $column;
+		$headings[] = array('label' => $label, 'current' => ($key !== null && $key === $sortBy), 'class' => $column[2] ?? '',
 			'href' => ($key === null || $key === $sortBy) ? null : SELF . "?action=" . $action . "&sortBy=" . $key);
 	}
 	return templates()->render('table-head', array('columns' => $headings));

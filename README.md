@@ -29,6 +29,7 @@ W2 wiki is a web-based, wiki-like notepad that you can host yourself.
     - Keyboard shortcuts (`?` shows the list): `/` search, `e` edit, `n` new page, `g` `h` home page, `g` `a` all pages, `h` history (with git); in the editor Ctrl+S or Ctrl+Enter save, Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+Alt+P preview, Alt+F10 formatting toolbar, Tab indents (Cmd and Option on a Mac). They only use the links of the page, and are left alone while typing; the pages work without them (and without JavaScript)
     - Localization support (en/de/ja/oc translations included)
     - Improved icon-based interface
+    - Phones: the lists leave out the columns which say little there (the author and version in the history of a page, the size of pages and files, how to refer to a file), the list of all pages shows the name above the date and the icons, the title bar and the toolbar wrap as a whole, and on touch screens the icons are larger, with room to tap them; form fields have text of at least 16px, as iOS zooms into smaller text
     - Optional sidebar fed by a special page (shown when viewing pages, in the page list and in search results, but not when editing)
 	- Merged All/Recent list of all pages
     - Links:

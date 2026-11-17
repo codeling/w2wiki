@@ -9,6 +9,7 @@
  *         rows (list of: date (text), subject (text: the first line of the message), author (text), shortHash (text),
  *         deleted (bool: the page was deleted in this version, which has no links), versionHref, changesHref (what
  *         this version changed), compareHref (this version compared with the current text): text)
+ * Narrow screens don't show the author and the version ("wideonly", see index.css): the page of a version has them.
  */
 ?>
 <?php if ($this->total === 0): ?>
@@ -17,12 +18,12 @@
 <p class="historynav"><?= sprintf(__('Versions %s to %s of %s'), $this->first, $this->last, $this->total) ?>
 <?php if ($this->newerHref !== null): ?> <a href="<?= $this->newerHref ?>" rel="prev"><?= __('Newer versions') ?></a><?php endif ?>
 <?php if ($this->olderHref !== null): ?> <a href="<?= $this->olderHref ?>" rel="next"><?= __('Older versions') ?></a><?php endif ?></p>
-<table class="history"><thead><tr><th><?= __('Date') ?></th><th><?= __('Message') ?></th><th><?= __('Author') ?></th><th><?= __('Version') ?></th><th><?= __('Compare') ?></th></tr></thead><tbody>
+<table class="history"><thead><tr><th><?= __('Date') ?></th><th><?= __('Message') ?></th><th class="wideonly"><?= __('Author') ?></th><th class="wideonly"><?= __('Version') ?></th><th><?= __('Compare') ?></th></tr></thead><tbody>
 <?php foreach ($this->rows as $row): ?>
 <?php if ($row['deleted']): ?>
-<tr class="deleted"><td><?= $row['date'] ?></td><td><?= $row['subject'] ?> <em>(<?= __('the page was deleted') ?>)</em></td><td><?= $row['author'] ?></td><td><code><?= $row['shortHash'] ?></code></td><td></td></tr>
+<tr class="deleted"><td><?= $row['date'] ?></td><td><?= $row['subject'] ?> <em>(<?= __('the page was deleted') ?>)</em></td><td class="wideonly"><?= $row['author'] ?></td><td class="wideonly"><code><?= $row['shortHash'] ?></code></td><td></td></tr>
 <?php else: ?>
-<tr><td><a href="<?= $row['versionHref'] ?>"><?= $row['date'] ?></a></td><td><?= $row['subject'] ?></td><td><?= $row['author'] ?></td><td><code><?= $row['shortHash'] ?></code></td><td class="historylinks"><a href="<?= $row['changesHref'] ?>"><?= __('Changes') ?></a> <a href="<?= $row['compareHref'] ?>"><?= __('With current text') ?></a></td></tr>
+<tr><td><a href="<?= $row['versionHref'] ?>"><?= $row['date'] ?></a></td><td><?= $row['subject'] ?></td><td class="wideonly"><?= $row['author'] ?></td><td class="wideonly"><code><?= $row['shortHash'] ?></code></td><td class="historylinks"><a href="<?= $row['changesHref'] ?>"><?= __('Changes') ?></a> <a href="<?= $row['compareHref'] ?>"><?= __('With current text') ?></a></td></tr>
 <?php endif ?>
 <?php endforeach ?>
 </tbody></table>

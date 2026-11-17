@@ -175,7 +175,8 @@ table {
   }
   td, th {
 	padding: .1em 1em .1em .1em;
-	word-break: break-all;
+	/* (long words are broken only where they don't fit, so that a table can be narrower than the window) */
+	overflow-wrap: anywhere;
   }
   thead {
 	border-bottom: 1px solid var(--table-rule);
@@ -547,6 +548,8 @@ input.search:focus {
 
 input.pagename {
 	width: 20em;
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 input[type="button"],
@@ -1114,5 +1117,151 @@ body.editor form#edit > .formatbar + .editorbox {
   @media (prefers-reduced-motion: reduce) {
 	.dropoverlay {
 		animation: none;
+	}
+  }
+
+/*
+ * Small screens and touch screens. Narrow screens (phones) don't show the columns of the lists which say little
+ * there (.wideonly: the author and version in the history of a page, which the page of a version has, the size of
+ * pages and files, how to refer to a file), and the title bar and the toolbar wrap as a whole: the icons of a page
+ * stay together, and the search box takes the space which the icons leave. On touch screens, the icons are larger and
+ * have room around them for a finger; the text of form fields has at least 16px, as iOS zooms into smaller text when
+ * the field gets the focus.
+ */
+  @media (max-width: 600px) {
+	.wideonly {
+		display: none;
+	}
+	.main {
+		padding-right: .75em;
+	}
+	img {
+		max-width: 100%;
+	}
+	.login {
+		margin: 1em;
+	}
+	.titlebar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		column-gap: .5em;
+	}
+	.titlebar span.title {
+		overflow-wrap: anywhere;
+	}
+	.titledate {
+		margin: 0;
+	}
+	.titlebar .pageactions {
+		margin-left: auto;
+		white-space: nowrap;
+	}
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+	.toolbar .searchform {
+		display: block;
+		flex: 1 1 5em;
+		min-width: 5em;
+		margin-right: .5em;
+	}
+	input.search, input.search:focus {
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.toolbar .themeswitch {
+		float: none;
+	}
+	.pageActions {
+		padding-left: 0;
+		padding-right: 0;
+		white-space: nowrap;
+	}
+	/* (headings are broken between words, unless a word is wider than the column) */
+	th {
+		overflow-wrap: break-word;
+	}
+	/* (the list of all pages: each row in two lines, the name above the date and the icons, which don't fit next to it) */
+	table.pagelist, table.pagelist thead, table.pagelist tbody {
+		display: block;
+		max-width: none;
+	}
+	table.pagelist tr {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		grid-template-areas: "name name" "modified actions";
+		align-items: center;
+		column-gap: .5em;
+		padding: .2em 0 0 .2em;
+	}
+	table.pagelist thead tr {
+		grid-template-areas: "name modified";
+	}
+	table.pagelist thead th:last-child {
+		display: none;
+	}
+	table.pagelist td, table.pagelist th {
+		padding: 0;
+	}
+	table.pagelist .pagename {
+		grid-area: name;
+	}
+	table.pagelist .modified {
+		grid-area: modified;
+		font-size: .9em;
+	}
+	table.pagelist .pageActions {
+		grid-area: actions;
+		white-space: nowrap;
+	}
+	table.history td:first-child, td.modified {
+		overflow-wrap: normal;
+	}
+	/* (the date of the lists can wrap before the time) */
+	td.modified nobr {
+		white-space: normal;
+	}
+  }
+  @media (pointer: coarse) {
+	.titlebar .pageactions a, .toolbar > a, .pageActions a {
+		display: inline-block;
+		padding: 6px;
+		margin: 0;
+		line-height: 0;
+	}
+	.toolbar > a:not(:has(svg)) {
+		line-height: normal;
+	}
+	.toolbar {
+		padding-left: calc(1em - 6px);
+	}
+	.titlebar svg.icon, .toolbar svg.icon, .pageActions svg.icon {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+	.themeswitch button {
+		padding: 6px;
+	}
+	.themeswitch svg.icon {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+	input[type="text"], input[type="password"], input[type="number"], input.search, textarea, select {
+		font-size: 16px;
+	}
+	input[type="button"], input[type="submit"] {
+		padding: .7em 1.2em;
+		margin-bottom: .3em;
+	}
+	.sidebar li, .linkshere li {
+		line-height: 2em;
+	}
+  }
+  @media (hover: none) {
+	a > svg.icon:hover {
+		outline: none;
 	}
   }

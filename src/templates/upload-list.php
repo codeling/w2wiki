@@ -4,7 +4,8 @@
  *
  * The list of the uploaded files (inside the main part of page).
  *
- * Values: total (number), head (Html: the heading cells, see table-head), showUsage (bool: where the files are used
+ * Values: total (number), head (Html: the heading cells, see table-head; narrow screens don't show how to refer to
+ *         a file and its size, see "wideonly" in index.css), showUsage (bool: where the files are used
  *         is shown), rows (list of: thumbnail (the address of the image, or null for files which are no images), name,
  *         markdown (text: how to refer to the file in a page), modified (text), size (text), renameHref, deleteHref,
  *         pages (list of: href, name))
@@ -12,6 +13,6 @@
 ?>
 <p><?= __('Total') ?>: <?= $this->total ?> <?= __('images') ?></p><table><thead><tr><?= $this->head ?></tr></thead><tbody>
 <?php foreach ($this->rows as $row): ?>
-<tr><td><?php if ($row['thumbnail'] !== null): ?><img class="thumbImg" src="<?= $row['thumbnail'] ?>" /><?php else: ?><span class="thumbPlaceHolder"></span><?php endif ?><span class="uploadFileName"><?= $row['name'] ?></span></td><td><pre><?= $row['markdown'] ?></pre></td><td><nobr><?= $row['modified'] ?></nobr></td><td><nobr><?= $row['size'] ?></nobr></td><td><a href="<?= $row['renameHref'] ?>"><?= iconSvg('rename', translate('Rename')) ?></a><a href="<?= $row['deleteHref'] ?>"><?= iconSvg('delete', translate('Delete')) ?></a></td><?php if ($this->showUsage): ?><td><?php foreach ($row['pages'] as $page): ?><a href="<?= $page['href'] ?>"><?= $page['name'] ?></a><?php endforeach ?></td><?php endif ?></tr>
+<tr><td><?php if ($row['thumbnail'] !== null): ?><img class="thumbImg" src="<?= $row['thumbnail'] ?>" /><?php else: ?><span class="thumbPlaceHolder"></span><?php endif ?><span class="uploadFileName"><?= $row['name'] ?></span></td><td class="wideonly"><pre><?= $row['markdown'] ?></pre></td><td class="modified"><nobr><?= $row['modified'] ?></nobr></td><td class="wideonly"><nobr><?= $row['size'] ?></nobr></td><td class="pageActions"><a href="<?= $row['renameHref'] ?>"><?= iconSvg('rename', translate('Rename')) ?></a><a href="<?= $row['deleteHref'] ?>"><?= iconSvg('delete', translate('Delete')) ?></a></td><?php if ($this->showUsage): ?><td><?php foreach ($row['pages'] as $page): ?><a href="<?= $page['href'] ?>"><?= $page['name'] ?></a><?php endforeach ?></td><?php endif ?></tr>
 <?php endforeach ?>
 </tbody></table>
