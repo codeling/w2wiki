@@ -104,7 +104,10 @@ final class FormsTest extends AppTestCase
 			$form = $this->form($body, 'edit');
 			$this->assertSame('The file %s is larger than 2 MB and was not inserted.', $form->getAttribute('data-msg-import-too-large'));
 			$this->assertSame('The file %s is not a text file (.md, .markdown or .txt) and was not inserted.', $form->getAttribute('data-msg-import-not-text'));
-			$this->assertStringContainsString('<input id="importbutton" type="button" value="Insert text from file…"', $body);
+			// (an icon in the formatting toolbar, after the upload button, like the other ways to insert something)
+			$this->assertMatchesRegularExpression('#<div id="formatbar".*<button type="button" id="uploadbutton".*?</button>\n<button type="button" id="importbutton" title="Insert the text of a Markdown or text file at the cursor \(also by dropping the file on the text\)"><svg class="icon icon-insert-file" [^>]*aria-label="Insert the text of a Markdown or text file at the cursor[^"]*"><title>.*?</svg></button>\n<input id="importfile"[^>]*/>\n<button type="button" id="drawer-control".*?\n</div>#s', $body);
+			$this->assertStringNotContainsString('Insert text from file', $body);
+			$this->assertDoesNotMatchRegularExpression('#<p class="editactions">.*?import.*?</p>#s', $body, 'not below the text any more');
 			// (the file is read by the script: the input has no name, so the form never sends it)
 			$this->assertStringContainsString('<input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />', $body);
 			$this->assertNotSame('multipart/form-data', $form->getAttribute('enctype'));

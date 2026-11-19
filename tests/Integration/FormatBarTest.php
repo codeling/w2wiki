@@ -43,7 +43,7 @@ final class FormatBarTest extends AppTestCase
 		$this->assertStringContainsString('aria-label="Link to a page of the wiki: [[selected text]]">[[ ]]</button>', $toolbar);
 		// (every button has a name: the label of its icon, or its own)
 		preg_match_all('#<button\b[^>]*>(.*?)</button>#s', $toolbar, $buttons, PREG_SET_ORDER);
-		$this->assertCount(17, $buttons);
+		$this->assertCount(18, $buttons);
 		foreach ($buttons as $button) {
 			$this->assertTrue(preg_match('#aria-label="[^"]+"#', $button[0]) === 1 || trim(strip_tags($button[1])) !== '', $button[0]);
 		}

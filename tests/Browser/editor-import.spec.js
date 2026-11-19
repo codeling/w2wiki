@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-// Inserting Markdown and text files into the text of the editor: with the button below the text, or by dropping them
+// Inserting Markdown and text files into the text of the editor: with the button of the formatting toolbar, or by dropping them
 const { test, expect } = require('@playwright/test');
 const { savePage, gif } = require('./helpers');
 
@@ -38,12 +38,26 @@ test('new page: the chosen file fills the text and the title, and is saved like 
 
 test('the button opens the file chooser', async ({ page }) => {
   await page.goto('/index.php?action=new');
+  // (an icon of the formatting toolbar, after the upload button)
+  await expect(page.locator('#formatbar #uploadbutton + #importbutton svg.icon-insert-file')).toBeVisible();
+  await expect(page.locator('.editactions input:not([type="hidden"])')).toHaveCount(3);
   const chooser = page.waitForEvent('filechooser');
   await page.click('#importbutton');
   const fileChooser = await chooser;
   expect(fileChooser.isMultiple()).toBe(true);
   await fileChooser.setFiles(textFile('Chosen.txt', 'chosen text'));
   await expect(page.locator('#text')).toHaveValue('chosen text');
+});
+
+test('the button inserts the file where the cursor was', async ({ page, request }) => {
+  await savePage(request, 'Page with a chosen part', 'before after');
+  await page.goto('/index.php?action=edit&page=' + encodeURIComponent('Page with a chosen part'));
+  await page.evaluate(() => { const text = document.getElementById('text'); text.focus(); text.setSelectionRange(7, 7); });
+  const chooser = page.waitForEvent('filechooser');
+  await page.click('#importbutton');
+  await (await chooser).setFiles(textFile('part.md', 'chosen '));
+  await expect(page.locator('#text')).toHaveValue('before chosen after');
+  await expect(page.locator('#text')).toBeFocused();
 });
 
 test('existing page: the text of the file is inserted at the cursor, the page keeps its name', async ({ page, request }) => {
