@@ -1123,10 +1123,11 @@ body.editor form#edit > .formatbar + .editorbox {
 /*
  * Small screens and touch screens. Narrow screens (phones) don't show the columns of the lists which say little
  * there (.wideonly: the author and version in the history of a page, which the page of a version has, the size of
- * pages and files, how to refer to a file), and the title bar and the toolbar wrap as a whole: the icons of a page
- * stay together, and the search box takes the space which the icons leave. On touch screens, the icons are larger and
- * have room around them for a finger; the text of form fields has at least 16px, as iOS zooms into smaller text when
- * the field gets the focus.
+ * pages and files, how to refer to a file). The title bar is one line, to leave the space to the page: the title (cut
+ * off with "…" if it is too long) above the date, and the icons of the page next to them; in the toolbar, the search box
+ * takes the space which the icons leave. On touch screens, the icons are larger and have room around them for a finger;
+ * the text of form fields has at least 16px, as iOS zooms into smaller text when the field gets the focus. While the
+ * text of the editor has the focus on a phone (with the on-screen keyboard), the title bar and the toolbar are hidden.
  */
   @media (max-width: 600px) {
 	.wideonly {
@@ -1142,19 +1143,39 @@ body.editor form#edit > .formatbar + .editorbox {
 		margin: 1em;
 	}
 	.titlebar {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: "title actions" "date actions";
 		align-items: center;
 		column-gap: .5em;
+		padding-top: 2px;
+		padding-bottom: 2px;
 	}
 	.titlebar span.title {
-		overflow-wrap: anywhere;
+		grid-area: title;
+		align-self: end;
+		font-size: 1.15em;
+		line-height: 1.2;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* (without a date, the title is in the middle of the bar) */
+	.titlebar:not(:has(.titledate)) span.title {
+		grid-row: 1 / span 2;
+		align-self: center;
 	}
 	.titledate {
+		grid-area: date;
+		align-self: start;
 		margin: 0;
+		font-size: .8em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.titlebar .pageactions {
-		margin-left: auto;
+		grid-area: actions;
 		white-space: nowrap;
 	}
 	.toolbar {
@@ -1236,7 +1257,7 @@ body.editor form#edit > .formatbar + .editorbox {
 		line-height: normal;
 	}
 	.toolbar {
-		padding-left: calc(1em - 6px);
+		padding: 0 4px 0 calc(1em - 6px);
 	}
 	.titlebar svg.icon, .toolbar svg.icon, .pageActions svg.icon {
 		width: 1.5rem;
@@ -1258,6 +1279,11 @@ body.editor form#edit > .formatbar + .editorbox {
 	}
 	.sidebar li, .linkshere li {
 		line-height: 2em;
+	}
+  }
+  @media (pointer: coarse) and (max-width: 600px), (pointer: coarse) and (max-height: 500px) {
+	body.editor:has(#text:focus) > .titlebar, body.editor:has(#text:focus) > .toolbar {
+		display: none;
 	}
   }
   @media (hover: none) {
