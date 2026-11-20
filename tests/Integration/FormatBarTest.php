@@ -40,7 +40,10 @@ final class FormatBarTest extends AppTestCase
 		$this->assertStringContainsString('<button type="button" data-format="bold" title="Bold (Ctrl+B)" aria-keyshortcuts="Control+B Meta+B"><svg class="icon icon-format-text-bold" viewBox="0 0 16 16" role="img" aria-label="Bold (Ctrl+B)">', $toolbar);
 		$this->assertStringContainsString('data-format="italic" title="Italic (Ctrl+I)" aria-keyshortcuts="Control+I Meta+I"', $toolbar);
 		$this->assertStringContainsString('data-format="link" title="Link (Ctrl+K)" aria-keyshortcuts="Control+K Meta+K"', $toolbar);
-		$this->assertStringContainsString('aria-label="Link to a page of the wiki: [[selected text]]">[[ ]]</button>', $toolbar);
+		// (links to addresses have the globe which marks them in the pages, links to pages of the wiki the chain)
+		$this->assertStringContainsString('<button type="button" data-format="link" title="Link (Ctrl+K)" aria-keyshortcuts="Control+K Meta+K"><svg class="icon icon-internet" viewBox="0 0 16 16" role="img" aria-label="Link (Ctrl+K)">', $toolbar);
+		$this->assertStringContainsString('<button type="button" data-format="wikilink" title="Link to a page of the wiki: [[selected text]]"><svg class="icon icon-link" viewBox="0 0 16 16" role="img" aria-label="Link to a page of the wiki: [[selected text]]">', $toolbar);
+		$this->assertStringNotContainsString('[[ ]]', $toolbar);
 		// (every button has a name: the label of its icon, or its own)
 		preg_match_all('#<button\b[^>]*>(.*?)</button>#s', $toolbar, $buttons, PREG_SET_ORDER);
 		$this->assertCount(18, $buttons);

@@ -909,7 +909,7 @@ body.editor form#edit > .editorbox {
 
 /*
  * The formatting toolbar directly above the text of the editor (format-bar.php, setupFormatBar() in wiki.js): flat
- * buttons with icons (or short labels in the font of the text), in groups with lines between them, which wrap on narrow
+ * buttons with icons, in groups with lines between them, which wrap on narrow
  * screens; the button of the Markdown help is at the end, apart from them. The menu of the headings drops down from its
  * button, with the level of the cursor's line checked. The dialog for the size of a table looks like the one to upload
  * files. Where the preview takes the place of the text (narrow screens), the toolbar goes with the text.
@@ -954,11 +954,6 @@ body.editor form#edit > .formatbar + .editorbox {
 	width: 1.25em;
 	height: 1.25em;
 	color: var(--page-fg);
-}
-.formatbar .textlabel {
-	font-family: Courier, monospace;
-	font-weight: bold;
-	white-space: nowrap;
 }
 .formatsep {
 	align-self: stretch;

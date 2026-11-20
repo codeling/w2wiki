@@ -488,7 +488,7 @@ test.describe('dark color scheme', () => {
   test('the buttons, the menu and the dialog are readable', async ({ page }) => {
     const problems = watchProblems(page);
     await page.goto('/index.php?action=new');
-    await expectReadable(page, ['#formatbar button[data-format="wikilink"]', '#formatbar button[data-format="bold"] svg.icon']);
+    await expectReadable(page, ['#formatbar button[data-format="wikilink"] svg.icon', '#formatbar button[data-format="link"] svg.icon', '#formatbar button[data-format="bold"] svg.icon']);
     await page.click('#headingbutton');
     await expectReadable(page, ['#headingmenu [data-level="1"]', '#headingmenu [data-level="4"]']);
     await page.keyboard.press('Escape');

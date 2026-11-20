@@ -23,8 +23,9 @@
 <?php endforeach ?>
 </span></span>
 <span class="formatsep" role="separator"></span>
-<button type="button" data-format="link" title="<?= __('Link (Ctrl+K)') ?>" aria-keyshortcuts="Control+K Meta+K"><?= iconSvg('link', translate('Link (Ctrl+K)')) ?></button>
-<button type="button" data-format="wikilink" class="textlabel" title="<?= __('Link to a page of the wiki: [[selected text]]') ?>" aria-label="<?= __('Link to a page of the wiki: [[selected text]]') ?>">[[ ]]</button>
+<?php /* (a link to an address has the globe which marks such links in the pages; one to a page of the wiki, the chain) */ ?>
+<button type="button" data-format="link" title="<?= __('Link (Ctrl+K)') ?>" aria-keyshortcuts="Control+K Meta+K"><?= iconSvg('internet', translate('Link (Ctrl+K)')) ?></button>
+<button type="button" data-format="wikilink" title="<?= __('Link to a page of the wiki: [[selected text]]') ?>"><?= iconSvg('link', translate('Link to a page of the wiki: [[selected text]]')) ?></button>
 <span class="formatsep" role="separator"></span>
 <button type="button" data-format="bullets" title="<?= __('Bulleted list') ?>"><?= iconSvg('format-list-unordered', translate('Bulleted list')) ?></button>
 <button type="button" data-format="numbers" title="<?= __('Numbered list') ?>"><?= iconSvg('format-list-ordered', translate('Numbered list')) ?></button>
