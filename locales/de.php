@@ -113,7 +113,6 @@ $w2_word_set = array(
 	'Pages which mention the name without a link:' => 'Seiten, die den Namen ohne Link erwähnen:',
 	'Save (Ctrl+S)' => 'Speichern (Strg+S)',
 	'Tab indents lines, Shift+Tab outdents them. To leave the text with Tab, press Esc first.' => 'Tab rückt Zeilen ein, Umschalt+Tab rückt sie aus. Um den Text mit Tab zu verlassen, zuerst Esc drücken.',
-	'Insert text from file…' => 'Text aus Datei einfügen…',
 	'Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)' => 'Den Text einer Markdown- oder Textdatei an der Cursorposition einfügen (auch durch Ziehen der Datei auf den Text)',
 	'The file %s is larger than 2 MB and was not inserted.' => 'Die Datei %s ist größer als 2 MB und wurde nicht eingefügt.',
 	'The file %s is not a text file (.md, .markdown or .txt) and was not inserted.' => 'Die Datei %s ist keine Textdatei (.md, .markdown oder .txt) und wurde nicht eingefügt.',

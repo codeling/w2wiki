@@ -175,7 +175,8 @@ table {
   }
   td, th {
 	padding: .1em 1em .1em .1em;
-	word-break: break-all;
+	/* (long words are broken only where they don't fit, so that a table can be narrower than the window) */
+	overflow-wrap: anywhere;
   }
   thead {
 	border-bottom: 1px solid var(--table-rule);
@@ -547,6 +548,8 @@ input.search:focus {
 
 input.pagename {
 	width: 20em;
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 input[type="button"],
@@ -906,7 +909,7 @@ body.editor form#edit > .editorbox {
 
 /*
  * The formatting toolbar directly above the text of the editor (format-bar.php, setupFormatBar() in wiki.js): flat
- * buttons with icons (or short labels in the font of the text), in groups with lines between them, which wrap on narrow
+ * buttons with icons, in groups with lines between them, which wrap on narrow
  * screens; the button of the Markdown help is at the end, apart from them. The menu of the headings drops down from its
  * button, with the level of the cursor's line checked. The dialog for the size of a table looks like the one to upload
  * files. Where the preview takes the place of the text (narrow screens), the toolbar goes with the text.
@@ -951,11 +954,6 @@ body.editor form#edit > .formatbar + .editorbox {
 	width: 1.25em;
 	height: 1.25em;
 	color: var(--page-fg);
-}
-.formatbar .textlabel {
-	font-family: Courier, monospace;
-	font-weight: bold;
-	white-space: nowrap;
 }
 .formatsep {
 	align-self: stretch;
@@ -1114,5 +1112,177 @@ body.editor form#edit > .formatbar + .editorbox {
   @media (prefers-reduced-motion: reduce) {
 	.dropoverlay {
 		animation: none;
+	}
+  }
+
+/*
+ * Small screens and touch screens. Narrow screens (phones) don't show the columns of the lists which say little
+ * there (.wideonly: the author and version in the history of a page, which the page of a version has, the size of
+ * pages and files, how to refer to a file). The title bar is one line, to leave the space to the page: the title (cut
+ * off with "…" if it is too long) above the date, and the icons of the page next to them; in the toolbar, the search box
+ * takes the space which the icons leave. On touch screens, the icons are larger and have room around them for a finger;
+ * the text of form fields has at least 16px, as iOS zooms into smaller text when the field gets the focus. While the
+ * text of the editor has the focus on a phone (with the on-screen keyboard), the title bar and the toolbar are hidden.
+ */
+  @media (max-width: 600px) {
+	.wideonly {
+		display: none;
+	}
+	.main {
+		padding-right: .75em;
+	}
+	img {
+		max-width: 100%;
+	}
+	.login {
+		margin: 1em;
+	}
+	.titlebar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: "title actions" "date actions";
+		align-items: center;
+		column-gap: .5em;
+		padding-top: 2px;
+		padding-bottom: 2px;
+	}
+	.titlebar span.title {
+		grid-area: title;
+		align-self: end;
+		font-size: 1.15em;
+		line-height: 1.2;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* (without a date, the title is in the middle of the bar) */
+	.titlebar:not(:has(.titledate)) span.title {
+		grid-row: 1 / span 2;
+		align-self: center;
+	}
+	.titledate {
+		grid-area: date;
+		align-self: start;
+		margin: 0;
+		font-size: .8em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.titlebar .pageactions {
+		grid-area: actions;
+		white-space: nowrap;
+	}
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+	.toolbar .searchform {
+		display: block;
+		flex: 1 1 5em;
+		min-width: 5em;
+		margin-right: .5em;
+	}
+	input.search, input.search:focus {
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.toolbar .themeswitch {
+		float: none;
+	}
+	.pageActions {
+		padding-left: 0;
+		padding-right: 0;
+		white-space: nowrap;
+	}
+	/* (headings are broken between words, unless a word is wider than the column) */
+	th {
+		overflow-wrap: break-word;
+	}
+	/* (the list of all pages: each row in two lines, the name above the date and the icons, which don't fit next to it) */
+	table.pagelist, table.pagelist thead, table.pagelist tbody {
+		display: block;
+		max-width: none;
+	}
+	table.pagelist tr {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		grid-template-areas: "name name" "modified actions";
+		align-items: center;
+		column-gap: .5em;
+		padding: .2em 0 0 .2em;
+	}
+	table.pagelist thead tr {
+		grid-template-areas: "name modified";
+	}
+	table.pagelist thead th:last-child {
+		display: none;
+	}
+	table.pagelist td, table.pagelist th {
+		padding: 0;
+	}
+	table.pagelist .pagename {
+		grid-area: name;
+	}
+	table.pagelist .modified {
+		grid-area: modified;
+		font-size: .9em;
+	}
+	table.pagelist .pageActions {
+		grid-area: actions;
+		white-space: nowrap;
+	}
+	table.history td:first-child, td.modified {
+		overflow-wrap: normal;
+	}
+	/* (the date of the lists can wrap before the time) */
+	td.modified nobr {
+		white-space: normal;
+	}
+  }
+  @media (pointer: coarse) {
+	.titlebar .pageactions a, .toolbar > a, .pageActions a {
+		display: inline-block;
+		padding: 6px;
+		margin: 0;
+		line-height: 0;
+	}
+	.toolbar > a:not(:has(svg)) {
+		line-height: normal;
+	}
+	.toolbar {
+		padding: 0 4px 0 calc(1em - 6px);
+	}
+	.titlebar svg.icon, .toolbar svg.icon, .pageActions svg.icon {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+	.themeswitch button {
+		padding: 6px;
+	}
+	.themeswitch svg.icon {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+	input[type="text"], input[type="password"], input[type="number"], input.search, textarea, select {
+		font-size: 16px;
+	}
+	input[type="button"], input[type="submit"] {
+		padding: .7em 1.2em;
+		margin-bottom: .3em;
+	}
+	.sidebar li, .linkshere li {
+		line-height: 2em;
+	}
+  }
+  @media (pointer: coarse) and (max-width: 600px), (pointer: coarse) and (max-height: 500px) {
+	body.editor:has(#text:focus) > .titlebar, body.editor:has(#text:focus) > .toolbar {
+		display: none;
+	}
+  }
+  @media (hover: none) {
+	a > svg.icon:hover {
+		outline: none;
 	}
   }

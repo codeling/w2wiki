@@ -407,8 +407,8 @@ function isTextFile(file)
 }
 
 /**
- * Inserting Markdown and text files into the text of the editor, at the cursor: chosen with the button below the text,
- * or dropped on the editor (see setupDrops(), which puts the cursor where they are dropped). A new page without a title
+ * Inserting Markdown and text files into the text of the editor, at the cursor: chosen with the button of the formatting
+ * toolbar, or dropped on the editor (see setupDrops(), which puts the cursor where they are dropped). A new page without a title
  * gets the name of the (first) file. The text is then saved like typed text, so nothing is stored before the page is
  * saved. Returns the function which inserts files.
  */

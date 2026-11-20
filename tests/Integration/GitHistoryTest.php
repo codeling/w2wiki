@@ -24,7 +24,7 @@ final class GitHistoryTest extends GitTestCase
 	/** The rows of the list of versions: date, subject, short hash, and the links */
 	private function rows(string $body): array
 	{
-		preg_match_all('#<tr(?: class="deleted")?><td>(?:<a href="([^"]*)">)?([^<]*)(?:</a>)?</td><td>(.*?)</td><td>[^<]*</td><td><code>([0-9a-f]+)</code></td>#', $body, $matches, PREG_SET_ORDER);
+		preg_match_all('#<tr(?: class="deleted")?><td>(?:<a href="([^"]*)">)?([^<]*)(?:</a>)?</td><td>(.*?)</td><td class="wideonly">[^<]*</td><td class="wideonly"><code>([0-9a-f]+)</code></td>#', $body, $matches, PREG_SET_ORDER);
 		return array_map(fn($m) => ['href' => html_entity_decode($m[1]), 'subject' => html_entity_decode(strip_tags($m[3]), ENT_QUOTES), 'hash' => $m[4]], $matches);
 	}
 
@@ -273,7 +273,7 @@ final class GitHistoryTest extends GitTestCase
 		$body = $this->view('history', 'Home')->body;
 		$this->assertStringContainsString('Home: &lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quotes&quot;', $body);
 		$this->assertStringContainsString('&lt;img src=x onerror=alert(2)&gt;', $body);
-		$this->assertStringContainsString('<td>Mallory &amp; &quot;Co', $body);
+		$this->assertStringContainsString('<td class="wideonly">Mallory &amp; &quot;Co', $body);
 		$this->assertNoActiveContent($body);
 		$version = $this->view('version', 'Home', ['rev' => $this->hashes('Home.md')[1]])->body;
 		$this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $version);

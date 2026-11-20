@@ -20,6 +20,22 @@ final class ListViewsTest extends AppTestCase
 		$this->assertStringContainsString('sortBy=size', $body);
 	}
 
+	public function testColumnsWhichNarrowScreensLeaveOut(): void
+	{
+		// (index.css hides .wideonly on narrow screens, and shows each row of the list of all pages in two lines)
+		$body = $this->http->get('/index.php', ['action' => 'all'])->body;
+		$this->assertStringContainsString('<table class="pagelist">', $body);
+		$this->assertMatchesRegularExpression('#<th class="wideonly"><a href="[^"]*sortBy=size">Size</a></th>#', $body);
+		$this->assertMatchesRegularExpression('#<tr><td class="pagename"><a href="/index.php/Home">Home</a></td><td valign="top" class="modified"><nobr>[^<]+</nobr></td><td valign="top" class="wideonly"><nobr>[^<]+</nobr></td><td class="pageActions">#', $body);
+		$this->assertMatchesRegularExpression('#<th><a href="[^"]*sortBy=recent">Modified</a></th>#', $body, 'the other columns have no class');
+
+		$this->upload('a.gif', self::gif());
+		$body = $this->http->get('/index.php', ['action' => 'upload'])->body;
+		$this->assertStringContainsString('<th class="wideonly">Usage</th>', $body);
+		$this->assertMatchesRegularExpression('#<th class="wideonly"><a href="[^"]*sortBy=size">Size</a></th>#', $body);
+		$this->assertMatchesRegularExpression('#<td class="wideonly"><pre>!\[[^<]*\]\(/images/a.gif\)</pre></td><td class="modified"><nobr>[^<]+</nobr></td><td class="wideonly"><nobr>[^<]+</nobr></td><td class="pageActions"><a #', $body);
+	}
+
 	public function testUploadListEscapesNamesAndLinksTheActions(): void
 	{
 		$this->upload('a.gif', self::gif());

@@ -4,7 +4,8 @@
  *
  * The formatting toolbar directly above the text of the editor (inside the form of editor): buttons which format the
  * selected text or the lines of the cursor (bold, italic, headings, links, lists, quotes, code), insert a rule or a
- * table (with the dialog of table-dialog), upload files, and show the Markdown help (the drawer). The buttons only work
+ * table (with the dialog of table-dialog), upload files, insert the text of Markdown or text files (the hidden field
+ * of the files to choose, see setupImport() in wiki.js), and show the Markdown help (the drawer). The buttons only work
  * with the script (setupFormatBar() in wiki.js), so the toolbar is hidden until the script shows it.
  * The buttons name their keyboard shortcut in their label (their tooltip); the arrow keys move between them, and Alt+F10
  * in the text goes to them.
@@ -22,8 +23,9 @@
 <?php endforeach ?>
 </span></span>
 <span class="formatsep" role="separator"></span>
-<button type="button" data-format="link" title="<?= __('Link (Ctrl+K)') ?>" aria-keyshortcuts="Control+K Meta+K"><?= iconSvg('link', translate('Link (Ctrl+K)')) ?></button>
-<button type="button" data-format="wikilink" class="textlabel" title="<?= __('Link to a page of the wiki: [[selected text]]') ?>" aria-label="<?= __('Link to a page of the wiki: [[selected text]]') ?>">[[ ]]</button>
+<?php /* (a link to an address has the globe which marks such links in the pages; one to a page of the wiki, the chain) */ ?>
+<button type="button" data-format="link" title="<?= __('Link (Ctrl+K)') ?>" aria-keyshortcuts="Control+K Meta+K"><?= iconSvg('internet', translate('Link (Ctrl+K)')) ?></button>
+<button type="button" data-format="wikilink" title="<?= __('Link to a page of the wiki: [[selected text]]') ?>"><?= iconSvg('link', translate('Link to a page of the wiki: [[selected text]]')) ?></button>
 <span class="formatsep" role="separator"></span>
 <button type="button" data-format="bullets" title="<?= __('Bulleted list') ?>"><?= iconSvg('format-list-unordered', translate('Bulleted list')) ?></button>
 <button type="button" data-format="numbers" title="<?= __('Numbered list') ?>"><?= iconSvg('format-list-ordered', translate('Numbered list')) ?></button>
@@ -35,5 +37,7 @@
 <?php if ($this->uploads): ?>
 <button type="button" id="uploadbutton" title="<?= __('Upload a file and insert a link to it at the cursor (also by dropping files on the editor, or pasting an image)') ?>" aria-haspopup="dialog"><?= iconSvg('upload', translate('Upload a file and insert a link to it at the cursor (also by dropping files on the editor, or pasting an image)')) ?></button>
 <?php endif ?>
+<button type="button" id="importbutton" title="<?= __('Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)') ?>"><?= iconSvg('insert-file', translate('Insert the text of a Markdown or text file at the cursor (also by dropping the file on the text)')) ?></button>
+<input id="importfile" type="file" multiple="multiple" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden="hidden" />
 <button type="button" id="drawer-control" class="helpbutton" title="<?= __('Formatting help') ?>" aria-controls="drawer" aria-expanded="false"><?= iconSvg('help', translate('Formatting help')) ?></button>
 </div>
